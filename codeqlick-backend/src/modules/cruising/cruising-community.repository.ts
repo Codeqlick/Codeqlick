@@ -59,6 +59,8 @@ export interface MeetupScope {
   countries?: string[];
   /** Also the meetups this member hosts or said they are going to. */
   memberId?: string;
+  /** Also the meetups this member hosts or goes to without being anonymous (their profile). */
+  publicMemberId?: string;
 }
 
 /** Someone to tell about something, with how they can be reached. */
@@ -109,6 +111,12 @@ export class CruisingCommunityRepository {
     if (places.length > 0) any.push({ spot: { OR: places } });
     if (scope.memberId) {
       any.push({ hostId: scope.memberId }, { attendees: { some: { userId: scope.memberId } } });
+    }
+    if (scope.publicMemberId) {
+      any.push(
+        { hostId: scope.publicMemberId },
+        { attendees: { some: { userId: scope.publicMemberId, anonymous: false } } },
+      );
     }
     if (any.length === 0) return Promise.resolve([]);
     return this.prisma.cruisingMeetup.findMany({

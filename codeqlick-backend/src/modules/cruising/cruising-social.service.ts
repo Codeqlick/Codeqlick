@@ -113,6 +113,24 @@ export interface CruisingMember {
   winked: boolean;
 }
 
+/** What a member gave the directory, shown on their profile (architecture 4.15, profile pages). */
+export interface CruisingMemberActivity {
+  /** Their LIVE reviews of LIVE spots, newest first. */
+  reviews: {
+    id: string;
+    rating: number;
+    text: string | null;
+    createdAt: string;
+    helpful: number;
+    spot: { slug: string; name: string; city: string; countryCode: string };
+  }[];
+  /** The spots they proposed that are LIVE, newest first. */
+  spots: (CruisingSpotSummary & { city: string; countryCode: string })[];
+}
+
+/** How many reviews and spots a profile lists. */
+const ACTIVITY_TAKE = 20;
+
 export interface CruisingConversationView {
   id: string;
   partner: { nickname: string } & MemberBadge;
@@ -333,6 +351,39 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
       contributions: countersOf(target),
       winked:
         target.userId !== userId && (await this.winks.winkedToday(userId, target.userId, now)),
+    };
+  }
+
+  /**
+   * A member's reviews and LIVE spots for their profile: seen by whoever may see the profile (an
+   * entered member with a nickname; `404` for an unknown, suspended or blocked member).
+   */
+  async activity(
+    userId: string,
+    nickname: string,
+    now = new Date(),
+  ): Promise<CruisingMemberActivity> {
+    const me = await this.entered(userId);
+    this.needNickname(me);
+    const target = await this.visible(userId, nickname, now);
+    const [reviews, spots] = await Promise.all([
+      this.repository.liveReviewsBy(target.userId, ACTIVITY_TAKE),
+      this.repository.liveSpotsBy(target.userId, ACTIVITY_TAKE),
+    ]);
+    return {
+      reviews: reviews.map((review) => ({
+        id: review.id,
+        rating: review.rating,
+        text: review.text,
+        createdAt: review.createdAt.toISOString(),
+        helpful: review._count.votes,
+        spot: review.spot,
+      })),
+      spots: spots.map((spot) => ({
+        ...spotSummary(spot),
+        city: spot.city,
+        countryCode: spot.countryCode,
+      })),
     };
   }
 

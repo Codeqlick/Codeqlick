@@ -1001,6 +1001,29 @@ describe('Cruising social (e2e)', () => {
       reviewsWritten: 25,
     });
 
+    // The profile's tabs: the author's reviews (with their votes), not to someone blocked.
+    const activity = await request(server())
+      .get(`/v1/cruising/members/${author.nick}/activity`)
+      .set(voter.auth)
+      .expect(200);
+    expect(activity.body.reviews).toEqual([
+      expect.objectContaining({
+        id: older.body.id,
+        rating: 4,
+        text: 'Older and helpful',
+        helpful: 1,
+        spot: expect.objectContaining({ slug: spot.slug }),
+      }),
+    ]);
+    expect(activity.body.spots).toEqual([]);
+    expect(
+      (
+        await request(server())
+          .get(`/v1/cruising/members/${author.nick}/activity`)
+          .set(stranger.auth)
+      ).status,
+    ).toBe(404);
+
     // Deleting the review takes its votes and counts with it.
     await request(server())
       .delete(`/v1/cruising/spots/${spot.id}/review`)
@@ -1034,6 +1057,15 @@ describe('Cruising social (e2e)', () => {
       .set(admin.auth)
       .expect(204);
     expect(await spotsLive()).toBe(1);
+    // The proposer's profile lists the LIVE spot.
+    const viewer = await member('SpotSeer');
+    const listed = await request(server())
+      .get(`/v1/cruising/members/${proposer.nick}/activity`)
+      .set(viewer.auth)
+      .expect(200);
+    expect(listed.body.spots).toEqual([
+      expect.objectContaining({ id: spot.id, slug: spot.slug, city: `Social ${tag}` }),
+    ]);
     await request(server())
       .post(`/v1/admin/cruising/spots/${spot.id}/hide`)
       .set(admin.auth)

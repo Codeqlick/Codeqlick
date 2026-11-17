@@ -7,7 +7,7 @@ import {
   MEETUP_MIN_HOURS,
   SAFETY_KINDS,
 } from './cruising-community.rules.js';
-import { activeQuerySchema, COUNTRIES } from './cruising.schemas.js';
+import { activeQuerySchema, COUNTRIES, nicknameLookupSchema } from './cruising.schemas.js';
 
 /** Meetups a list answers at most. */
 export const MAX_MEETUPS_LISTED = 100;
@@ -26,6 +26,8 @@ export const meetupsQuerySchema = z
     spotId: z.uuid().optional(),
     countryCode: countryCodeField.optional(),
     citySlug: slugSchema.optional(),
+    /** A member's profile: the meetups they host or go to without hiding it. */
+    member: nicknameLookupSchema.optional(),
   })
   .refine((value) => !value.citySlug || !!value.countryCode, {
     message: 'A city needs its country',

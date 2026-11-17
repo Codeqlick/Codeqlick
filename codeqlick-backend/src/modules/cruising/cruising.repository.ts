@@ -357,6 +357,36 @@ export class CruisingRepository {
     });
   }
 
+  /** A member's proposed spots that are LIVE, newest first (their profile's "Spots"). */
+  liveSpotsBy(userId: string, take: number) {
+    return this.prisma.cruisingSpot.findMany({
+      where: { createdById: userId, status: 'LIVE' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      take,
+      select: { ...spotSummarySelect, city: true, countryCode: true },
+    });
+  }
+
+  /**
+   * A member's LIVE reviews of LIVE spots, newest first (their profile's "Reviews"), each with its
+   * spot and its helpful votes.
+   */
+  liveReviewsBy(userId: string, take: number) {
+    return this.prisma.cruisingReview.findMany({
+      where: { userId, status: 'LIVE', spot: { status: 'LIVE' } },
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      take,
+      select: {
+        id: true,
+        rating: true,
+        text: true,
+        createdAt: true,
+        spot: { select: { slug: true, name: true, city: true, countryCode: true } },
+        _count: { select: { votes: true } },
+      },
+    });
+  }
+
   /**
    * LIVE spots in the box, best rated first, of a type and rated at least `minRating` when given
    * (a spot with no rating is then left out). The caller asks for one more than it shows.
