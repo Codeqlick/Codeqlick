@@ -189,3 +189,12 @@
 .compact > * + * {
   margin-top: 0.75em;
 }
+
+/* "Copy" stays 32 px over the code; on touch screens a 44 px area around it takes the tap. */
+@media (pointer: coarse) {
+  .copyButton::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+  }
+}

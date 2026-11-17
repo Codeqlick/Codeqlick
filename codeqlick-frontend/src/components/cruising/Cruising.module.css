@@ -54,9 +54,34 @@
 }
 
 .mapHelp > summary {
+  /* 44 px to the touch. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--color-fuchsia-dark);
   font-weight: 600;
   cursor: pointer;
+}
+
+.mapHelp > summary::before {
+  content: '▸';
+  margin-right: 0.4em;
+  transition: transform var(--transition-fast);
+}
+
+.mapHelp[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+/* A page's lead keeps room before the content (24 px on phones, 32 on wider screens). */
+.pageLead {
+  margin-bottom: var(--space-6);
+}
+
+@media (min-width: 48rem) {
+  .pageLead {
+    margin-bottom: var(--space-8);
+  }
 }
 
 .mapHelp > summary:focus-visible {
@@ -134,13 +159,15 @@
 }
 
 .select {
-  min-height: 2.5rem;
+  min-height: 44px;
   padding: 0 var(--space-3);
   border: 1px solid var(--color-line-strong);
   border-radius: var(--radius-md);
   background: var(--color-white);
   color: var(--color-ink);
   font: inherit;
+  /* 16 px: iPhones zoom into a smaller field. */
+  font-size: 1rem;
 }
 
 .select:focus-visible,
@@ -153,7 +180,7 @@
 }
 
 .mapButton {
-  min-height: 2.5rem;
+  min-height: 44px;
   padding: 0 var(--space-4);
   border: 1.5px solid var(--color-fuchsia);
   border-radius: var(--radius-pill);
@@ -216,6 +243,17 @@
 @media (max-width: 40rem) {
   .map {
     height: calc(100dvh - 14.5rem);
+  }
+}
+
+/* Leaflet's zoom buttons are 30 px: 44 px on touch screens. */
+@media (pointer: coarse) {
+  .map :global(.leaflet-bar a),
+  .miniMap :global(.leaflet-bar a) {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+    font-size: 1.5rem;
   }
 }
 

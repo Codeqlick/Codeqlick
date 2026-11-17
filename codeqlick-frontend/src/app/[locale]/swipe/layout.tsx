@@ -87,7 +87,7 @@ export default async function SwipeLayout({ children, params }: LayoutProps) {
             adult
           />
           <main className={vc.main}>{children}</main>
-          <footer className={vc.main}>
+          <footer className={`${vc.main} ${vc.footer}`}>
             <p className={vc.muted}>
               <Link href="/swipe/takedown" className={vc.inlineLink}>
                 {t('footerTakedown')}

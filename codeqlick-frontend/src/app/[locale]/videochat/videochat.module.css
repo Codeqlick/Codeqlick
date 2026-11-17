@@ -28,7 +28,7 @@
 }
 
 .hero {
-  max-width: 44rem;
+  max-width: var(--measure);
   padding-top: var(--space-8);
 }
 
@@ -41,13 +41,13 @@
 
 .heroTitle {
   font-family: var(--font-family-display);
-  font-size: clamp(2.2rem, 5vw, 3.6rem);
-  line-height: 1.05;
+  font-size: var(--text-h1);
+  line-height: 1.1;
   margin: 0 0 var(--space-4);
 }
 
 .heroLead {
-  font-size: 1.15rem;
+  font-size: var(--text-lead);
   color: var(--color-slate);
   margin: 0 0 var(--space-6);
 }
@@ -68,9 +68,19 @@
   gap: var(--space-3);
 }
 
+/* "Leave": quiet, but 44 px to the touch like every control. */
 .leaveLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-2);
   color: var(--color-slate);
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
+}
+
+/* The apps' footer (Cruising, Swipe) sits at the bottom of short pages instead of floating. */
+.footer {
+  flex: none;
 }
 
 .note,
@@ -87,7 +97,7 @@
 
 .sectionTitle {
   font-family: var(--font-family-display);
-  font-size: 1.3rem;
+  font-size: var(--text-h2);
   margin: var(--space-6) 0 var(--space-3);
 }
 
@@ -170,7 +180,7 @@
 
 .pageTitle {
   font-family: var(--font-family-display);
-  font-size: 2rem;
+  font-size: var(--text-h1);
   margin: 0 0 var(--space-3);
 }
 

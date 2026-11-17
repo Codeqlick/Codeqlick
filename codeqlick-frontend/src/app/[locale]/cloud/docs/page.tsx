@@ -32,7 +32,7 @@ export default async function CloudDocsPage({ params }: PageProps) {
   const tm = await getTranslations({ locale, namespace: 'Markdown' });
   return (
     <article className={styles.docs}>
-      <p className={styles.eyebrow}>{t('landing.eyebrow')}</p>
+      <p className={`eyebrow ${styles.eyebrow}`}>{t('landing.eyebrow')}</p>
       <h1 className={styles.heroTitle}>{t('nav.docs')}</h1>
       <Markdown copyCode={{ copy: tm('copy'), copied: tm('copied'), failed: tm('copyFailed') }}>
         {cloudDocs(locale, env.CLOUD_HOSTING_DOMAIN, env.PUBLIC_API_URL)}

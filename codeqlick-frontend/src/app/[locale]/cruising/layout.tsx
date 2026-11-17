@@ -124,7 +124,7 @@ export default async function CruisingLayout({ children, params }: LayoutProps) 
             }
           />
           <main className={vc.main}>{children}</main>
-          <footer className={vc.main}>
+          <footer className={`${vc.main} ${vc.footer}`}>
             <p className={vc.muted}>
               <Link href="/cruising/takedown" className={vc.inlineLink}>
                 {t('footerTakedown')}

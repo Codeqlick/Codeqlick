@@ -5,7 +5,15 @@
   margin-inline: auto;
   width: 100%;
   max-width: 300px;
-  min-height: calc(250px + 1.25rem);
+}
+
+/* No reserved room (nor the "Ad" label) until the network fills the zone. */
+.ad:has(> ins:empty) {
+  gap: 0;
+}
+
+.ad:has(> ins:empty) > .label {
+  display: none;
 }
 
 .label {

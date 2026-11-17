@@ -1,7 +1,8 @@
 import styles from './Button.module.css';
 
-export type ButtonVariant = 'primary' | 'outline' | 'ink' | 'ghost' | 'danger';
-export type ButtonSize = 'md' | 'sm';
+export type ButtonVariant = 'primary' | 'outline' | 'ink' | 'ghost' | 'danger' | 'link';
+/** sm 36 px (44 to the touch), md 44 px (the default), lg 52 px (home hero and final band only). */
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export function buttonClassName({
   variant = 'primary',
@@ -17,7 +18,7 @@ export function buttonClassName({
   return [
     styles.button,
     styles[variant],
-    size === 'sm' ? styles.sm : '',
+    size === 'md' ? '' : styles[size],
     block ? styles.block : '',
     className ?? '',
   ]

@@ -27,7 +27,7 @@
 }
 
 .heroTitle {
-  font-size: clamp(2.75rem, 5.5vw, 5.25rem);
+  font-size: var(--text-display);
   line-height: 1.02;
   letter-spacing: -0.035em;
 }
@@ -53,7 +53,7 @@
 
 .code {
   background: var(--color-ink);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   padding: 1.5rem 1.75rem 2rem;
   font-family: var(--font-family-mono);
   font-size: 0.95rem;
@@ -154,12 +154,18 @@
 }
 
 .title {
-  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-size: var(--text-h2);
   line-height: 1.1;
   letter-spacing: -0.03em;
 }
 
+/* Inner pages use the same class for their page title. */
+h1.title {
+  font-size: var(--text-h1);
+}
+
 .lead {
+  font-size: var(--text-lead);
   color: var(--color-slate);
 }
 
@@ -451,8 +457,9 @@
   margin: 0 auto;
   background: var(--color-fuchsia);
   color: var(--color-white);
-  border-radius: var(--radius-2xl);
-  padding: clamp(2.5rem, 6vw, 5rem);
+  border-radius: var(--radius-lg);
+  /* 48/40 px on desktop, 32/24 px on phones. */
+  padding: clamp(2rem, 1.5rem + 2vw, 3rem) clamp(1.5rem, 1rem + 2vw, 2.5rem);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -469,13 +476,13 @@
 }
 
 .ctaTitle {
-  font-size: clamp(2.25rem, 4.5vw, 3.75rem);
-  line-height: 1.05;
+  font-size: var(--text-h1);
+  line-height: 1.1;
   letter-spacing: -0.03em;
 }
 
 .ctaBody {
-  font-size: 1.15rem;
+  font-size: var(--text-lead);
   max-width: 32rem;
 }
 
