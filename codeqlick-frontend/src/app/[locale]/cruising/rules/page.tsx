@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { webappAlternates, webappPath } from '@/lib/webapp-seo';
-import vc from '../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
 
@@ -28,9 +28,9 @@ export default async function CruisingRulesPage({ params }: PageProps) {
   const t = await getTranslations({ locale, namespace: 'Cruising.rules' });
   const tl = await getTranslations({ locale, namespace: 'Cruising.legal' });
   return (
-    <article className={vc.rules}>
-      <h1 className={vc.pageTitle}>{t('title')}</h1>
-      <p className={vc.muted}>{t('lead')}</p>
+    <article className={adult.rules}>
+      <h1 className={adult.pageTitle}>{t('title')}</h1>
+      <p className={adult.muted}>{t('lead')}</p>
       <ol>
         {RULES.map((n) => (
           <li key={n}>
@@ -38,21 +38,21 @@ export default async function CruisingRulesPage({ params }: PageProps) {
           </li>
         ))}
       </ol>
-      <h2 className={vc.sectionTitle}>{t('privacyTitle')}</h2>
+      <h2 className={adult.sectionTitle}>{t('privacyTitle')}</h2>
       <p>{t('privacy')}</p>
       <p>
-        <Link href="/cruising/terms-of-use" className={vc.inlineLink}>
+        <Link href="/cruising/terms-of-use" className={adult.inlineLink}>
           {tl('terms')}
         </Link>
         {' · '}
-        <Link href="/cruising/privacy-policy" className={vc.inlineLink}>
+        <Link href="/cruising/privacy-policy" className={adult.inlineLink}>
           {tl('privacy')}
         </Link>
       </p>
-      <h2 className={vc.sectionTitle}>{t('takedownTitle')}</h2>
+      <h2 className={adult.sectionTitle}>{t('takedownTitle')}</h2>
       <p>
         {t('takedown')}{' '}
-        <Link href="/cruising/takedown" className={vc.inlineLink}>
+        <Link href="/cruising/takedown" className={adult.inlineLink}>
           {t('takedownLink')}
         </Link>
       </p>

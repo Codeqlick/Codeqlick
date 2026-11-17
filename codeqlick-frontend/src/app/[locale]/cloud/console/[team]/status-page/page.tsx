@@ -1,10 +1,10 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ActionForm, FormCheckbox, FormInput, FormTextarea } from '@/components/app/ActionForm';
 import { CopyLink } from '@/components/app/CopyLink';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import {
   getCloudStatusPage,
@@ -18,6 +18,7 @@ import { subscriberFilter, subscriberPage } from '@/lib/cloud-subscribers';
 import { env } from '@/lib/env';
 import { webappUrl } from '@/lib/webapp-seo';
 import { saveStatusPageAction } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 import { NoticesSection } from './NoticesSection';
 import { SubscribersSection } from './SubscribersSection';
@@ -75,14 +76,12 @@ export default async function CloudStatusPageSettings({ params, searchParams }: 
 
   return (
     <div className={styles.landing}>
-      <div>
-        <p className={styles.small}>
-          <Link href={`/cloud/console/${team.slug}/monitors`}>← {t('monitors.title')}</Link>
-        </p>
-        <h1 className={styles.heroTitle}>{t('statusPage.title')}</h1>
-        <p className={styles.muted}>{t('statusPage.lead')}</p>
-      </div>
-      <div className={styles.card}>
+      <PageHeader
+        back={{ href: `/cloud/console/${team.slug}/monitors`, label: t('monitors.title') }}
+        title={t('statusPage.title')}
+        lead={t('statusPage.lead')}
+      />
+      <div className={appUi.card}>
         <p className={styles.small}>{page.enabled ? t('statusPage.live') : t('statusPage.off')}</p>
         <CopyLink url={publicUrl} labels={{ copy: t('common.copy'), copied: t('common.copied') }} />
         {page.enabled ? (
@@ -99,7 +98,7 @@ export default async function CloudStatusPageSettings({ params, searchParams }: 
         />
       </div>
       {admin ? (
-        <section className={`${styles.card} ${styles.narrow}`}>
+        <section className={`${appUi.card} ${styles.narrow}`}>
           <ActionForm
             action={saveStatusPageAction.bind(
               null,
@@ -156,7 +155,7 @@ export default async function CloudStatusPageSettings({ params, searchParams }: 
                 );
               })}
             </fieldset>
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton>{t('statusPage.save')}</SubmitButton>
             </div>
           </ActionForm>

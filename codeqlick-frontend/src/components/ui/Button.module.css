@@ -128,6 +128,20 @@
   background: #8f1c13;
 }
 
+/*
+ * A filled button that can't be used looks neutral, never like a faded primary (architecture 6.6);
+ * one that is sending its form keeps its colour, faded.
+ */
+.primary:is(:disabled, [aria-disabled='true']):not([aria-busy='true']),
+.ink:is(:disabled, [aria-disabled='true']):not([aria-busy='true']),
+.danger:is(:disabled, [aria-disabled='true']):not([aria-busy='true']) {
+  opacity: 1;
+  background: var(--color-line);
+  border-color: var(--color-line);
+  color: var(--color-slate);
+  box-shadow: none;
+}
+
 /* Text only, for a quiet action next to a button; still 44 px high to the touch. */
 .link {
   min-height: 44px;

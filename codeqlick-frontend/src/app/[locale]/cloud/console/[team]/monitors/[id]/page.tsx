@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -18,6 +19,7 @@ import {
   toggleMonitorAction,
   updateMonitorSlowAction,
 } from '../../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../../cloud.module.css';
 
 type PageProps = { params: Promise<{ locale: string; team: string; id: string }> };
@@ -62,11 +64,10 @@ export default async function CloudMonitorPage({ params }: PageProps) {
 
   return (
     <div className={styles.landing}>
-      <div>
-        <p className={styles.small}>
-          <Link href={`/cloud/console/${team.slug}/monitors`}>← {t('monitors.title')}</Link>
-        </p>
-        <h1 className={styles.heroTitle}>{monitor.name}</h1>
+      <PageHeader
+        back={{ href: `/cloud/console/${team.slug}/monitors`, label: t('monitors.title') }}
+        title={monitor.name}
+      >
         <p className={styles.rowTitle}>
           <MonitorStatus status={monitor.status} label={t(`monitors.states.${monitor.status}`)} />
           {monitor.slowSince ? <SlowBadge label={t('monitors.slow')} /> : null}
@@ -92,10 +93,10 @@ export default async function CloudMonitorPage({ params }: PageProps) {
             })}
           </p>
         ) : null}
-      </div>
+      </PageHeader>
 
       {monitor.kind === 'HTTP' ? (
-        <div className={styles.card}>
+        <div className={appUi.card}>
           <p className={`${styles.mono}`}>{monitor.url}</p>
           {monitor.keyword ? (
             <p className={styles.small}>
@@ -112,7 +113,7 @@ export default async function CloudMonitorPage({ params }: PageProps) {
           </p>
         </div>
       ) : (
-        <div className={styles.card}>
+        <div className={appUi.card}>
           <p className={styles.muted}>
             {t('monitors.heartbeatHelp', {
               period: monitor.periodMinutes ?? 0,
@@ -145,8 +146,8 @@ export default async function CloudMonitorPage({ params }: PageProps) {
       )}
 
       {admin && monitor.kind === 'HTTP' ? (
-        <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="text-title">
-          <h2 id="text-title" className={styles.cardTitle}>
+        <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="text-title">
+          <h2 id="text-title" className={appUi.cardTitle}>
             {t('monitors.textTitle')}
           </h2>
           <ActionForm
@@ -169,7 +170,7 @@ export default async function CloudMonitorPage({ params }: PageProps) {
                 { value: 'NOT_CONTAINS', label: t('monitors.textModes.NOT_CONTAINS') },
               ]}
             />
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton pendingLabel={t('monitors.textSaving')}>
                 {t('monitors.textSave')}
               </SubmitButton>
@@ -178,8 +179,8 @@ export default async function CloudMonitorPage({ params }: PageProps) {
         </section>
       ) : null}
 
-      <section className={styles.card} aria-labelledby="uptime-title">
-        <h2 id="uptime-title" className={styles.cardTitle}>
+      <section className={appUi.card} aria-labelledby="uptime-title">
+        <h2 id="uptime-title" className={appUi.cardTitle}>
           {t('monitors.uptime', { value: formatUptime(monitor.uptime30, locale) })}
         </h2>
         <UptimeBars days={monitor.days} locale={locale} label={t('monitors.uptime90')} />
@@ -191,8 +192,8 @@ export default async function CloudMonitorPage({ params }: PageProps) {
       ) : null}
 
       {monitor.kind === 'HTTP' && monitor.responseStats ? (
-        <section className={styles.card} aria-labelledby="response-title">
-          <h2 id="response-title" className={styles.cardTitle}>
+        <section className={appUi.card} aria-labelledby="response-title">
+          <h2 id="response-title" className={appUi.cardTitle}>
             {t('monitors.responseTime')}
           </h2>
           <ResponseStats
@@ -226,8 +227,8 @@ export default async function CloudMonitorPage({ params }: PageProps) {
       ) : null}
 
       {monitor.kind === 'HTTP' && monitor.checks.length > 0 ? (
-        <section className={styles.card} aria-labelledby="checks-title">
-          <h2 id="checks-title" className={styles.cardTitle}>
+        <section className={appUi.card} aria-labelledby="checks-title">
+          <h2 id="checks-title" className={appUi.cardTitle}>
             {t('monitors.checks')}
           </h2>
           {monitor.slowMs ? (
@@ -255,8 +256,8 @@ export default async function CloudMonitorPage({ params }: PageProps) {
       ) : null}
 
       {monitor.kind === 'HTTP' && admin ? (
-        <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="slow-title">
-          <h2 id="slow-title" className={styles.cardTitle}>
+        <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="slow-title">
+          <h2 id="slow-title" className={appUi.cardTitle}>
             {t('monitors.slowTitle')}
           </h2>
           <ActionForm
@@ -273,7 +274,7 @@ export default async function CloudMonitorPage({ params }: PageProps) {
               hint={t('monitors.slowHint')}
               defaultValue={monitor.slowMs ?? ''}
             />
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton pendingLabel={t('monitors.saving')}>{t('monitors.save')}</SubmitButton>
             </div>
           </ActionForm>
@@ -281,7 +282,7 @@ export default async function CloudMonitorPage({ params }: PageProps) {
       ) : null}
 
       <section aria-labelledby="incidents-title">
-        <h2 id="incidents-title" className={styles.sectionTitle}>
+        <h2 id="incidents-title" className={appUi.sectionTitle}>
           {t('monitors.incidents')}
         </h2>
         {monitor.incidents.length === 0 ? (
@@ -308,7 +309,7 @@ export default async function CloudMonitorPage({ params }: PageProps) {
       </section>
 
       {admin ? (
-        <div className={styles.actions}>
+        <div className={appUi.actions}>
           <form action={toggleMonitorAction}>
             {hidden}
             <input type="hidden" name="enabled" value={monitor.enabled ? 'off' : 'on'} />

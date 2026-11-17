@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/Button';
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ActionForm, FormCheckbox, FormInput } from '@/components/app/ActionForm';
@@ -7,7 +9,8 @@ import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCloudMe, type CloudMe } from '@/lib/api/cloud';
 import { createTeamAction } from '../actions';
-import { CloudDocsLink } from '../CloudDocsLink';
+import { cloudDocsUrl } from '@/lib/cloud-docs-url';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../cloud.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
@@ -27,18 +30,23 @@ export default async function CloudConsolePage({ params }: PageProps) {
 
   return (
     <div className={styles.landing}>
-      <div>
-        <h1 className={styles.heroTitle}>{t('console.title')}</h1>
-        <p className={styles.muted}>{t('console.lead')}</p>
-        <p className={styles.spacedSmall}>
-          <Link href="/cloud/console/tokens">{t('console.tokensLink')}</Link>
-          {' · '}
-          <CloudDocsLink locale={locale}>{t('nav.docs')}</CloudDocsLink>
-        </p>
-      </div>
+      <PageHeader
+        title={t('console.title')}
+        lead={t('console.lead')}
+        actions={
+          <>
+            <Button href="/cloud/console/tokens" variant="ghost" size="sm">
+              {t('console.tokensLink')}
+            </Button>
+            <Button href={cloudDocsUrl(locale)} variant="ghost" size="sm">
+              {t('nav.docs')}
+            </Button>
+          </>
+        }
+      />
 
       <section aria-labelledby="teams-title">
-        <h2 id="teams-title" className={styles.sectionTitle}>
+        <h2 id="teams-title" className={appUi.sectionTitle}>
           {t('console.teams')}
         </h2>
         {me === null ? (
@@ -72,8 +80,8 @@ export default async function CloudConsolePage({ params }: PageProps) {
       </section>
 
       {me ? (
-        <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="create-title">
-          <h2 id="create-title" className={styles.cardTitle}>
+        <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="create-title">
+          <h2 id="create-title" className={appUi.cardTitle}>
             {t('console.createTitle')}
           </h2>
           <ActionForm
@@ -96,7 +104,7 @@ export default async function CloudConsolePage({ params }: PageProps) {
             <p className={styles.small}>
               <Link href="/cloud/terms-of-use">{t('console.termsLink')}</Link>
             </p>
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton pendingLabel={t('console.creating')}>
                 {t('console.create')}
               </SubmitButton>

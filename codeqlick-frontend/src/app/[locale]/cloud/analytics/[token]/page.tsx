@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
@@ -51,10 +52,7 @@ export default async function SharedAnalyticsPage({ params, searchParams }: Page
 
   return (
     <div className={`${styles.landing} ${styles.docs}`}>
-      <div>
-        <h1 className={styles.heroTitle}>{shared.project.name}</h1>
-        <p className={styles.muted}>{t('lead')}</p>
-      </div>
+      <PageHeader title={shared.project.name} lead={t('lead')} />
       <AnalyticsReport
         locale={locale}
         report={shared}

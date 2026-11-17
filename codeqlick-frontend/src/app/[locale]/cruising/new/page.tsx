@@ -6,7 +6,7 @@ import { getCruisingStatus } from '@/lib/api/cruising';
 import { requireUser } from '@/lib/auth/session';
 import { parseCoordinate } from '@/lib/cruising';
 import { firstParam } from '@/lib/format';
-import vc from '../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { createSpotAction } from '../actions';
 import { CruisingGate } from '../Gate';
 
@@ -32,9 +32,9 @@ export default async function CruisingNewPage({ params, searchParams }: PageProp
   const t = await getTranslations({ locale, namespace: 'Cruising.new' });
 
   return (
-    <section className={vc.panel}>
-      <h1 className={vc.pageTitle}>{t('title')}</h1>
-      <p className={vc.muted}>{t('lead')}</p>
+    <section className={adult.panel}>
+      <h1 className={adult.pageTitle}>{t('title')}</h1>
+      <p className={adult.muted}>{t('lead')}</p>
       <SpotForm
         locale={locale}
         action={createSpotAction}

@@ -6,6 +6,7 @@ import type { AppLocale } from '@/i18n/routing';
 import { getCloudKv, listCloudKv } from '@/lib/api/cloud';
 import { formatBytes, formatWhen } from '@/lib/cloud';
 import { deleteKvAction, putKvAction } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 
 type Props = {
@@ -51,7 +52,7 @@ export async function KvTab(props: Props) {
   return (
     <section className={styles.landing} aria-labelledby="kv-title">
       <div>
-        <h2 id="kv-title" className={styles.sectionTitle}>
+        <h2 id="kv-title" className={appUi.sectionTitle}>
           {t('project.tabs.kv')}
         </h2>
         <p className={styles.muted}>{t('kv.lead')}</p>
@@ -121,7 +122,7 @@ export async function KvTab(props: Props) {
         </div>
       )}
       {list.cursor || props.cursor ? (
-        <div className={styles.actions}>
+        <div className={appUi.actions}>
           {props.cursor ? <Link href={href({ prefix: props.prefix })}>{t('kv.first')}</Link> : null}
           {list.cursor ? (
             <Link href={href({ prefix: props.prefix, cursor: list.cursor })}>{t('kv.next')}</Link>
@@ -130,8 +131,8 @@ export async function KvTab(props: Props) {
       ) : null}
 
       {props.selected ? (
-        <article className={styles.card} aria-labelledby="kv-entry">
-          <h3 id="kv-entry" className={`${styles.cardTitle} ${styles.mono}`}>
+        <article className={appUi.card} aria-labelledby="kv-entry">
+          <h3 id="kv-entry" className={`${appUi.cardTitle} ${styles.mono}`}>
             {props.selected}
           </h3>
           {entry ? (
@@ -154,8 +155,8 @@ export async function KvTab(props: Props) {
         </article>
       ) : null}
 
-      <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="kv-new">
-        <h3 id="kv-new" className={styles.cardTitle}>
+      <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="kv-new">
+        <h3 id="kv-new" className={appUi.cardTitle}>
           {entry ? t('kv.editTitle') : t('kv.newTitle')}
         </h3>
         <ActionForm
@@ -187,13 +188,13 @@ export async function KvTab(props: Props) {
             min={1}
             max={31_536_000}
           />
-          <div className={styles.actions}>
+          <div className={appUi.actions}>
             <SubmitButton pendingLabel={t('kv.saving')}>{t('kv.save')}</SubmitButton>
           </div>
         </ActionForm>
       </section>
 
-      <details className={styles.card}>
+      <details className={appUi.card}>
         <summary>{t('kv.howTo')}</summary>
         <pre className={styles.terminal}>{examples}</pre>
         <p className={styles.small}>{t('kv.publicHelp')}</p>

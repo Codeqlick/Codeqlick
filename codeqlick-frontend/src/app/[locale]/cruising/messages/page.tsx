@@ -13,7 +13,7 @@ import { requireUser } from '@/lib/auth/session';
 import { conversationHref, isUnread, previewMessage } from '@/lib/cruising';
 import { firstParam, formatDateTime } from '@/lib/format';
 import { appPath } from '@/lib/webapp-request';
-import vc from '../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { CruisingGate } from '../Gate';
 
 /** Behind the account: kept out of search results. */
@@ -39,8 +39,8 @@ export default async function CruisingMessagesPage({ params, searchParams }: Pag
 
   return (
     <>
-      <h1 className={vc.pageTitle}>{t('title')}</h1>
-      <p className={vc.muted}>{t('lead')}</p>
+      <h1 className={adult.pageTitle}>{t('title')}</h1>
+      <p className={adult.muted}>{t('lead')}</p>
       {firstParam(query.left) ? <Alert tone="success">{t('left')}</Alert> : null}
       {firstParam(query.blocked) ? <Alert tone="success">{t('blockedDone')}</Alert> : null}
       {conversations.length === 0 ? (

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { resolveLocale } from '@/i18n/locale';
 import { webappAlternates, webappPath } from '@/lib/webapp-seo';
-import styles from '../videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
 type Section = { title: string; body: string };
@@ -27,13 +27,13 @@ export default async function VideochatRulesPage({ params }: PageProps) {
   const sections = t.raw('sections') as Section[];
 
   return (
-    <article className={styles.rules}>
-      <h1 className={styles.pageTitle}>{t('title')}</h1>
-      <p className={styles.muted}>{t('updated')}</p>
+    <article className={adult.rules}>
+      <h1 className={adult.pageTitle}>{t('title')}</h1>
+      <p className={adult.muted}>{t('updated')}</p>
       <p>{t('intro')}</p>
       {sections.map((section) => (
         <section key={section.title}>
-          <h2 className={styles.sectionTitle}>{section.title}</h2>
+          <h2 className={adult.sectionTitle}>{section.title}</h2>
           <p>{section.body}</p>
         </section>
       ))}

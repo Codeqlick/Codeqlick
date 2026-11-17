@@ -8,6 +8,7 @@ import type { AppLocale } from '@/i18n/routing';
 import { getCloudGit, listCloudBuilds, type CloudBuildStatus } from '@/lib/api/cloud';
 import { formatWhen } from '@/lib/cloud';
 import { startBuildAction } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 
 export const BUILD_TONE: Record<CloudBuildStatus, BadgeTone> = {
@@ -44,8 +45,8 @@ export async function BuildsTab(props: Props) {
   ]);
   return (
     <section className={styles.landing} aria-labelledby="builds-title">
-      <div className={styles.actions}>
-        <h2 id="builds-title" className={styles.sectionTitle}>
+      <div className={appUi.actions}>
+        <h2 id="builds-title" className={appUi.sectionTitle}>
           {t('project.tabs.builds')}
         </h2>
         {git.repo ? (

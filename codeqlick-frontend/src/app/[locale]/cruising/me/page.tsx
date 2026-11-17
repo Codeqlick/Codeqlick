@@ -40,7 +40,7 @@ import {
 import { NO_GRANTS } from '@/lib/cruising-rooms';
 import { firstParam, formatDate, formatDateTime } from '@/lib/format';
 import { requestWebapp } from '@/lib/webapp-request';
-import vc from '../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import {
   cruisingPushSubscribeAction,
   cruisingPushUnsubscribeAction,
@@ -101,15 +101,15 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
 
   return (
     <>
-      <h1 className={vc.pageTitle}>{t('title')}</h1>
-      <p className={vc.muted}>{profile ? t('lead') : t('leadNew')}</p>
+      <h1 className={adult.pageTitle}>{t('title')}</h1>
+      <p className={adult.muted}>{profile ? t('lead') : t('leadNew')}</p>
       {firstParam(query.blocked) ? <Alert tone="success">{t('blockedDone')}</Alert> : null}
 
-      <section className={vc.panel} aria-labelledby="me-profile">
-        <h2 id="me-profile" className={vc.sectionTitle}>
+      <section className={adult.panel} aria-labelledby="me-profile">
+        <h2 id="me-profile" className={adult.sectionTitle}>
           {t('profileTitle')}
         </h2>
-        <ActionForm action={profileAction.bind(null, locale)} className={vc.form}>
+        <ActionForm action={profileAction.bind(null, locale)} className={adult.form}>
           <FormInput
             id="me-nickname"
             name="nickname"
@@ -166,7 +166,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
         </ActionForm>
         {profile ? (
           <p>
-            <Link href={memberHref(profile.nickname)} className={vc.inlineLink}>
+            <Link href={memberHref(profile.nickname)} className={adult.inlineLink}>
               {t('viewProfile')}
             </Link>
           </p>
@@ -182,13 +182,13 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
         ) : null}
       </section>
 
-      <InstallApp className={vc.panel} namespace="Cruising.install" />
+      <InstallApp className={adult.panel} namespace="Cruising.install" />
 
-      <section className={vc.panel} aria-labelledby="me-tour">
-        <h2 id="me-tour" className={vc.sectionTitle}>
+      <section className={adult.panel} aria-labelledby="me-tour">
+        <h2 id="me-tour" className={adult.sectionTitle}>
           {t('tourTitle')}
         </h2>
-        <p className={vc.muted}>{t('tourLead')}</p>
+        <p className={adult.muted}>{t('tourLead')}</p>
         <ActionForm action={reopenTourAction.bind(null, locale)}>
           <SubmitButton variant="outline" size="sm" pendingLabel={t('saving')}>
             {t('tourReopen')}
@@ -196,12 +196,12 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
         </ActionForm>
       </section>
 
-      <section className={vc.panel} aria-labelledby="me-language">
-        <h2 id="me-language" className={vc.sectionTitle}>
+      <section className={adult.panel} aria-labelledby="me-language">
+        <h2 id="me-language" className={adult.sectionTitle}>
           {t('languageTitle')}
         </h2>
-        <p className={vc.muted}>{t('languageLead')}</p>
-        <ActionForm action={accountLanguageAction.bind(null, locale)} className={vc.form}>
+        <p className={adult.muted}>{t('languageLead')}</p>
+        <ActionForm action={accountLanguageAction.bind(null, locale)} className={adult.form}>
           <FormSelect
             id="me-language-select"
             name="language"
@@ -216,8 +216,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
       </section>
 
       {profile ? (
-        <section className={vc.panel} aria-labelledby="me-verification">
-          <h2 id="me-verification" className={vc.sectionTitle}>
+        <section className={adult.panel} aria-labelledby="me-verification">
+          <h2 id="me-verification" className={adult.sectionTitle}>
             {tv('title')}
           </h2>
           {status.verified ? (
@@ -225,7 +225,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
               <p>
                 <VerifiedBadge label={tb('label')} help={tb('help')} />
               </p>
-              <p className={vc.muted}>{tv('approved')}</p>
+              <p className={adult.muted}>{tv('approved')}</p>
             </>
           ) : verification.status === 'PENDING' ? (
             <Alert tone="info">{tv('pending')}</Alert>
@@ -237,13 +237,13 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
                   {verification.note ? ` ${tv('rejectedNote', { note: verification.note })}` : ''}
                 </Alert>
               ) : null}
-              <p className={vc.muted}>{tv('lead')}</p>
+              <p className={adult.muted}>{tv('lead')}</p>
               <ul className={styles.tags}>
                 <li className={styles.tag}>{tv('step1')}</li>
                 <li className={styles.tag}>{tv('step2')}</li>
                 <li className={styles.tag}>{tv('step3')}</li>
               </ul>
-              <p className={vc.muted}>{tv('privacy')}</p>
+              <p className={adult.muted}>{tv('privacy')}</p>
               <VerificationUpload
                 action={uploadVerificationAction.bind(null, locale)}
                 submitLabel={verification.status === 'REJECTED' ? tv('sendAgain') : tv('send')}
@@ -254,11 +254,11 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
       ) : null}
 
       {profile?.nickname ? (
-        <section className={vc.panel} aria-labelledby="me-media">
-          <h2 id="me-media" className={vc.sectionTitle}>
+        <section className={adult.panel} aria-labelledby="me-media">
+          <h2 id="me-media" className={adult.sectionTitle}>
             {tm('title')}
           </h2>
-          <p className={vc.muted}>{tm('lead')}</p>
+          <p className={adult.muted}>{tm('lead')}</p>
           {media ? (
             <MediaManager
               locale={locale}
@@ -273,18 +273,18 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
       ) : null}
 
       {profile?.nickname ? (
-        <section className={vc.panel} aria-labelledby="me-album">
-          <h2 id="me-album" className={vc.sectionTitle}>
+        <section className={adult.panel} aria-labelledby="me-album">
+          <h2 id="me-album" className={adult.sectionTitle}>
             {ta('title')}
           </h2>
-          <p className={vc.muted}>{ta('lead')}</p>
+          <p className={adult.muted}>{ta('lead')}</p>
           <AlbumGrantsPanel locale={locale} grants={grants} />
         </section>
       ) : null}
 
       {profile ? (
-        <section className={vc.panel} aria-labelledby="me-checkin">
-          <h2 id="me-checkin" className={vc.sectionTitle}>
+        <section className={adult.panel} aria-labelledby="me-checkin">
+          <h2 id="me-checkin" className={adult.sectionTitle}>
             {t('checkInTitle')}
           </h2>
           {checkIn ? (
@@ -293,7 +293,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
                 {t('checkInActive', {
                   time: formatDateTime(checkIn.expiresAt, locale),
                 })}{' '}
-                <Link href={spotHref(checkIn.spot.slug)} className={vc.inlineLink}>
+                <Link href={spotHref(checkIn.spot.slug)} className={adult.inlineLink}>
                   {checkIn.spot.name}
                 </Link>
                 {checkIn.anonymous ? ` · ${t('checkInAnonymous')}` : ''}
@@ -305,7 +305,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
               </ActionForm>
             </>
           ) : (
-            <p className={vc.muted}>{t('checkInNone')}</p>
+            <p className={adult.muted}>{t('checkInNone')}</p>
           )}
         </section>
       ) : null}
@@ -315,8 +315,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
         checkInSpot={checkIn ? { id: checkIn.spot.id, name: checkIn.spot.name } : null}
       />
 
-      <section className={vc.panel} aria-labelledby="me-alerts">
-        <h2 id="me-alerts" className={vc.sectionTitle}>
+      <section className={adult.panel} aria-labelledby="me-alerts">
+        <h2 id="me-alerts" className={adult.sectionTitle}>
           {t('alertsTitle')}
         </h2>
         <ActionForm action={emailAlertsAction.bind(null, locale)}>
@@ -333,11 +333,11 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
         </ActionForm>
       </section>
 
-      <section className={vc.panel} aria-labelledby="me-push">
-        <h2 id="me-push" className={vc.sectionTitle}>
+      <section className={adult.panel} aria-labelledby="me-push">
+        <h2 id="me-push" className={adult.sectionTitle}>
           {tp('title')}
         </h2>
-        <p className={vc.muted}>{tp('lead')}</p>
+        <p className={adult.muted}>{tp('lead')}</p>
         {status.pushPublicKey ? (
           <PushToggle
             publicKey={status.pushPublicKey}
@@ -353,8 +353,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
       </section>
 
       {visits ? (
-        <section id="me-visits" className={vc.panel} aria-labelledby="me-visits-title">
-          <h2 id="me-visits-title" className={vc.sectionTitle}>
+        <section id="me-visits" className={adult.panel} aria-labelledby="me-visits-title">
+          <h2 id="me-visits-title" className={adult.sectionTitle}>
             {tvs('settingsTitle')}
           </h2>
           <ActionForm action={visitsSettingsAction.bind(null, locale)}>
@@ -372,8 +372,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
         </section>
       ) : null}
 
-      <section id="me-favorites" className={vc.panel} aria-labelledby="me-favorites-title">
-        <h2 id="me-favorites-title" className={vc.sectionTitle}>
+      <section id="me-favorites" className={adult.panel} aria-labelledby="me-favorites-title">
+        <h2 id="me-favorites-title" className={adult.sectionTitle}>
           {tf('title')}
         </h2>
         <ActionForm action={favoriteSettingsAction.bind(null, locale)}>
@@ -398,15 +398,15 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
       </section>
 
       {profile ? (
-        <section className={vc.panel} aria-labelledby="me-blocks">
-          <h2 id="me-blocks" className={vc.sectionTitle}>
+        <section className={adult.panel} aria-labelledby="me-blocks">
+          <h2 id="me-blocks" className={adult.sectionTitle}>
             {t('blocksTitle')}
           </h2>
           {blocks.length === 0 ? (
-            <p className={vc.muted}>{t('blocksEmpty')}</p>
+            <p className={adult.muted}>{t('blocksEmpty')}</p>
           ) : (
             <>
-              <p className={vc.muted}>{t('blocksLead')}</p>
+              <p className={adult.muted}>{t('blocksLead')}</p>
               <AdultBlocksList
                 blocks={blocks}
                 otherApp={t('blockOtherApp')}

@@ -16,7 +16,7 @@ import { requireUser } from '@/lib/auth/session';
 import { countryName, isLookingFor, isNickname, normalizeNickname } from '@/lib/cruising';
 import { formatDate } from '@/lib/format';
 import { appPath } from '@/lib/webapp-request';
-import vc from '../../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { blockMemberAction, startConversationAction } from '../../actions';
 import { CruisingGate } from '../../Gate';
 import { winkAction } from '../../notifications-actions';
@@ -50,7 +50,7 @@ export default async function CruisingMemberPage({ params }: PageProps) {
 
   return (
     <article>
-      <h1 className={vc.pageTitle}>
+      <h1 className={adult.pageTitle}>
         <MemberName locale={locale} member={member} />
       </h1>
       <dl className={styles.profileFacts}>
@@ -128,9 +128,9 @@ export default async function CruisingMemberPage({ params }: PageProps) {
             <summary>{t('block')}</summary>
             <ActionForm
               action={blockMemberAction.bind(null, locale, member.nickname)}
-              className={vc.form}
+              className={adult.form}
             >
-              <p className={vc.muted}>{t('blockLead', { nickname: member.nickname })}</p>
+              <p className={adult.muted}>{t('blockLead', { nickname: member.nickname })}</p>
               <SubmitButton variant="outline" size="sm" pendingLabel={t('blocking')}>
                 {t('blockConfirm')}
               </SubmitButton>

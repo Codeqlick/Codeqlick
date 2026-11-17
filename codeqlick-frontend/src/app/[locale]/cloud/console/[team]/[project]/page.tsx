@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -46,6 +47,7 @@ import {
   unlockProductionAction,
   unkeepDeploymentAction,
 } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 import { env } from '@/lib/env';
 import { AnalyticsTab } from './AnalyticsTab';
@@ -151,11 +153,10 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
 
   return (
     <div className={styles.landing}>
-      <div>
-        <p className={styles.small}>
-          <Link href={`/cloud/console/${team.slug}`}>← {team.name}</Link>
-        </p>
-        <h1 className={styles.heroTitle}>{project.name}</h1>
+      <PageHeader
+        back={{ href: `/cloud/console/${team.slug}`, label: team.name }}
+        title={project.name}
+      >
         <div className={styles.address}>
           <CopyLink
             url={project.url}
@@ -179,7 +180,7 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
             </Link>
           ))}
         </nav>
-      </div>
+      </PageHeader>
 
       {query.moved === '1' ? (
         <Alert tone="success">
@@ -322,8 +323,8 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
       ) : null}
       {tab === 'settings' ? (
         <>
-          <section className={`${styles.card} ${styles.narrow}`}>
-            <h2 className={styles.cardTitle}>{t('project.badgeTitle')}</h2>
+          <section className={`${appUi.card} ${styles.narrow}`}>
+            <h2 className={appUi.cardTitle}>{t('project.badgeTitle')}</h2>
             <p className={styles.muted}>{t('project.badgeHelp')}</p>
             <CopyLink
               url={`[![Codeqlick](${env.PUBLIC_API_URL}/cloud/badges/${project.slug}.svg)](${project.url})`}
@@ -331,7 +332,7 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
             />
           </section>
           {admin ? (
-            <section className={`${styles.card} ${styles.narrow}`}>
+            <section className={`${appUi.card} ${styles.narrow}`}>
               <ActionForm
                 action={renameProjectAction.bind(null, locale, path, project.id)}
                 className={styles.form}
@@ -343,7 +344,7 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
                   required
                   maxLength={60}
                 />
-                <div className={styles.actions}>
+                <div className={appUi.actions}>
                   <SubmitButton variant="outline" pendingLabel={tc('saving')}>
                     {t('project.rename')}
                   </SubmitButton>
@@ -374,8 +375,8 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
             />
           ) : null}
           {admin ? (
-            <section className={`${styles.card} ${styles.narrow} ${styles.danger}`}>
-              <h2 className={styles.cardTitle}>{t('project.deleteTitle')}</h2>
+            <section className={`${appUi.card} ${styles.narrow} ${styles.danger}`}>
+              <h2 className={appUi.cardTitle}>{t('project.deleteTitle')}</h2>
               <p className={styles.muted}>{t('project.deleteBody')}</p>
               <ActionForm
                 action={deleteProjectAction.bind(null, locale, team.slug, project.id, project.slug)}
@@ -388,7 +389,7 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
                   spellCheck={false}
                   required
                 />
-                <div className={styles.actions}>
+                <div className={appUi.actions}>
                   <SubmitButton variant="danger" pendingLabel={tc('deleting')}>
                     {tc('delete')}
                   </SubmitButton>
@@ -437,7 +438,7 @@ async function Deployments({
   );
   return (
     <section aria-labelledby="deployments-title" className={styles.landing}>
-      <div className={styles.card}>
+      <div className={appUi.card}>
         <p className={styles.muted}>{t('project.deployHelp')}</p>
         <pre className={styles.terminal}>
           <span className={styles.prompt}>$ </span>
@@ -445,7 +446,7 @@ async function Deployments({
         </pre>
       </div>
       <ProductionChecksSummary locale={locale} projectId={projectId} teamSlug={teamSlug} />
-      <h2 id="deployments-title" className={styles.sectionTitle}>
+      <h2 id="deployments-title" className={appUi.sectionTitle}>
         {t('project.tabs.deployments')}
       </h2>
       <p className={styles.muted}>{t('project.retention')}</p>
@@ -512,7 +513,7 @@ async function Deployments({
                     {deployment.branch ? ` (${deployment.branch})` : ''}
                   </p>
                 </div>
-                <div className={styles.actions}>
+                <div className={appUi.actions}>
                   <a href={`${archive}/${deployment.id}/archive`} className={styles.small}>
                     {t('project.download')}
                     <span className="visually-hidden"> — {deployment.shortId}</span>
@@ -607,8 +608,8 @@ async function Domains({
     .catch(() => null);
   return (
     <section aria-labelledby="domains-title" className={styles.landing}>
-      <div className={`${styles.card} ${styles.narrow}`}>
-        <h2 id="domains-title" className={styles.cardTitle}>
+      <div className={`${appUi.card} ${styles.narrow}`}>
+        <h2 id="domains-title" className={appUi.cardTitle}>
           {t('project.tabs.domains')}
         </h2>
         <p className={styles.muted}>{t('project.domainsLead')}</p>
@@ -625,7 +626,7 @@ async function Domains({
             spellCheck={false}
             mono
           />
-          <div className={styles.actions}>
+          <div className={appUi.actions}>
             <SubmitButton pendingLabel={t('project.adding')}>{t('project.add')}</SubmitButton>
           </div>
         </ActionForm>
@@ -637,7 +638,7 @@ async function Domains({
       ) : (
         <ul className={styles.list}>
           {domains.map((domain) => (
-            <li key={domain.id} className={`${styles.card}`}>
+            <li key={domain.id} className={`${appUi.card}`}>
               <p className={styles.rowTitle}>
                 <span className={styles.mono}>{domain.name}</span>
                 {isProtected(protection, 'production') ? (
@@ -675,7 +676,7 @@ async function Domains({
                   </div>
                 </>
               ) : null}
-              <div className={styles.actions}>
+              <div className={appUi.actions}>
                 {domain.checkedAt ? (
                   <span className={styles.small}>
                     {t('project.checkedAt', { when: formatWhen(domain.checkedAt, locale) })}

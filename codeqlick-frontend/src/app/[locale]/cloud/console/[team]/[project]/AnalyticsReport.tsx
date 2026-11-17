@@ -7,6 +7,7 @@ import type {
   CloudAnalyticsRow,
 } from '@/lib/api/cloud';
 import { changeAgainst } from '@/lib/analytics-change';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 import { AnalyticsChange } from './AnalyticsChange';
 
@@ -135,7 +136,7 @@ export async function AnalyticsReport(props: Props) {
         </div>
       </div>
 
-      <figure className={`${styles.card} ${styles.chartFigure}`}>
+      <figure className={`${appUi.card} ${styles.chartFigure}`}>
         <p className="visually-hidden">
           {t('analytics.chart', {
             pageviews: number.format(report.totals.pageviews),

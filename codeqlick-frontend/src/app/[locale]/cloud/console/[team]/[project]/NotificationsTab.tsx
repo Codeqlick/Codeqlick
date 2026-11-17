@@ -24,6 +24,7 @@ import {
   toggleNotifyAction,
   updateNotifyAction,
 } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 
 type Props = {
@@ -115,14 +116,14 @@ export async function NotificationsTab(props: Props) {
   return (
     <section className={styles.landing} aria-labelledby="notify-title">
       <div>
-        <h2 id="notify-title" className={styles.sectionTitle}>
+        <h2 id="notify-title" className={appUi.sectionTitle}>
           {t('project.tabs.notifications')}
         </h2>
         <p className={styles.muted}>{t('notify.lead')}</p>
       </div>
       {channels.length === 0 ? <p className={styles.muted}>{t('notify.empty')}</p> : null}
       {channels.map((channel) => (
-        <article key={channel.id} className={styles.card}>
+        <article key={channel.id} className={appUi.card}>
           <p className={styles.rowTitle}>
             {channel.name}
             <Badge tone="brand">{t(`notify.kinds.${channel.kind}`)}</Badge>
@@ -150,7 +151,7 @@ export async function NotificationsTab(props: Props) {
           </p>
           {props.admin ? (
             <>
-              <div className={styles.actions}>
+              <div className={appUi.actions}>
                 <ActionForm
                   action={testNotifyAction.bind(
                     null,
@@ -263,7 +264,7 @@ export async function NotificationsTab(props: Props) {
                       defaultChecked={channel.monitorAlerts}
                     />
                   )}
-                  <div className={styles.actions}>
+                  <div className={appUi.actions}>
                     <SubmitButton size="sm" pendingLabel={t('notify.saving')}>
                       {t('notify.save')}
                     </SubmitButton>
@@ -276,8 +277,8 @@ export async function NotificationsTab(props: Props) {
       ))}
 
       {props.admin ? (
-        <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="new-notify">
-          <h3 id="new-notify" className={styles.cardTitle}>
+        <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="new-notify">
+          <h3 id="new-notify" className={appUi.cardTitle}>
             {t('notify.newTitle')}
           </h3>
           <ActionForm
@@ -323,7 +324,7 @@ export async function NotificationsTab(props: Props) {
               label={t('notify.onMonitorsNew')}
               hint={t('notify.onMonitorsHint')}
             />
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton pendingLabel={t('notify.creating')}>{t('notify.create')}</SubmitButton>
             </div>
           </ActionForm>

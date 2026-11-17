@@ -65,7 +65,9 @@ export default async function AdminErrorsPage({ params, searchParams }: PageProp
                 {errors.map((error) => (
                   <tr key={error.id}>
                     <th scope="row">
-                      <Link href={`/admin/errors/${error.id}`}>{error.message}</Link>
+                      <Link href={`/admin/errors/${error.id}`} className={styles.errorMessage}>
+                        {error.message}
+                      </Link>
                       {error.path ? (
                         <span className={styles.sub}>
                           {[error.method, error.path].filter(Boolean).join(' ')}

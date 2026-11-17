@@ -3,7 +3,7 @@ import {
   postSafetyAlertAction,
   voteSafetyAlertAction,
 } from '@/app/[locale]/cruising/community-actions';
-import vc from '@/app/[locale]/videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { ActionForm, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AppLocale } from '@/i18n/routing';
@@ -36,13 +36,13 @@ export async function SpotSafetyAlerts({ locale, spot, status }: SpotSafetyAlert
 
   return (
     <section className={styles.section} aria-labelledby="spot-safety-title">
-      <h2 id="spot-safety-title" className={vc.sectionTitle}>
+      <h2 id="spot-safety-title" className={adult.sectionTitle}>
         {t('title')}
       </h2>
       {alerts === null ? (
-        <p className={vc.muted}>{t('loadError')}</p>
+        <p className={adult.muted}>{t('loadError')}</p>
       ) : alerts.length === 0 ? (
-        <p className={vc.muted}>{t('none')}</p>
+        <p className={adult.muted}>{t('none')}</p>
       ) : (
         <ul className={styles.list}>
           {alerts.map((alert) => {
@@ -92,9 +92,9 @@ export async function SpotSafetyAlerts({ locale, spot, status }: SpotSafetyAlert
           <summary>{t('postOpen')}</summary>
           <ActionForm
             action={postSafetyAlertAction.bind(null, locale, spot.id)}
-            className={vc.form}
+            className={adult.form}
           >
-            <p className={vc.muted}>{t('postLead')}</p>
+            <p className={adult.muted}>{t('postLead')}</p>
             <FormSelect
               id="safety-kind"
               name="kind"

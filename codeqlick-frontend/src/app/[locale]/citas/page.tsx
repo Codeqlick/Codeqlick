@@ -1,9 +1,10 @@
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { CopyLink } from '@/components/app/CopyLink';
 import { Button } from '@/components/ui/Button';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import {
   listCitasAppointments,
@@ -14,6 +15,7 @@ import {
 import { getCurrentUser } from '@/lib/auth/session';
 import { env } from '@/lib/env';
 import { cancelAppointmentAction, deletePageAction, togglePageAction } from './actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from './citas.module.css';
 
 type PageProps = {
@@ -55,45 +57,71 @@ export default async function CitasLandingPage({ params, searchParams }: PagePro
       minute: '2-digit',
     }).format(new Date(appointment.startsAt));
 
+  const features = (
+    <ul className={styles.features}>
+      {(['1', '2', '3', '4'] as const).map((n) => (
+        <li key={n}>
+          <strong>{t(`landing.feature${n}Title`)}</strong>
+          <span>{t(`landing.feature${n}`)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+
   return (
     <div className={styles.landing}>
-      <section className={styles.hero}>
-        <div>
-          <p className={`eyebrow ${styles.eyebrow}`}>{t('landing.eyebrow')}</p>
-          <h1 className={styles.heroTitle}>{t('landing.title')}</h1>
-          <p className={styles.heroLead}>{t('landing.lead')}</p>
-          <div className={styles.actions}>
-            {user ? (
-              <Button href="/citas/editar/nueva">{t('landing.newPage')}</Button>
-            ) : (
+      {user ? (
+        // Signed in: the compact header and the features folded away (architecture 6.6).
+        <section>
+          <PageHeader
+            eyebrow={t('landing.eyebrow')}
+            title={t('landing.title')}
+            lead={t('landing.lead')}
+            actions={
+              // With no page yet, the empty state below holds the one primary action.
+              pages?.length === 0 ? undefined : (
+                <Button href="/citas/editar/nueva">{t('landing.newPage')}</Button>
+              )
+            }
+          />
+          <details className={appUi.more}>
+            <summary>{t('landing.featuresTitle')}</summary>
+            {features}
+          </details>
+        </section>
+      ) : (
+        <section className={appUi.split}>
+          <PageHeader
+            variant="hero"
+            eyebrow={t('landing.eyebrow')}
+            title={t('landing.title')}
+            lead={t('landing.lead')}
+            actions={
               <>
                 <Button href="/register">{t('landing.createAccount')}</Button>
                 <Button href="/login?next=/citas" variant="outline">
                   {t('signIn')}
                 </Button>
               </>
-            )}
-          </div>
-        </div>
-        <ul className={`${styles.card} ${styles.features}`}>
-          {(['1', '2', '3', '4'] as const).map((n) => (
-            <li key={n}>
-              <strong>{t(`landing.feature${n}Title`)}</strong>
-              <span>{t(`landing.feature${n}`)}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
+            }
+          />
+          <div className={appUi.card}>{features}</div>
+        </section>
+      )}
 
       {user ? (
         <section aria-labelledby="pages-title">
-          <h2 id="pages-title" className={styles.sectionTitle}>
+          <h2 id="pages-title" className={appUi.sectionTitle}>
             {t('pages.title')}
           </h2>
           {pages === null ? (
             <p className={styles.muted}>{t('pages.loadError')}</p>
           ) : pages.length === 0 ? (
-            <p className={styles.muted}>{t('pages.empty')}</p>
+            <EmptyState
+              headingLevel={3}
+              title={t('pages.empty')}
+              action={<Button href="/citas/editar/nueva">{t('landing.newPage')}</Button>}
+            />
           ) : (
             <ul className={styles.pages}>
               {pages.map((page) => (
@@ -114,7 +142,7 @@ export default async function CitasLandingPage({ params, searchParams }: PagePro
                     url={`${origin}/${locale}/${page.slug}`}
                     labels={{ copy: t('pages.copy'), copied: t('pages.copied') }}
                   />
-                  <div className={styles.actions}>
+                  <div className={appUi.actions}>
                     <Button href={`/citas/${page.slug}`} size="sm">
                       {t('pages.view')}
                     </Button>
@@ -148,12 +176,16 @@ export default async function CitasLandingPage({ params, searchParams }: PagePro
       {user ? (
         <section aria-labelledby="appointments-title">
           <div className={styles.sectionHead}>
-            <h2 id="appointments-title" className={styles.sectionTitle}>
+            <h2 id="appointments-title" className={appUi.sectionTitle}>
               {scope === 'past' ? t('appointments.pastTitle') : t('appointments.title')}
             </h2>
-            <Link href={scope === 'past' ? '/citas' : '/citas?scope=past'} className={styles.link}>
+            <Button
+              href={scope === 'past' ? '/citas' : '/citas?scope=past'}
+              variant="link"
+              size="sm"
+            >
               {scope === 'past' ? t('appointments.showUpcoming') : t('appointments.showPast')}
-            </Link>
+            </Button>
           </div>
           {appointments === null ? (
             <p className={styles.muted}>{t('appointments.loadError')}</p>

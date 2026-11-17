@@ -46,6 +46,7 @@ export function SubmitButton({
       className={buttonClassName({ variant, size, block, className })}
       disabled={disabled || pending}
       aria-disabled={disabled || pending}
+      aria-busy={pending || undefined}
     >
       {pending && pendingLabel ? pendingLabel : children}
     </button>

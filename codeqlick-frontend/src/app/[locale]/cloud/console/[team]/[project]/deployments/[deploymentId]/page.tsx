@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -19,6 +20,7 @@ import {
 } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { configJson, formatBytes, formatWhen, isDeploymentId, ruleSettings } from '@/lib/cloud';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../../../cloud.module.css';
 
 /** Rows of each comparison group rendered; the CLI's `codeqlick diff` prints them all. */
@@ -68,11 +70,10 @@ export default async function CloudDeploymentPage({ params, searchParams }: Page
 
   return (
     <div className={styles.landing}>
-      <div>
-        <p className={styles.small}>
-          <Link href={projectBase}>← {project.name}</Link>
-        </p>
-        <h1 className={styles.heroTitle}>{t('deployment.title', { id: deployment.shortId })}</h1>
+      <PageHeader
+        back={{ href: projectBase, label: project.name }}
+        title={<>{t('deployment.title', { id: deployment.shortId })}</>}
+      >
         <p className={styles.rowTitle}>
           {deployment.isProduction ? (
             <Badge tone="success">{t('project.productionTag')}</Badge>
@@ -114,7 +115,7 @@ export default async function CloudDeploymentPage({ params, searchParams }: Page
             </Link>
           )}
         </nav>
-      </div>
+      </PageHeader>
 
       {comparing ? (
         <Compare locale={locale} project={project} deployment={deployment} />
@@ -133,7 +134,7 @@ async function Rules({ locale, rules }: { locale: AppLocale; rules: CloudDeploym
   const t = await getTranslations({ locale, namespace: 'Cloud' });
   return (
     <section aria-labelledby="rules-title">
-      <h2 id="rules-title" className={styles.sectionTitle}>
+      <h2 id="rules-title" className={appUi.sectionTitle}>
         {t('project.rules.title')}
       </h2>
       {rules === null ? (
@@ -186,7 +187,7 @@ async function Files({
   return (
     <section aria-labelledby="files-title" className={styles.landing}>
       <div>
-        <h2 id="files-title" className={styles.sectionTitle}>
+        <h2 id="files-title" className={appUi.sectionTitle}>
           {t('deployment.tabs.files')}
         </h2>
         {files && files !== 'gone' ? (
@@ -241,7 +242,7 @@ async function Compare({
   return (
     <section aria-labelledby="compare-title" className={styles.landing}>
       <div>
-        <h2 id="compare-title" className={styles.sectionTitle}>
+        <h2 id="compare-title" className={appUi.sectionTitle}>
           {t('deployment.tabs.compare')}
         </h2>
         <p className={styles.muted}>

@@ -5,7 +5,7 @@ import { Link } from '@/i18n/navigation';
 import type { AppLocale } from '@/i18n/routing';
 import type { CruisingStatus } from '@/lib/api/cruising';
 import { formatDateTime } from '@/lib/format';
-import vc from '../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { onboardAction } from './actions';
 
 /**
@@ -24,12 +24,12 @@ export async function CruisingGate({
 }) {
   const t = await getTranslations({ locale, namespace: 'Cruising' });
   const Heading = inline ? 'h2' : 'h1';
-  const panel = inline ? vc.suspension : vc.panel;
+  const panel = inline ? adult.suspension : adult.panel;
   if (status.suspended) {
     const until = status.suspension?.until;
     return (
       <section className={panel}>
-        <Heading className={inline ? vc.sectionTitle : vc.pageTitle}>
+        <Heading className={inline ? adult.sectionTitle : adult.pageTitle}>
           {t('suspended.title')}
         </Heading>
         <p>{t('suspended.body')}</p>
@@ -45,14 +45,16 @@ export async function CruisingGate({
   if (status.allowed) return null;
   return (
     <section className={panel}>
-      <Heading className={inline ? vc.sectionTitle : vc.pageTitle}>{t('onboarding.title')}</Heading>
-      <p className={vc.muted}>
+      <Heading className={inline ? adult.sectionTitle : adult.pageTitle}>
+        {t('onboarding.title')}
+      </Heading>
+      <p className={adult.muted}>
         {status.onboarded ? t('onboarding.leadAgain') : t('onboarding.lead')}
       </p>
-      <div className={vc.warning} role="note">
+      <div className={adult.warning} role="note">
         <strong>{t('landing.warningTitle')}.</strong> {t('landing.warning')}
       </div>
-      <ActionForm action={onboardAction} className={vc.form}>
+      <ActionForm action={onboardAction} className={adult.form}>
         <input type="hidden" name="locale" value={locale} />
         <input type="hidden" name="termsVersion" value={status.termsVersion} />
         <FormInput
@@ -71,15 +73,15 @@ export async function CruisingGate({
           required
         />
         <p>
-          <Link href="/cruising/rules" target="_blank" className={vc.inlineLink}>
+          <Link href="/cruising/rules" target="_blank" className={adult.inlineLink}>
             {t('onboarding.readRules')}
           </Link>
           {' · '}
-          <Link href="/cruising/terms-of-use" target="_blank" className={vc.inlineLink}>
+          <Link href="/cruising/terms-of-use" target="_blank" className={adult.inlineLink}>
             {t('legal.terms')}
           </Link>
           {' · '}
-          <Link href="/cruising/privacy-policy" target="_blank" className={vc.inlineLink}>
+          <Link href="/cruising/privacy-policy" target="_blank" className={adult.inlineLink}>
             {t('legal.privacy')}
           </Link>
         </p>

@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { reportAction } from '@/app/[locale]/cruising/actions';
-import vc from '@/app/[locale]/videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { ActionForm, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AppLocale } from '@/i18n/routing';
@@ -22,9 +22,9 @@ export function RoomReport({ locale, messageId }: { locale: AppLocale; messageId
       <summary>{t('open')}</summary>
       <ActionForm
         action={reportAction.bind(null, locale, { kind: 'roomMessage', id: messageId })}
-        className={vc.form}
+        className={adult.form}
       >
-        <p className={vc.muted}>{t('hint')}</p>
+        <p className={adult.muted}>{t('hint')}</p>
         <FormSelect
           name="reason"
           id={`${prefix}-reason`}

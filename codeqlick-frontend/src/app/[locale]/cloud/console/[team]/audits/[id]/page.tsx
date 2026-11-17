@@ -1,12 +1,13 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Badge } from '@/components/ui/Badge';
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCloudAudit } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { formatWhen } from '@/lib/cloud';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../../cloud.module.css';
 
 type PageProps = { params: Promise<{ locale: string; team: string; id: string }> };
@@ -35,17 +36,16 @@ export default async function CloudAuditPage({ params }: PageProps) {
 
   return (
     <div className={styles.landing}>
-      <div>
-        <p className={styles.small}>
-          <Link href={`/cloud/console/${team}/audits`}>← {t('audits.title')}</Link>
-        </p>
-        <h1 className={styles.heroTitle}>{report.score}/100</h1>
+      <PageHeader
+        back={{ href: `/cloud/console/${team}/audits`, label: t('audits.title') }}
+        title={<>{report.score}/100</>}
+      >
         <p className={styles.mono}>{report.finalUrl}</p>
         <p className={styles.small}>{formatWhen(report.createdAt, locale)}</p>
-      </div>
+      </PageHeader>
       <div className={styles.meters}>
         {report.categories.map((category) => (
-          <div key={category.key} className={`${styles.card} ${styles.meter}`}>
+          <div key={category.key} className={`${appUi.card} ${styles.meter}`}>
             <span className={styles.small}>{category.name}</span>
             <span className={styles.meterValue}>{category.score}</span>
           </div>
@@ -53,7 +53,7 @@ export default async function CloudAuditPage({ params }: PageProps) {
       </div>
       {report.categories.map((category) => (
         <section key={category.key} aria-labelledby={`c-${category.key}`}>
-          <h2 id={`c-${category.key}`} className={styles.sectionTitle}>
+          <h2 id={`c-${category.key}`} className={appUi.sectionTitle}>
             {category.name}
           </h2>
           <ul className={styles.list}>

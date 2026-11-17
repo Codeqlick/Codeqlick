@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { Avatar } from '@/components/ui/Avatar';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
@@ -36,8 +37,7 @@ export default async function CitasPublicPage({ params }: PageProps) {
   if (!page) {
     return (
       <div className={styles.notFound}>
-        <h1 className={styles.heroTitle}>{t('notFound.title')}</h1>
-        <p className={styles.muted}>{t('notFound.body')}</p>
+        <PageHeader title={t('notFound.title')} lead={t('notFound.body')} />
         <div>
           <Button href="/citas">{t('notFound.back')}</Button>
         </div>
@@ -47,19 +47,25 @@ export default async function CitasPublicPage({ params }: PageProps) {
 
   return (
     <div className={styles.public}>
-      <section className={styles.intro}>
-        <p className={`${styles.eyebrow} ${styles.owner}`}>
-          <Avatar file={page.ownerAvatar} name={page.ownerName} size="sm" />
-          {t('public.with', { name: page.ownerName })}
-        </p>
-        <h1 className={styles.heroTitle}>{page.title}</h1>
-        <ul className={styles.facts}>
-          <li>{t('public.minutes', { count: page.durationMinutes })}</li>
-          {page.location ? <li>{page.location}</li> : null}
-          {page.video ? <li>{t('public.videoCall')}</li> : null}
-        </ul>
-        {page.description ? <p className={styles.description}>{page.description}</p> : null}
-      </section>
+      <PageHeader
+        eyebrow={
+          <span className={styles.owner}>
+            <Avatar file={page.ownerAvatar} name={page.ownerName} size="sm" />
+            {t('public.with', { name: page.ownerName })}
+          </span>
+        }
+        title={page.title}
+        meta={
+          <ul className={styles.facts}>
+            <li>{t('public.minutes', { count: page.durationMinutes })}</li>
+            {page.location ? <li>{page.location}</li> : null}
+            {page.video ? <li>{t('public.videoCall')}</li> : null}
+          </ul>
+        }
+        lead={
+          page.description ? <p className={styles.description}>{page.description}</p> : undefined
+        }
+      />
 
       {page.enabled ? (
         <BookingForm

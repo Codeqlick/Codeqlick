@@ -60,6 +60,13 @@ test('an owner and a guest meet by link, chat, and the owner ends it', async ({
     await signIn(host, owner, '/es/meetings');
     await expect(host).toHaveURL(`${base}/es`);
 
+    // No room yet: the empty state sits in "Your rooms" with the form; the frame has its footer.
+    const rooms = host.getByRole('region', { name: 'Tus salas' });
+    await expect(rooms.getByText('Aún no tienes salas. Crea la primera arriba.')).toBeVisible();
+    await expect(
+      host.getByRole('contentinfo').getByRole('link', { name: 'Contacto' }),
+    ).toBeVisible();
+
     await host.getByLabel('Nueva sala').fill(`Equipo ${tag}`);
     await host.getByRole('button', { name: 'Crear sala' }).click();
     await expect(host.getByText(`Equipo ${tag}`)).toBeVisible();

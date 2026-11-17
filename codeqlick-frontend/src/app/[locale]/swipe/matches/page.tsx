@@ -7,7 +7,7 @@ import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getSwipeStatus, listSwipeMatches } from '@/lib/api/swipe';
 import { requireUser } from '@/lib/auth/session';
-import vc from '../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { SwipeGate } from '../Gate';
 
 /** Behind the account: kept out of search results. */
@@ -28,8 +28,8 @@ export default async function SwipeMatchesPage({ params }: PageProps) {
 
   return (
     <section className={styles.chat}>
-      <h1 className={vc.pageTitle}>{t('title')}</h1>
-      <p className={vc.muted}>{status.canUpload ? t('lead') : t('leadNoPhotos')}</p>
+      <h1 className={adult.pageTitle}>{t('title')}</h1>
+      <p className={adult.muted}>{status.canUpload ? t('lead') : t('leadNoPhotos')}</p>
       {matches.length === 0 ? (
         <p className={styles.empty}>{t('empty')}</p>
       ) : (

@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { CruisingGate } from '@/app/[locale]/cruising/Gate';
 import { deleteReviewAction, helpfulAction, reviewAction } from '@/app/[locale]/cruising/actions';
-import vc from '@/app/[locale]/videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { ActionForm, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import { Pagination } from '@/components/ui/Pagination';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -52,12 +52,12 @@ export async function SpotReviews({ locale, spot, signedIn, status, page }: Spot
   if (!signedIn || !status) {
     return (
       <section className={styles.section} aria-labelledby="reviews-title">
-        <h2 id="reviews-title" className={vc.sectionTitle}>
+        <h2 id="reviews-title" className={adult.sectionTitle}>
           {t('title')}
         </h2>
-        <p className={vc.muted}>
+        <p className={adult.muted}>
           {t('signInLead')}{' '}
-          <Link href={`/login?next=${encodeURIComponent(here)}`} className={vc.inlineLink}>
+          <Link href={`/login?next=${encodeURIComponent(here)}`} className={adult.inlineLink}>
             {t('signIn')}
           </Link>
         </p>
@@ -89,13 +89,13 @@ export async function SpotReviews({ locale, spot, signedIn, status, page }: Spot
 
   return (
     <section className={styles.section} aria-labelledby="reviews-title">
-      <h2 id="reviews-title" className={vc.sectionTitle}>
+      <h2 id="reviews-title" className={adult.sectionTitle}>
         {t('title')}
       </h2>
 
       <div className={styles.reviewForm}>
         <h3 className={styles.subTitle}>{mine ? t('editTitle') : t('writeTitle')}</h3>
-        <ActionForm action={reviewAction.bind(null, locale, spot.id)} className={vc.form}>
+        <ActionForm action={reviewAction.bind(null, locale, spot.id)} className={adult.form}>
           <FormSelect
             name="rating"
             label={t('rating')}
@@ -118,7 +118,10 @@ export async function SpotReviews({ locale, spot, signedIn, status, page }: Spot
           </SubmitButton>
         </ActionForm>
         {mine ? (
-          <ActionForm action={deleteReviewAction.bind(null, locale, spot.id)} className={vc.form}>
+          <ActionForm
+            action={deleteReviewAction.bind(null, locale, spot.id)}
+            className={adult.form}
+          >
             <SubmitButton variant="outline" size="sm" pendingLabel={t('deleting')}>
               {t('delete')}
             </SubmitButton>
@@ -143,7 +146,10 @@ export async function SpotReviews({ locale, spot, signedIn, status, page }: Spot
                       badges={cleanBadges(review.author.badges)}
                     >
                       {status.profile ? (
-                        <Link href={memberHref(review.author.nickname)} className={vc.inlineLink}>
+                        <Link
+                          href={memberHref(review.author.nickname)}
+                          className={adult.inlineLink}
+                        >
                           {review.author.nickname}
                         </Link>
                       ) : (
@@ -184,7 +190,7 @@ export async function SpotReviews({ locale, spot, signedIn, status, page }: Spot
           ))}
         </ul>
       ) : (
-        <p className={vc.muted}>{t('empty')}</p>
+        <p className={adult.muted}>{t('empty')}</p>
       )}
       {list ? (
         <Pagination

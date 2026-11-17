@@ -13,7 +13,7 @@ import { listCruisingTrips } from '@/lib/api/cruising-community';
 import { requireUser } from '@/lib/auth/session';
 import { countryName, placeHref, spotHref } from '@/lib/cruising';
 import { formatTripDay } from '@/lib/cruising-community';
-import vc from '../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { deleteTripAction } from '../community-actions';
 import { CruisingGate } from '../Gate';
 
@@ -38,10 +38,10 @@ export default async function CruisingTripsPage({ params }: PageProps) {
 
   return (
     <>
-      <h1 className={vc.pageTitle}>{t('pageTitle')}</h1>
-      <p className={vc.muted}>{t('pageLead')}</p>
+      <h1 className={adult.pageTitle}>{t('pageTitle')}</h1>
+      <p className={adult.muted}>{t('pageLead')}</p>
       <p>
-        <Link href="/cruising/places" className={vc.inlineLink}>
+        <Link href="/cruising/places" className={adult.inlineLink}>
           {t('findCity')}
         </Link>
       </p>
@@ -53,7 +53,10 @@ export default async function CruisingTripsPage({ params }: PageProps) {
             <li key={trip.id}>
               <article className={card.card} aria-labelledby={`trip-${trip.id}`}>
                 <h2 id={`trip-${trip.id}`} className={card.title}>
-                  <Link href={placeHref(trip.countryCode, trip.citySlug)} className={vc.inlineLink}>
+                  <Link
+                    href={placeHref(trip.countryCode, trip.citySlug)}
+                    className={adult.inlineLink}
+                  >
                     {trip.city}, {countryName(trip.countryCode, locale)}
                   </Link>
                 </h2>
@@ -70,7 +73,7 @@ export default async function CruisingTripsPage({ params }: PageProps) {
                   <ul className={styles.names}>
                     {trip.spots.map((spot) => (
                       <li key={spot.id}>
-                        <Link href={spotHref(spot.slug)} className={vc.inlineLink}>
+                        <Link href={spotHref(spot.slug)} className={adult.inlineLink}>
                           {spot.name}
                         </Link>
                         {spot.here > 0 ? (
@@ -85,7 +88,7 @@ export default async function CruisingTripsPage({ params }: PageProps) {
                     ))}
                   </ul>
                 ) : (
-                  <p className={vc.muted}>{t('noSpots')}</p>
+                  <p className={adult.muted}>{t('noSpots')}</p>
                 )}
                 <h3 className={styles.subTitle}>{t('meetupsThen')}</h3>
                 {trip.meetups.length > 0 ? (
@@ -103,7 +106,7 @@ export default async function CruisingTripsPage({ params }: PageProps) {
                     ))}
                   </ul>
                 ) : (
-                  <p className={vc.muted}>{t('noMeetups')}</p>
+                  <p className={adult.muted}>{t('noMeetups')}</p>
                 )}
                 <ActionForm action={deleteTripAction.bind(null, locale, trip.id)}>
                   <SubmitButton size="sm" variant="outline" pendingLabel={t('deleting')}>

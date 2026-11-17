@@ -6,7 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingStatus, listMyCruisingSpots } from '@/lib/api/cruising';
 import { requireUser } from '@/lib/auth/session';
-import vc from '../../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { updateSpotAction } from '../../actions';
 import { CruisingGate } from '../../Gate';
 
@@ -28,13 +28,13 @@ export default async function CruisingEditSpotPage({ params }: PageProps) {
   const t = await getTranslations({ locale, namespace: 'Cruising.mySpots' });
 
   return (
-    <section className={vc.panel}>
-      <h1 className={vc.pageTitle}>{t('editTitle')}</h1>
-      <p className={vc.muted}>
+    <section className={adult.panel}>
+      <h1 className={adult.pageTitle}>{t('editTitle')}</h1>
+      <p className={adult.muted}>
         {spot.status === 'REJECTED' ? t('editLeadRejected') : t('editLead')}
       </p>
       {spot.status === 'REJECTED' ? (
-        <p className={vc.answer}>
+        <p className={adult.answer}>
           <strong>{t('rejectReason')}:</strong> {spot.rejectReason ?? t('noReason')}
         </p>
       ) : null}
@@ -54,8 +54,8 @@ export default async function CruisingEditSpotPage({ params }: PageProps) {
         }}
         extras={{ tags: spot.tags, openingHours: spot.openingHours, tips: spot.tips }}
       />
-      <p className={vc.backLink}>
-        <Link href="/cruising/my-spots" className={vc.inlineLink}>
+      <p className={adult.backLink}>
+        <Link href="/cruising/my-spots" className={adult.inlineLink}>
           {t('back')}
         </Link>
       </p>

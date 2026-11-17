@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
@@ -9,6 +10,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { env } from '@/lib/env';
 import { normalizeMeetingCode } from '@/lib/meetings';
 import { meetingTicketAction } from '../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../meetings.module.css';
 
 type PageProps = { params: Promise<{ locale: string; code: string }> };
@@ -40,9 +42,8 @@ export default async function MeetingRoomPage({ params }: PageProps) {
   if (!room) {
     return (
       <section className={styles.notFound}>
-        <h1 className={styles.heroTitle}>{t('title')}</h1>
-        <p className={styles.muted}>{t('body')}</p>
-        <div className={styles.actions}>
+        <PageHeader title={t('title')} lead={t('body')} />
+        <div className={appUi.actions}>
           <Button href="/meetings">{t('back')}</Button>
         </div>
       </section>

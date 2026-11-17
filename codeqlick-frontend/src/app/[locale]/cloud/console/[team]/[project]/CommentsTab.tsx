@@ -3,6 +3,7 @@ import { Link } from '@/i18n/navigation';
 import type { AppLocale } from '@/i18n/routing';
 import { getCloudMe, listCloudMembers, type CloudCommentThread } from '@/lib/api/cloud';
 import { COMMENT_STATUSES, type CommentStatus } from '@/lib/cloud';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 import { CommentThread } from './CommentThread';
 
@@ -38,7 +39,7 @@ export async function CommentsTab(props: Props) {
   return (
     <section className={styles.landing} aria-labelledby="comments-title">
       <div>
-        <h2 id="comments-title" className={styles.sectionTitle}>
+        <h2 id="comments-title" className={appUi.sectionTitle}>
           {t('title')}
         </h2>
         <p className={styles.muted}>{t('lead')}</p>

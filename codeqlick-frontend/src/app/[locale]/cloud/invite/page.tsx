@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ActionForm, FormCheckbox } from '@/components/app/ActionForm';
@@ -7,6 +8,7 @@ import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCloudInvite, getCloudMe, type CloudInvite } from '@/lib/api/cloud';
 import { acceptInviteAction } from '../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../cloud.module.css';
 import { accountUrl } from '@/lib/account-links';
 
@@ -34,13 +36,13 @@ export default async function CloudInvitePage({ params, searchParams }: PageProp
 
   return (
     <div className={`${styles.landing} ${styles.narrow}`}>
-      <h1 className={styles.heroTitle}>{t('invite.title')}</h1>
+      <PageHeader title={t('invite.title')} />
       {!invite || !me ? (
         <Alert tone="error">{t('invite.invalid')}</Alert>
       ) : !invite.emailMatches ? (
         <Alert tone="error">{t('invite.wrongEmail', { email: invite.email })}</Alert>
       ) : (
-        <div className={styles.card}>
+        <div className={appUi.card}>
           <p>
             {t('invite.body', {
               invitedBy: invite.invitedBy ?? 'Codeqlick',
@@ -62,7 +64,7 @@ export default async function CloudInvitePage({ params, searchParams }: PageProp
             <p className={styles.small}>
               <Link href="/cloud/terms-of-use">{t('console.termsLink')}</Link>
             </p>
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton>{t('invite.accept')}</SubmitButton>
             </div>
           </ActionForm>

@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { StatusUpdateForm } from '@/components/cloud/StatusUpdateForm';
@@ -42,7 +43,7 @@ export async function StatusUpdatePage(
 
   return (
     <div className={`${styles.landing} ${styles.narrow}`}>
-      <h1 className={styles.heroTitle}>{t(confirm ? 'confirmTitle' : 'unsubscribeTitle')}</h1>
+      <PageHeader title={t(confirm ? 'confirmTitle' : 'unsubscribeTitle')} />
       {token ? (
         <>
           <p className={styles.muted}>{t(confirm ? 'confirmLead' : 'unsubscribeLead')}</p>

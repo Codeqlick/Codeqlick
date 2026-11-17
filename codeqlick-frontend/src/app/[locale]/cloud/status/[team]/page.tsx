@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -16,6 +17,7 @@ import { isApiError } from '@/lib/api/errors';
 import { formatWhen } from '@/lib/cloud';
 import { groupPublicNotices, noticeTone } from '@/lib/cloud-notices';
 import { webappAlternates } from '@/lib/webapp-seo';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../cloud.module.css';
 
 type PageProps = { params: Promise<{ locale: string; team: string }> };
@@ -55,22 +57,21 @@ export default async function PublicStatusPage({ params }: PageProps) {
 
   return (
     <div className={`${styles.landing} ${styles.docs}`}>
-      <div>
-        <h1 className={styles.heroTitle}>{status.title}</h1>
+      <PageHeader title={status.title}>
         {status.intro ? <p className={styles.muted}>{status.intro}</p> : null}
-      </div>
+      </PageHeader>
       {status.subscribe ? <StatusSubscribe team={team} teamName={status.teamName} /> : null}
       <p className={`${styles.overall} ${styles[`overall_${status.overall}`]}`}>
         {t(`status.overall.${status.overall}`)}
       </p>
       {current.length > 0 ? (
         <section aria-labelledby="notices-title">
-          <h2 id="notices-title" className={styles.sectionTitle}>
+          <h2 id="notices-title" className={appUi.sectionTitle}>
             {t('status.notices')}
           </h2>
           <ul className={styles.list}>
             {current.map((notice) => (
-              <li key={notice.id} className={styles.card}>
+              <li key={notice.id} className={appUi.card}>
                 <NoticeItem notice={notice} locale={locale} />
               </li>
             ))}
@@ -79,7 +80,7 @@ export default async function PublicStatusPage({ params }: PageProps) {
       ) : null}
       <ul className={styles.list}>
         {status.monitors.map((monitor) => (
-          <li key={monitor.label} className={styles.card}>
+          <li key={monitor.label} className={appUi.card}>
             <p className={styles.rowTitle}>
               {monitor.label}
               <MonitorStatus
@@ -112,12 +113,12 @@ export default async function PublicStatusPage({ params }: PageProps) {
       </ul>
       {groups.closed.length > 0 ? (
         <section aria-labelledby="history-title">
-          <h2 id="history-title" className={styles.sectionTitle}>
+          <h2 id="history-title" className={appUi.sectionTitle}>
             {t('status.history')}
           </h2>
           <ul className={styles.list}>
             {groups.closed.map((notice) => (
-              <li key={notice.id} className={styles.card}>
+              <li key={notice.id} className={appUi.card}>
                 <NoticeItem notice={notice} locale={locale} />
               </li>
             ))}

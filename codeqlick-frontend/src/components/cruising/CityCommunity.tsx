@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { startConversationAction } from '@/app/[locale]/cruising/actions';
 import { createTripAction } from '@/app/[locale]/cruising/community-actions';
-import vc from '@/app/[locale]/videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { ActionForm, FormCheckbox, FormInput } from '@/components/app/ActionForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -62,7 +62,7 @@ export async function CityCommunity({
   return (
     <>
       <section className={styles.section} aria-labelledby="city-meetups-title">
-        <h2 id="city-meetups-title" className={vc.sectionTitle}>
+        <h2 id="city-meetups-title" className={adult.sectionTitle}>
           {tm('cityTitle', { city })}
         </h2>
         {meetups && meetups.length > 0 ? (
@@ -74,21 +74,21 @@ export async function CityCommunity({
             ))}
           </ul>
         ) : (
-          <p className={vc.muted}>{tm('noneInCity')}</p>
+          <p className={adult.muted}>{tm('noneInCity')}</p>
         )}
       </section>
 
       <section className={styles.section} aria-labelledby="city-visitors-title">
-        <h2 id="city-visitors-title" className={vc.sectionTitle}>
+        <h2 id="city-visitors-title" className={adult.sectionTitle}>
           {t('visitingTitle')}
         </h2>
-        <p className={vc.muted}>{t('visitingLead')}</p>
+        <p className={adult.muted}>{t('visitingLead')}</p>
         {visitors && visitors.length > 0 ? (
           <ul className={styles.list}>
             {visitors.map((visitor) => (
               <li key={`${visitor.nickname}-${visitor.from}`} className={styles.visitor}>
                 <MemberName locale={locale} member={{ ...visitor, coverId: null }}>
-                  <Link href={memberHref(visitor.nickname)} className={vc.inlineLink}>
+                  <Link href={memberHref(visitor.nickname)} className={adult.inlineLink}>
                     {visitor.nickname}
                   </Link>
                 </MemberName>
@@ -109,16 +109,16 @@ export async function CityCommunity({
             ))}
           </ul>
         ) : (
-          <p className={vc.muted}>{t('visitingNone')}</p>
+          <p className={adult.muted}>{t('visitingNone')}</p>
         )}
         {canAct ? (
           <details className={styles.disclosure}>
             <summary>{t('announceOpen', { city })}</summary>
             <ActionForm
               action={createTripAction.bind(null, locale, { countryCode, citySlug })}
-              className={vc.form}
+              className={adult.form}
             >
-              <p className={vc.muted}>{t('announceLead')}</p>
+              <p className={adult.muted}>{t('announceLead')}</p>
               <FormInput
                 id="trip-from"
                 name="from"
@@ -137,8 +137,8 @@ export async function CityCommunity({
               />
               <SubmitButton pendingLabel={t('saving')}>{t('announce')}</SubmitButton>
             </ActionForm>
-            <p className={vc.muted}>
-              <Link href={TRIPS_HREF} className={vc.inlineLink}>
+            <p className={adult.muted}>
+              <Link href={TRIPS_HREF} className={adult.inlineLink}>
                 {t('myTripsLink')}
               </Link>
             </p>

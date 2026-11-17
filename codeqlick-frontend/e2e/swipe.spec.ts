@@ -55,6 +55,8 @@ async function member(
   await expect(page.getByLabel('Fecha de nacimiento')).toBeHidden();
 
   await page.goto('/es/photos');
+  // The page's title heads it, outside the profile's card (architecture 6.6).
+  await expect(page.getByRole('heading', { level: 1, name: 'Mi perfil' })).toBeVisible();
   await page.getByLabel('Nombre de usuario').fill(nickname);
   await page.getByRole('button', { name: 'Guardar' }).click();
   await expect(page.getByText('Perfil guardado.')).toBeVisible();

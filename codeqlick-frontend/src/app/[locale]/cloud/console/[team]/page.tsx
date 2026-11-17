@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -16,6 +17,7 @@ import { isApiError } from '@/lib/api/errors';
 import { formatBytes, formatWhen, isProtected } from '@/lib/cloud';
 import { env } from '@/lib/env';
 import { createProjectAction, deleteTeamAction, renameTeamAction } from '../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../cloud.module.css';
 import { ProtectionLock } from './[project]/ProtectionCard';
 
@@ -52,11 +54,7 @@ export default async function CloudTeamPage({ params }: PageProps) {
 
   return (
     <div className={styles.landing}>
-      <div>
-        <p className={styles.small}>
-          <Link href="/cloud/console">← {t('console.title')}</Link>
-        </p>
-        <h1 className={styles.heroTitle}>{team.name}</h1>
+      <PageHeader back={{ href: '/cloud/console', label: t('console.title') }} title={team.name}>
         <p className={styles.muted}>
           {t('team.role', { role: t(`common.roles.${team.role}`) })} ·{' '}
           {t('team.plan', { plan: team.plan })}
@@ -81,10 +79,10 @@ export default async function CloudTeamPage({ params }: PageProps) {
             {t('team.planLink')}
           </Link>
         </div>
-      </div>
+      </PageHeader>
 
       <section aria-labelledby="projects-title">
-        <h2 id="projects-title" className={styles.sectionTitle}>
+        <h2 id="projects-title" className={appUi.sectionTitle}>
           {t('team.projects')}
         </h2>
         {projects.length === 0 ? (
@@ -121,8 +119,8 @@ export default async function CloudTeamPage({ params }: PageProps) {
       </section>
 
       {admin ? (
-        <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="new-title">
-          <h2 id="new-title" className={styles.cardTitle}>
+        <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="new-title">
+          <h2 id="new-title" className={appUi.cardTitle}>
             {t('team.newTitle')}
           </h2>
           <ActionForm
@@ -141,15 +139,15 @@ export default async function CloudTeamPage({ params }: PageProps) {
               spellCheck={false}
               mono
             />
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton pendingLabel={t('team.creating')}>{t('team.create')}</SubmitButton>
             </div>
           </ActionForm>
         </section>
       ) : null}
 
-      <section className={styles.card} aria-labelledby="usage-title">
-        <h2 id="usage-title" className={styles.cardTitle}>
+      <section className={appUi.card} aria-labelledby="usage-title">
+        <h2 id="usage-title" className={appUi.cardTitle}>
           {t('team.usage')}
         </h2>
         <div className={styles.meters}>
@@ -192,8 +190,8 @@ export default async function CloudTeamPage({ params }: PageProps) {
       </section>
 
       {admin ? (
-        <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="settings-title">
-          <h2 id="settings-title" className={styles.cardTitle}>
+        <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="settings-title">
+          <h2 id="settings-title" className={appUi.cardTitle}>
             {t('team.settings')}
           </h2>
           <ActionForm
@@ -207,7 +205,7 @@ export default async function CloudTeamPage({ params }: PageProps) {
               required
               maxLength={60}
             />
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton variant="outline" pendingLabel={tc('saving')}>
                 {t('team.rename')}
               </SubmitButton>
@@ -218,10 +216,10 @@ export default async function CloudTeamPage({ params }: PageProps) {
 
       {team.role === 'OWNER' ? (
         <section
-          className={`${styles.card} ${styles.narrow} ${styles.danger}`}
+          className={`${appUi.card} ${styles.narrow} ${styles.danger}`}
           aria-labelledby="delete-title"
         >
-          <h2 id="delete-title" className={styles.cardTitle}>
+          <h2 id="delete-title" className={appUi.cardTitle}>
             {t('team.deleteTitle')}
           </h2>
           <p className={styles.muted}>{t('team.deleteBody')}</p>
@@ -236,7 +234,7 @@ export default async function CloudTeamPage({ params }: PageProps) {
               spellCheck={false}
               required
             />
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton variant="danger" pendingLabel={tc('deleting')}>
                 {tc('delete')}
               </SubmitButton>

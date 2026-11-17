@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormInput } from '@/components/app/ActionForm';
@@ -9,6 +10,7 @@ import { listMeetingRooms, type MeetingRoom } from '@/lib/api/meetings';
 import { getCurrentUser } from '@/lib/auth/session';
 import { env } from '@/lib/env';
 import { createRoomAction, deleteRoomAction, joinByCodeAction, toggleLobbyAction } from './actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from './meetings.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
@@ -31,25 +33,39 @@ export default async function MeetingsLandingPage({ params }: PageProps) {
   const origin = await publicOrigin();
   const dateFormat = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
 
+  const features = (
+    <ul className={styles.features}>
+      {(['1', '2', '3', '4'] as const).map((n) => (
+        <li key={n}>
+          <strong>{t(`landing.feature${n}Title`)}</strong>
+          <span>{t(`landing.feature${n}`)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+
   return (
     <div className={styles.landing}>
-      <section className={styles.hero}>
-        <div>
-          <p className={`eyebrow ${styles.eyebrow}`}>{t('landing.eyebrow')}</p>
-          <h1 className={styles.heroTitle}>{t('landing.title')}</h1>
-          <p className={styles.heroLead}>{t('landing.lead')}</p>
-          {user ? null : (
-            <div className={styles.actions}>
-              <Button href="/register">{t('landing.createAccount')}</Button>
-              <Button href="/login?next=/meetings" variant="outline">
-                {t('signIn')}
-              </Button>
-            </div>
-          )}
-        </div>
+      <section className={appUi.split}>
+        <PageHeader
+          variant={user ? 'page' : 'hero'}
+          eyebrow={t('landing.eyebrow')}
+          title={t('landing.title')}
+          lead={t('landing.lead')}
+          actions={
+            user ? undefined : (
+              <>
+                <Button href="/register">{t('landing.createAccount')}</Button>
+                <Button href="/login?next=/meetings" variant="outline">
+                  {t('signIn')}
+                </Button>
+              </>
+            )
+          }
+        />
 
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>{t('landing.joinTitle')}</h2>
+        <div className={appUi.card}>
+          <h2 className={appUi.cardTitle}>{t('landing.joinTitle')}</h2>
           <ActionForm action={joinByCodeAction} className={styles.form}>
             <input type="hidden" name="locale" value={locale} />
             <FormInput
@@ -70,10 +86,10 @@ export default async function MeetingsLandingPage({ params }: PageProps) {
 
       {user ? (
         <section aria-labelledby="rooms-title">
-          <h2 id="rooms-title" className={styles.sectionTitle}>
+          <h2 id="rooms-title" className={appUi.sectionTitle}>
             {t('rooms.title')}
           </h2>
-          <div className={styles.card}>
+          <div className={appUi.card}>
             <ActionForm action={createRoomAction} className={styles.form}>
               <input type="hidden" name="locale" value={locale} />
               <FormInput
@@ -84,15 +100,16 @@ export default async function MeetingsLandingPage({ params }: PageProps) {
                 maxLength={80}
                 required
               />
-              <SubmitButton>{t('rooms.create')}</SubmitButton>
+              <SubmitButton className={styles.submit}>{t('rooms.create')}</SubmitButton>
             </ActionForm>
+            {rooms === null ? (
+              <p className={styles.muted}>{t('rooms.loadError')}</p>
+            ) : rooms.length === 0 ? (
+              <p className={styles.muted}>{t('rooms.empty')}</p>
+            ) : null}
           </div>
 
-          {rooms === null ? (
-            <p className={styles.muted}>{t('rooms.loadError')}</p>
-          ) : rooms.length === 0 ? (
-            <p className={styles.muted}>{t('rooms.empty')}</p>
-          ) : (
+          {rooms === null || rooms.length === 0 ? null : (
             <ul className={styles.rooms} style={{ marginTop: 'var(--space-6)' }}>
               {rooms.map((room) => (
                 <li key={room.id} className={styles.room}>
@@ -111,7 +128,7 @@ export default async function MeetingsLandingPage({ params }: PageProps) {
                     url={`${origin}/${locale}/${room.code}`}
                     labels={{ copy: t('rooms.copy'), copied: t('rooms.copied') }}
                   />
-                  <div className={styles.actions}>
+                  <div className={appUi.actions}>
                     <Button href={`/meetings/${room.code}`} size="sm">
                       {t('rooms.open')}
                     </Button>
@@ -138,19 +155,20 @@ export default async function MeetingsLandingPage({ params }: PageProps) {
         </section>
       ) : null}
 
-      <section aria-labelledby="features-title">
-        <h2 id="features-title" className={styles.sectionTitle}>
-          {t('landing.featuresTitle')}
-        </h2>
-        <ul className={styles.features}>
-          {(['1', '2', '3', '4'] as const).map((n) => (
-            <li key={n}>
-              <strong>{t(`landing.feature${n}Title`)}</strong>
-              <span>{t(`landing.feature${n}`)}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {user ? (
+        // Signed in: the features fold away (architecture 6.6).
+        <details className={appUi.more}>
+          <summary>{t('landing.featuresTitle')}</summary>
+          {features}
+        </details>
+      ) : (
+        <section aria-labelledby="features-title">
+          <h2 id="features-title" className={appUi.sectionTitle}>
+            {t('landing.featuresTitle')}
+          </h2>
+          {features}
+        </section>
+      )}
     </div>
   );
 }

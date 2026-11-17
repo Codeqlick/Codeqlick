@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
@@ -9,12 +10,12 @@ import {
   FormTextarea,
 } from '@/components/app/ActionForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { listCitasPages, type CitasPage } from '@/lib/api/citas';
 import { intervalsToText, WEEKDAYS } from '@/lib/booking';
 import { CITAS_DURATIONS, CITAS_TIME_ZONES, zoneCity } from '@/lib/citas';
 import { savePageAction } from '../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../citas.module.css';
 
 type PageProps = { params: Promise<{ locale: string; id: string }> };
@@ -58,17 +59,13 @@ export default async function CitasEditorPage({ params }: PageProps) {
 
   return (
     <div className={styles.editor}>
-      <div>
-        <Link href="/citas" className={styles.link}>
-          ← {t('back')}
-        </Link>
-        <h1 className={styles.heroTitle} style={{ marginTop: 'var(--space-4)' }}>
-          {isNew ? t('newTitle') : t('editTitle')}
-        </h1>
-      </div>
+      <PageHeader
+        back={{ href: '/citas', label: t('back') }}
+        title={isNew ? t('newTitle') : t('editTitle')}
+      />
 
       <ActionForm action={action} className={styles.editor}>
-        <div className={`${styles.card} ${styles.form}`}>
+        <div className={`${appUi.card} ${styles.form}`}>
           <FormInput
             name="title"
             label={t('title')}
@@ -128,7 +125,7 @@ export default async function CitasEditorPage({ params }: PageProps) {
           <FormCheckbox name="askPhone" label={t('askPhone')} defaultChecked={page.askPhone} />
         </div>
 
-        <fieldset className={`${styles.card} ${styles.fieldset}`}>
+        <fieldset className={`${appUi.card} ${styles.fieldset}`}>
           <legend className={styles.legend}>{t('hoursTitle')}</legend>
           <p className={styles.muted}>{t('hoursLead')}</p>
           <div className={styles.days7}>

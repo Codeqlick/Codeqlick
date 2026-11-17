@@ -3,14 +3,15 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { AppFrame } from '@/components/layout/AppFrame';
+import { AppFooter } from '@/components/layout/AppFooter';
 import { swipeMenu } from '@/lib/app-menus';
-import { Link, WebappProvider } from '@/i18n/navigation';
+import { WebappProvider } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getSwipeStatus } from '@/lib/api/swipe';
 import { getCurrentUser } from '@/lib/auth/session';
 import { requestWebapp } from '@/lib/webapp-request';
 import { webappAlternates, webappOrigin, webappPath } from '@/lib/webapp-seo';
-import vc from '../videochat/videochat.module.css';
 
 type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
 
@@ -57,7 +58,6 @@ export const viewport: Viewport = { themeColor: '#ffffff' };
 export default async function SwipeLayout({ children, params }: LayoutProps) {
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);
-  const t = await getTranslations({ locale, namespace: 'Swipe' });
   const user = await getCurrentUser();
   // The menu's user card: the profile once entered (with a profile), and the verified badge.
   let entered = false;
@@ -77,36 +77,21 @@ export default async function SwipeLayout({ children, params }: LayoutProps) {
   return (
     <ClientMessages extra={APP_NAMESPACES.swipe}>
       <WebappProvider app={webapp}>
-        <div className={vc.frame}>
-          <AppHeader
-            app="swipe"
-            locale={locale}
-            config={swipeMenu(locale, { signedIn: Boolean(user), entered })}
-            user={user}
-            verified={verified}
-            adult
-          />
-          <main className={vc.main}>{children}</main>
-          <footer className={`${vc.main} ${vc.footer}`}>
-            <p className={vc.muted}>
-              <Link href="/swipe/takedown" className={vc.inlineLink}>
-                {t('footerTakedown')}
-              </Link>
-              {' · '}
-              <Link href="/swipe/rules" className={vc.inlineLink}>
-                {t('nav.rules')}
-              </Link>
-              {' · '}
-              <Link href="/swipe/terms-of-use" className={vc.inlineLink}>
-                {t('legal.terms')}
-              </Link>
-              {' · '}
-              <Link href="/swipe/privacy-policy" className={vc.inlineLink}>
-                {t('legal.privacy')}
-              </Link>
-            </p>
-          </footer>
-        </div>
+        <AppFrame
+          header={
+            <AppHeader
+              app="swipe"
+              locale={locale}
+              config={swipeMenu(locale, { signedIn: Boolean(user), entered })}
+              user={user}
+              verified={verified}
+              adult
+            />
+          }
+          footer={<AppFooter app="swipe" locale={locale} />}
+        >
+          {children}
+        </AppFrame>
       </WebappProvider>
     </ClientMessages>
   );

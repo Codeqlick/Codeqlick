@@ -98,6 +98,7 @@ test('two people meet in the video chat, talk and move on', async ({
 
     // Ana picks a nickname: that, not her name, is what Ben sees.
     await ana.goto('/es/settings');
+    await expect(ana.getByRole('heading', { level: 1, name: 'Tu perfil y filtros' })).toBeVisible();
     await ana.getByLabel('Nombre de usuario').fill(`ana_${tag}`);
     await ana.getByRole('combobox', { name: 'Género' }).selectOption('WOMAN');
     await ana.getByRole('combobox', { name: 'País' }).selectOption('ES');

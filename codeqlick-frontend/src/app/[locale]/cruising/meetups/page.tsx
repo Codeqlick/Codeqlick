@@ -8,7 +8,7 @@ import { getCruisingStatus } from '@/lib/api/cruising';
 import { listCruisingMeetups } from '@/lib/api/cruising-community';
 import { requireUser } from '@/lib/auth/session';
 import { TRIPS_HREF } from '@/lib/cruising-community';
-import vc from '../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { CruisingGate } from '../Gate';
 
 /** Behind the account: kept out of search results. */
@@ -32,14 +32,14 @@ export default async function CruisingMeetupsPage({ params }: PageProps) {
 
   return (
     <>
-      <h1 className={vc.pageTitle}>{t('pageTitle')}</h1>
-      <p className={vc.muted}>{t('pageLead')}</p>
+      <h1 className={adult.pageTitle}>{t('pageTitle')}</h1>
+      <p className={adult.muted}>{t('pageLead')}</p>
       <p>
-        <Link href="/cruising/favorites" className={vc.inlineLink}>
+        <Link href="/cruising/favorites" className={adult.inlineLink}>
           {t('favoritesLink')}
         </Link>
         {' · '}
-        <Link href={TRIPS_HREF} className={vc.inlineLink}>
+        <Link href={TRIPS_HREF} className={adult.inlineLink}>
           {t('tripsLink')}
         </Link>
       </p>

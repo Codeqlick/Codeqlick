@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -11,6 +12,7 @@ import { isApiError } from '@/lib/api/errors';
 import { addressHref, formatWhen, isProtected } from '@/lib/cloud';
 import { appPath } from '@/lib/webapp-request';
 import { cancelBuildAction, startBuildAction } from '../../../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../../../cloud.module.css';
 import { BUILD_TONE, duration } from '../../BuildsTab';
 import { ProtectionLock } from '../../ProtectionCard';
@@ -56,11 +58,10 @@ export default async function CloudBuildPage({ params }: PageProps) {
   return (
     <div className={styles.landing}>
       {live ? <AutoRefresh seconds={3} /> : null}
-      <div>
-        <p className={styles.small}>
-          <Link href={`/cloud/console/${team}/${slug}?tab=builds`}>← {project.name}</Link>
-        </p>
-        <h1 className={styles.heroTitle}>Build #{build.number}</h1>
+      <PageHeader
+        back={{ href: `/cloud/console/${team}/${slug}?tab=builds`, label: project.name }}
+        title={<>Build #{build.number}</>}
+      >
         <p className={styles.rowTitle}>
           <Badge tone={BUILD_TONE[build.status]}>{t(`builds.status.${build.status}`)}</Badge>
           <Badge>{build.target === 'production' ? t('git.production') : t('git.preview')}</Badge>
@@ -123,7 +124,7 @@ export default async function CloudBuildPage({ params }: PageProps) {
             ) : null}
           </p>
         ) : null}
-      </div>
+      </PageHeader>
       {live ? (
         <form action={cancelBuildAction}>
           <input type="hidden" name="locale" value={locale} />
@@ -150,11 +151,11 @@ export default async function CloudBuildPage({ params }: PageProps) {
         </form>
       ) : null}
       <section aria-labelledby="log-title">
-        <h2 id="log-title" className={styles.sectionTitle}>
+        <h2 id="log-title" className={appUi.sectionTitle}>
           {t('builds.log')}
         </h2>
         {build.log ? (
-          <div className={styles.actions}>
+          <div className={appUi.actions}>
             <a href={logHref} className={styles.small}>
               {t('builds.downloadLog')}
             </a>

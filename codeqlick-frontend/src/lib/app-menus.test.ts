@@ -3,6 +3,7 @@ import en from '../messages/en.json';
 import {
   accountSettingsHref,
   accountSiteOrigin,
+  appFooter,
   citasMenu,
   cloudMenu,
   cruisingMenu,
@@ -12,6 +13,7 @@ import {
   videochatMenu,
   type AppMenuConfig,
 } from './app-menus';
+import { WEBAPPS, type Webapp } from './webapps';
 
 /** Section id → item ids, the shape the drawer shows. */
 function shape(config: AppMenuConfig) {
@@ -250,5 +252,67 @@ describe('isCurrentPath', () => {
 
   it('never marks an outside link', () => {
     expect(isCurrentPath('/docs', 'https://docs.example.com/docs', 'cloud')).toBe(false);
+  });
+});
+
+describe('appFooter', () => {
+  const site = { locale: 'es', siteUrl: 'https://codeqlick.com/', legal: true };
+  const ids = (app: Webapp, context = site) => appFooter(app, context).map((item) => item.id);
+
+  it("gives Cruising and Swipe their own legal pages and the website's contact", () => {
+    expect(ids('cruising')).toEqual(['takedown', 'rules', 'terms', 'privacy', 'contact']);
+    const swipe = appFooter('swipe', site);
+    expect(swipe.map((item) => item.href)).toEqual([
+      '/swipe/takedown',
+      '/swipe/rules',
+      '/swipe/terms-of-use',
+      '/swipe/privacy-policy',
+      'https://codeqlick.com/es/contact',
+    ]);
+    expect(swipe.filter((item) => item.external).map((item) => item.id)).toEqual(['contact']);
+  });
+
+  it("links Videochat, Meetings and Citas to the website's legal pages and contact", () => {
+    expect(ids('videochat')).toEqual(['rules', 'terms', 'privacy', 'contact']);
+    expect(ids('meetings')).toEqual(['terms', 'privacy', 'contact']);
+    const citas = appFooter('citas', { ...site, locale: 'en' });
+    expect(citas.map((item) => item.href)).toEqual([
+      'https://codeqlick.com/en/terms',
+      'https://codeqlick.com/en/privacy',
+      'https://codeqlick.com/en/contact',
+    ]);
+    expect(citas.every((item) => item.external)).toBe(true);
+  });
+
+  it("leaves out the website's legal pages when they don't exist", () => {
+    const noLegal = { ...site, legal: false };
+    expect(ids('citas', noLegal)).toEqual(['contact']);
+    expect(ids('videochat', noLegal)).toEqual(['rules', 'contact']);
+    expect(ids('cloud', noLegal)).toEqual(['docs', 'terms', 'report', 'contact']);
+    // The 18+ apps' own legal pages are always there.
+    expect(ids('cruising', noLegal)).toHaveLength(5);
+  });
+
+  it("links the website in its own language from Cruising's other languages", () => {
+    const contact = appFooter('cruising', { ...site, locale: 'de' }).at(-1);
+    expect(contact?.href).toBe('https://codeqlick.com/en/contact');
+  });
+
+  it('gives Cloud its docs (outside when they live apart), terms and abuse report', () => {
+    expect(ids('cloud')).toEqual(['docs', 'terms', 'report', 'privacy', 'contact']);
+    expect(appFooter('cloud', site)[0]).toMatchObject({ href: '/cloud/docs' });
+    const apart = appFooter('cloud', { ...site, docsHref: 'https://docs.example.com/es' });
+    expect(apart[0]).toMatchObject({ href: 'https://docs.example.com/es', external: true });
+  });
+
+  it('only uses messages that exist', () => {
+    for (const app of WEBAPPS) {
+      for (const item of appFooter(app, site)) {
+        expect(typeof message(item.label), item.label).toBe('string');
+      }
+    }
+    for (const key of ['label', 'copyright']) {
+      expect(typeof message(`AppMenu.footer.${key}`), key).toBe('string');
+    }
   });
 });

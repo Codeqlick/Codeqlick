@@ -13,7 +13,7 @@ import { getCruisingStatus, listMyCruisingSpots } from '@/lib/api/cruising';
 import { requireUser } from '@/lib/auth/session';
 import { countryName, spotHref, type CruisingSpotStatus } from '@/lib/cruising';
 import { firstParam, formatDate } from '@/lib/format';
-import vc from '../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { deleteSpotAction, emailAlertsAction } from '../actions';
 import { CruisingGate } from '../Gate';
 
@@ -47,8 +47,8 @@ export default async function CruisingMySpotsPage({ params, searchParams }: Page
 
   return (
     <>
-      <h1 className={vc.pageTitle}>{t('title')}</h1>
-      <p className={vc.muted}>{t('lead')}</p>
+      <h1 className={adult.pageTitle}>{t('title')}</h1>
+      <p className={adult.muted}>{t('lead')}</p>
       {firstParam(query.sent) ? <Alert tone="success">{t('sent')}</Alert> : null}
       {firstParam(query.saved) ? <Alert tone="success">{t('saved')}</Alert> : null}
       <p>
@@ -64,7 +64,7 @@ export default async function CruisingMySpotsPage({ params, searchParams }: Page
               <li key={spot.id} className={card.card}>
                 <h2 className={card.title}>
                   {spot.status === 'LIVE' ? (
-                    <Link href={spotHref(spot.slug)} className={vc.inlineLink}>
+                    <Link href={spotHref(spot.slug)} className={adult.inlineLink}>
                       {spot.name}
                     </Link>
                   ) : (
@@ -79,9 +79,9 @@ export default async function CruisingMySpotsPage({ params, searchParams }: Page
                   </span>
                   <span>{t('proposedOn', { date: formatDate(spot.createdAt, locale) })}</span>
                 </p>
-                <p className={vc.muted}>{t(`explain.${spot.status}`)}</p>
+                <p className={adult.muted}>{t(`explain.${spot.status}`)}</p>
                 {spot.status === 'REJECTED' || spot.status === 'REMOVED' ? (
-                  <p className={vc.answer}>
+                  <p className={adult.answer}>
                     <strong>{t('rejectReason')}:</strong> {spot.rejectReason ?? t('noReason')}
                   </p>
                 ) : null}
@@ -102,8 +102,8 @@ export default async function CruisingMySpotsPage({ params, searchParams }: Page
           })}
         </ul>
       )}
-      <section className={vc.panel} aria-labelledby="cruising-alerts">
-        <h2 id="cruising-alerts" className={vc.sectionTitle}>
+      <section className={adult.panel} aria-labelledby="cruising-alerts">
+        <h2 id="cruising-alerts" className={adult.sectionTitle}>
           {t('alertsTitle')}
         </h2>
         <ActionForm action={emailAlertsAction.bind(null, locale)}>

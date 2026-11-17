@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import vc from '@/app/[locale]/videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { Markdown } from '@/components/markdown/Markdown';
 import { type LegalOwner } from '@/content/legal';
 import { cruisingLegalDocument, type CruisingLegalPage } from '@/content/legal/cruising';
@@ -42,9 +42,9 @@ export function legalPage(page: CruisingLegalPage) {
     const tm = await getTranslations({ locale, namespace: 'Markdown' });
     const document = cruisingLegalDocument(page, owner(), locale);
     return (
-      <article className={vc.rules}>
-        <h1 className={vc.pageTitle}>{document.title}</h1>
-        <p className={vc.muted}>{t('updated', { date: document.updated })}</p>
+      <article className={adult.rules}>
+        <h1 className={adult.pageTitle}>{document.title}</h1>
+        <p className={adult.muted}>{t('updated', { date: document.updated })}</p>
         <Markdown anchors={{ linkLabel: tm('anchorLink') }}>{document.markdown}</Markdown>
       </article>
     );

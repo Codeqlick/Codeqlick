@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Alert } from '@/components/ui/Alert';
@@ -6,6 +7,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { getCloudDevice, type CloudDevice } from '@/lib/api/cloud';
 import { formatWhen } from '@/lib/cloud';
 import { decideDeviceAction } from '../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../cloud.module.css';
 
 type PageProps = {
@@ -33,16 +35,13 @@ export default async function CloudCliPage({ params, searchParams }: PageProps) 
 
   return (
     <div className={`${styles.landing} ${styles.narrow}`}>
-      <div>
-        <h1 className={styles.heroTitle}>{t('title')}</h1>
-        <p className={styles.muted}>{t('lead')}</p>
-      </div>
+      <PageHeader title={t('title')} lead={t('lead')} />
       {done === 'approved' || device?.status === 'approved' ? (
         <Alert tone="success">{t('approved')}</Alert>
       ) : done === 'denied' || device?.status === 'denied' ? (
         <Alert tone="info">{t('denied')}</Alert>
       ) : !code ? (
-        <form method="get" className={`${styles.card} ${styles.form}`}>
+        <form method="get" className={`${appUi.card} ${styles.form}`}>
           <label htmlFor="code">{t('enter')}</label>
           <input
             id="code"
@@ -51,14 +50,14 @@ export default async function CloudCliPage({ params, searchParams }: PageProps) 
             autoCapitalize="characters"
             required
           />
-          <div className={styles.actions}>
+          <div className={appUi.actions}>
             <SubmitButton>{t('go')}</SubmitButton>
           </div>
         </form>
       ) : !device || done === 'expired' ? (
         <Alert tone="error">{t('expired')}</Alert>
       ) : (
-        <div className={styles.card}>
+        <div className={appUi.card}>
           <p className={styles.small}>{t('code')}</p>
           <p>
             <span className={styles.code}>{device.userCode}</span>
@@ -67,7 +66,7 @@ export default async function CloudCliPage({ params, searchParams }: PageProps) 
             {t('machine')}: <strong>{device.clientName}</strong> ·{' '}
             {t('asked', { when: formatWhen(device.createdAt, locale) })}
           </p>
-          <form action={decideDeviceAction} className={styles.actions}>
+          <form action={decideDeviceAction} className={appUi.actions}>
             <input type="hidden" name="locale" value={locale} />
             <input type="hidden" name="code" value={device.userCode} />
             <SubmitButton name="decision" value="approve">

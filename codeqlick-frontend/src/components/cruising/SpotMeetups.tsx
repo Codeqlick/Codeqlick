@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { planMeetupAction } from '@/app/[locale]/cruising/community-actions';
-import vc from '@/app/[locale]/videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { ActionForm, FormInput, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -34,13 +34,13 @@ export async function SpotMeetups({ locale, spot, status }: SpotMeetupsProps) {
 
   return (
     <section className={styles.section} aria-labelledby="spot-meetups-title">
-      <h2 id="spot-meetups-title" className={vc.sectionTitle}>
+      <h2 id="spot-meetups-title" className={adult.sectionTitle}>
         {t('spotTitle')}
       </h2>
       {meetups === null ? (
-        <p className={vc.muted}>{t('loadError')}</p>
+        <p className={adult.muted}>{t('loadError')}</p>
       ) : meetups.length === 0 ? (
-        <p className={vc.muted}>{t('noneHere')}</p>
+        <p className={adult.muted}>{t('noneHere')}</p>
       ) : (
         <ul className={styles.list}>
           {meetups.map((meetup) => (
@@ -53,8 +53,8 @@ export async function SpotMeetups({ locale, spot, status }: SpotMeetupsProps) {
       {canAct ? (
         <details className={styles.disclosure}>
           <summary>{t('planOpen')}</summary>
-          <ActionForm action={planMeetupAction.bind(null, locale, spot.id)} className={vc.form}>
-            <p className={vc.muted}>{t('planLead')}</p>
+          <ActionForm action={planMeetupAction.bind(null, locale, spot.id)} className={adult.form}>
+            <p className={adult.muted}>{t('planLead')}</p>
             <FormInput
               id="meetup-title"
               name="title"
@@ -99,9 +99,9 @@ export async function SpotMeetups({ locale, spot, status }: SpotMeetupsProps) {
           </ActionForm>
         </details>
       ) : status.profile === null ? (
-        <p className={vc.muted}>
+        <p className={adult.muted}>
           {t('needNickname')}{' '}
-          <Link href="/cruising/me" className={vc.inlineLink}>
+          <Link href="/cruising/me" className={adult.inlineLink}>
             {t('chooseNickname')}
           </Link>
         </p>

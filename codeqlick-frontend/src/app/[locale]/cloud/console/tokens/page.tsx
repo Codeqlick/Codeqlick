@@ -1,14 +1,15 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ActionForm, FormInput, FormRadioGroup, FormSelect } from '@/components/app/ActionForm';
 import { TokenReveal } from '@/components/cloud/TokenReveal';
 import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCloudMe, listCloudTokens } from '@/lib/api/cloud';
 import { expiringInDays, formatWhen } from '@/lib/cloud';
 import { createTokenAction, revokeTokenAction } from '../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../cloud.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
@@ -36,16 +37,14 @@ export default async function CloudTokensPage({ params }: PageProps) {
 
   return (
     <div className={styles.landing}>
-      <div>
-        <p className={styles.small}>
-          <Link href="/cloud/console">← {t('console.title')}</Link>
-        </p>
-        <h1 className={styles.heroTitle}>{t('tokens.title')}</h1>
-        <p className={styles.muted}>{t('tokens.lead')}</p>
-      </div>
+      <PageHeader
+        back={{ href: '/cloud/console', label: t('console.title') }}
+        title={t('tokens.title')}
+        lead={t('tokens.lead')}
+      />
 
-      <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="new-token">
-        <h2 id="new-token" className={styles.cardTitle}>
+      <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="new-token">
+        <h2 id="new-token" className={appUi.cardTitle}>
           {t('tokens.create')}
         </h2>
         <ActionForm action={createTokenAction.bind(null, locale)} className={styles.form}>
@@ -93,7 +92,7 @@ export default async function CloudTokensPage({ params }: PageProps) {
               },
             ]}
           />
-          <div className={styles.actions}>
+          <div className={appUi.actions}>
             <SubmitButton pendingLabel={t('tokens.creating')}>{t('tokens.create')}</SubmitButton>
           </div>
         </ActionForm>

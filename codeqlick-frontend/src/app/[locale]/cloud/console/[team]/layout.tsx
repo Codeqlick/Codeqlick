@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { ReactNode } from 'react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Alert } from '@/components/ui/Alert';
@@ -8,6 +9,7 @@ import { getCloudMe, getCloudUsage } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { formatBytes, usageWarnings } from '@/lib/cloud';
 import { removeMemberAction } from '../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../cloud.module.css';
 import { accountUrl } from '@/lib/account-links';
 
@@ -30,18 +32,16 @@ export default async function CloudTeamLayout({ children, params }: LayoutProps)
   if (me && team?.twoFactorBlocked) {
     return (
       <div className={`${styles.landing} ${styles.narrow}`}>
-        <div>
-          <p className={styles.small}>
-            <Link href="/cloud/console">← {t('console.title')}</Link>
-          </p>
-          <h1 className={styles.heroTitle}>{team.name}</h1>
-        </div>
-        <section className={styles.card} aria-labelledby="two-factor-title">
-          <h2 id="two-factor-title" className={styles.cardTitle}>
+        <PageHeader
+          back={{ href: '/cloud/console', label: t('console.title') }}
+          title={team.name}
+        />
+        <section className={appUi.card} aria-labelledby="two-factor-title">
+          <h2 id="two-factor-title" className={appUi.cardTitle}>
             {t('twoFactor.blockedTitle')}
           </h2>
           <Alert tone="info">{t('twoFactor.blockedBody')}</Alert>
-          <div className={styles.actions}>
+          <div className={appUi.actions}>
             <a href={accountUrl(locale, '/security')}>{t('twoFactor.accountLink')}</a>
             <form action={removeMemberAction}>
               <input type="hidden" name="locale" value={locale} />

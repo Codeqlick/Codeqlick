@@ -4303,7 +4303,14 @@
       "community": "Comunidad",
       "me": "Yo"
     },
-    "account": "Cuenta"
+    "account": "Cuenta",
+    "footer": {
+      "label": "Enlaces del pie",
+      "copyright": "© {year} Codeqlick",
+      "terms": "Condiciones",
+      "privacy": "Privacidad",
+      "contact": "Contacto"
+    }
   },
   "AdminErrors": {
     "title": "Errores",

@@ -143,7 +143,14 @@
       "community": "Comunidade",
       "me": "Eu"
     },
-    "account": "Conta"
+    "account": "Conta",
+    "footer": {
+      "label": "Links do rodapé",
+      "copyright": "© {year} Codeqlick",
+      "terms": "Termos",
+      "privacy": "Privacidade",
+      "contact": "Contacto"
+    }
   },
   "LocaleSwitcher": {
     "label": "Idioma",

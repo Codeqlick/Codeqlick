@@ -8,7 +8,7 @@ import { getHealthCenterPlaces, listHealthCenters } from '@/lib/api/cruising-saf
 import { countryName } from '@/lib/cruising';
 import { groupCenters, healthAnchor, type HealthCenter } from '@/lib/cruising-safety';
 import { webappAlternates, webappPath } from '@/lib/webapp-seo';
-import vc from '../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
 
@@ -52,8 +52,8 @@ export default async function CruisingHealthPage({ params }: PageProps) {
 
   return (
     <>
-      <h1 className={vc.pageTitle}>{t('title')}</h1>
-      <p className={`${vc.muted} ${cruising.pageLead}`}>{t('lead')}</p>
+      <h1 className={adult.pageTitle}>{t('title')}</h1>
+      <p className={`${adult.muted} ${cruising.pageLead}`}>{t('lead')}</p>
       {failed ? (
         <p>{t('loadError')}</p>
       ) : centers.length === 0 ? (
@@ -65,7 +65,7 @@ export default async function CruisingHealthPage({ params }: PageProps) {
             <ul className={styles.jump}>
               {groups.map((group) => (
                 <li key={group.countryCode}>
-                  <a href={`#${healthAnchor(group.countryCode)}`} className={vc.inlineLink}>
+                  <a href={`#${healthAnchor(group.countryCode)}`} className={adult.inlineLink}>
                     {countryName(group.countryCode, locale)}
                   </a>
                 </li>
@@ -112,7 +112,7 @@ export default async function CruisingHealthPage({ params }: PageProps) {
                             {t('phone')}{' '}
                             <a
                               href={`tel:${center.phone.replace(/[^\d+]/g, '')}`}
-                              className={vc.inlineLink}
+                              className={adult.inlineLink}
                             >
                               {center.phone}
                             </a>
@@ -125,7 +125,7 @@ export default async function CruisingHealthPage({ params }: PageProps) {
                               href={center.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className={vc.inlineLink}
+                              className={adult.inlineLink}
                             >
                               {new URL(center.url).hostname}
                             </a>

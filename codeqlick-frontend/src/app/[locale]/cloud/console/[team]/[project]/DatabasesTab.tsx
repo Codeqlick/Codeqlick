@@ -8,6 +8,7 @@ import type { AppLocale } from '@/i18n/routing';
 import { listCloudDatabases } from '@/lib/api/cloud';
 import { formatBytes, formatWhen } from '@/lib/cloud';
 import { createDatabaseAction, deleteDatabaseAction, resetDatabaseAction } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 
 type Props = {
@@ -26,7 +27,7 @@ export async function DatabasesTab(props: Props) {
   return (
     <section className={styles.landing} aria-labelledby="db-title">
       <div>
-        <h2 id="db-title" className={styles.sectionTitle}>
+        <h2 id="db-title" className={appUi.sectionTitle}>
           {t('project.tabs.databases')}
         </h2>
         <p className={styles.muted}>{t('databases.lead')}</p>
@@ -37,7 +38,7 @@ export async function DatabasesTab(props: Props) {
         <>
           {data.items.length === 0 ? <p className={styles.muted}>{t('databases.empty')}</p> : null}
           {data.items.map((db) => (
-            <article key={db.id} className={styles.card}>
+            <article key={db.id} className={appUi.card}>
               <p className={styles.rowTitle}>
                 {db.name}
                 {db.blocked ? (
@@ -62,7 +63,7 @@ export async function DatabasesTab(props: Props) {
               />
               <p className={styles.small}>{t('databases.passwordHelp')}</p>
               {props.admin ? (
-                <div className={styles.actions}>
+                <div className={appUi.actions}>
                   <ActionForm
                     action={resetDatabaseAction.bind(
                       null,
@@ -96,8 +97,8 @@ export async function DatabasesTab(props: Props) {
             </article>
           ))}
           {props.admin ? (
-            <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="db-new">
-              <h3 id="db-new" className={styles.cardTitle}>
+            <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="db-new">
+              <h3 id="db-new" className={appUi.cardTitle}>
                 {t('databases.newTitle')}
               </h3>
               <ActionForm
@@ -112,7 +113,7 @@ export async function DatabasesTab(props: Props) {
                   required
                   maxLength={40}
                 />
-                <div className={styles.actions}>
+                <div className={appUi.actions}>
                   <SubmitButton pendingLabel={t('databases.creating')}>
                     {t('databases.create')}
                   </SubmitButton>

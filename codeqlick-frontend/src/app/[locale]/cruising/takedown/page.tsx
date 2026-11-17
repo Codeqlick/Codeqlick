@@ -5,7 +5,7 @@ import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { TAKEDOWN_REASONS } from '@/lib/cruising';
 import { webappAlternates, webappPath } from '@/lib/webapp-seo';
-import vc from '../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { takedownAction } from '../actions';
 
 type PageProps = { params: Promise<{ locale: string }> };
@@ -29,10 +29,10 @@ export default async function CruisingTakedownPage({ params }: PageProps) {
   const t = await getTranslations({ locale, namespace: 'Cruising.takedown' });
   const tr = await getTranslations({ locale, namespace: 'Cruising.report.reasons' });
   return (
-    <section className={vc.panel}>
-      <h1 className={vc.pageTitle}>{t('title')}</h1>
-      <p className={vc.muted}>{t('lead')}</p>
-      <ActionForm action={takedownAction} className={vc.form}>
+    <section className={adult.panel}>
+      <h1 className={adult.pageTitle}>{t('title')}</h1>
+      <p className={adult.muted}>{t('lead')}</p>
+      <ActionForm action={takedownAction} className={adult.form}>
         <input type="hidden" name="locale" value={locale} />
         {/* Honeypot: hidden from people, filled in by bots. */}
         <div hidden aria-hidden="true">
