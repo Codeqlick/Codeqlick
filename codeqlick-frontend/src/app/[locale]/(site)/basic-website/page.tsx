@@ -202,6 +202,7 @@ export default async function BasicWebsitePage({ params }: PageProps) {
             <Button
               href={REQUEST_HREF}
               variant="ink"
+              size="lg"
               block
               data-umami-event="cta-basic-website-bottom"
             >

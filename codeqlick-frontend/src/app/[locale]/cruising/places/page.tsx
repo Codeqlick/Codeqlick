@@ -33,7 +33,7 @@ export default async function CruisingPlacesPage({ params }: PageProps) {
   return (
     <>
       <h1 className={vc.pageTitle}>{t('title')}</h1>
-      <p className={vc.muted}>{t('lead')}</p>
+      <p className={`${vc.muted} ${styles.pageLead}`}>{t('lead')}</p>
       {countries.length === 0 ? (
         <p>{t('empty')}</p>
       ) : (

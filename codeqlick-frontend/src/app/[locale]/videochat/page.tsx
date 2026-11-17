@@ -71,7 +71,7 @@ export default async function VideochatLandingPage({ params }: PageProps) {
     <div className={styles.landing}>
       <JsonLd data={structuredData(locale, meta('metaSuffix'), meta('metaDescription'), faq)} />
       <section className={styles.hero}>
-        <p className={styles.eyebrow}>{t('eyebrow')}</p>
+        <p className={`eyebrow ${styles.eyebrow}`}>{t('eyebrow')}</p>
         {online !== null ? (
           <p className={styles.online} aria-live="polite">
             {t('online', { count: online })}
