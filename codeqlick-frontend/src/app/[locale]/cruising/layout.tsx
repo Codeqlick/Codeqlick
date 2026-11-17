@@ -76,9 +76,12 @@ export default async function CruisingLayout({ children, params }: LayoutProps) 
   const user = await getCurrentUser();
   // Messages and the profile are for members who have entered (and aren't suspended).
   let entered = false;
+  let verified = false;
   if (user) {
     try {
-      entered = (await getCruisingStatus()).allowed;
+      const status = await getCruisingStatus();
+      entered = status.allowed;
+      verified = status.verified;
     } catch {
       // The frame still works when Cruising's state can't be read.
     }
@@ -102,7 +105,8 @@ export default async function CruisingLayout({ children, params }: LayoutProps) 
             app="cruising"
             locale={locale}
             config={cruisingMenu(locale, { signedIn: Boolean(user), entered })}
-            signedIn={Boolean(user)}
+            user={user}
+            verified={verified}
             adult
             locales={CRUISING_LOCALES}
             action={

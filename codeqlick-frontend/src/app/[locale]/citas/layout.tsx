@@ -36,7 +36,7 @@ export default async function CitasLayout({ children, params }: LayoutProps) {
     <ClientMessages extra={APP_NAMESPACES.citas}>
       <WebappProvider app={webapp}>
         <div className={styles.frame}>
-          <AppHeader app="citas" locale={locale} config={citasMenu()} signedIn={Boolean(user)} />
+          <AppHeader app="citas" locale={locale} config={citasMenu()} user={user} />
           <main className={styles.main}>{children}</main>
         </div>
       </WebappProvider>

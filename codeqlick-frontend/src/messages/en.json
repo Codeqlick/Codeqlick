@@ -4172,6 +4172,15 @@
     "title": "Menu",
     "home": "Home",
     "signIn": "Sign in",
+    "openFor": "Menu — {name}",
+    "card": {
+      "label": "Your account",
+      "profile": "My profile",
+      "completeProfile": "Complete your profile",
+      "account": "My account",
+      "verified": "Verified",
+      "register": "Create account"
+    },
     "sections": {
       "discover": "Discover",
       "community": "Community",
