@@ -2,6 +2,7 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { ACCESS_COOKIE } from '@/lib/auth/constants';
 import { env } from '@/lib/env';
+import type { AlsoReportedData } from '../adult';
 import type { SwipeCountry } from '../countries';
 import type { Interest } from '../videochat-interests';
 import { apiFetch } from './client';
@@ -148,15 +149,6 @@ export type AdminSwipeOverview = {
   suspended: number;
 };
 
-export type AdminVerification = {
-  userId: string;
-  nickname: string | null;
-  name: string;
-  email: string;
-  memberSince: string;
-  sentAt: string | null;
-};
-
 export type AdminPhoto = {
   id: string;
   ref: string;
@@ -189,7 +181,13 @@ export type AdminReport = {
   reviewedBy: { id: string; name: string } | null;
   photo: { id: string; ref: string; status: PhotoStatus } | null;
   reporter: Person & { nickname: string | null };
-  reported: Person & { nickname: string | null; suspended: boolean; reports: number };
+  reported: Person & {
+    nickname: string | null;
+    suspended: boolean;
+    reports: number;
+    /** Reported in other 18+ apps too (architecture 4.16). */
+    alsoReported?: AlsoReportedData;
+  };
 };
 
 export type AdminTakedown = {
@@ -229,6 +227,8 @@ export function getSwipeStatus() {
 export function onboardSwipe(input: {
   birthDate: string;
   acceptTerms: true;
+  /** The art. 9 consent, including that safety measures apply across the 18+ apps. */
+  consentSpecialData: true;
   termsVersion: string;
 }) {
   return apiFetch<SwipeStatus>('/swipe/me', { method: 'PUT', body: input, auth: 'required' });
@@ -244,15 +244,6 @@ function imageForm(file: File, album = false): FormData {
   form.set('consent', 'true');
   if (album) form.set('album', 'true');
   return form;
-}
-
-export function uploadSwipeVerification(file: File) {
-  return apiFetch<SwipeStatus>('/swipe/verification', {
-    method: 'POST',
-    body: imageForm(file),
-    auth: 'required',
-    signal: AbortSignal.timeout(30_000),
-  });
 }
 
 export function uploadSwipePhoto(file: File, album = false) {
@@ -420,22 +411,6 @@ export async function fetchSwipeImage(path: string): Promise<Response> {
 
 export function getAdminSwipeOverview() {
   return apiFetch<AdminSwipeOverview>('/admin/swipe/overview', { auth: 'required' });
-}
-
-export async function listAdminSwipeVerifications(): Promise<AdminVerification[]> {
-  return (
-    await apiFetch<{ items: AdminVerification[] }>('/admin/swipe/verifications', {
-      auth: 'required',
-    })
-  ).items;
-}
-
-export function decideSwipeVerification(userId: string, approve: boolean, note?: string) {
-  return apiFetch<void>(`/admin/swipe/verifications/${encodeURIComponent(userId)}`, {
-    method: 'POST',
-    body: { approve, note },
-    auth: 'required',
-  });
 }
 
 export async function listAdminSwipePhotos(status: PhotoStatus): Promise<AdminPhoto[]> {

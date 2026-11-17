@@ -109,6 +109,12 @@ export default async function VideochatRoomPage({ params, searchParams }: PagePr
             required
           />
           <FormCheckbox name="acceptTerms" label={t('onboarding.accept')} required />
+          <FormCheckbox
+            name="consentSpecialData"
+            label={t('onboarding.consent')}
+            hint={t('onboarding.consentHint')}
+            required
+          />
           <p>
             <Link href="/videochat/rules" target="_blank" className={styles.inlineLink}>
               {t('onboarding.readRules')}

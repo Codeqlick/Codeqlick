@@ -3,11 +3,11 @@
 import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import { routing, type AppLocale } from '@/i18n/routing';
+import { withdrawAdultVerification } from '@/lib/api/adult';
 import { failedState } from '@/lib/actions';
 import {
   actOnCruisingReport,
   approveCruisingSpot,
-  decideCruisingVerification,
   createAdminCruisingSpot,
   decideCruisingTakedown,
   dismissCruisingReport,
@@ -18,7 +18,6 @@ import {
   patchAdminCruisingSpot,
   rejectCruisingSpot,
   removeCruisingMedia,
-  withdrawCruisingVerification,
 } from '@/lib/api/cruising';
 import {
   LIMITS,
@@ -246,29 +245,7 @@ export async function mediaAction(
   );
 }
 
-/** Approves or rejects a verification photo (it is deleted either way; the member is emailed). */
-export async function verificationAction(
-  locale: AppLocale,
-  userId: string,
-  _previous: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  const approve = formData.get('decision') === 'approve';
-  const note = text(formData, 'note')?.slice(0, LIMITS.rejectReason);
-  return run(locale, formData, () => decideCruisingVerification(userId, approve, note));
-}
-
-/** Withdraws a member's verified badge (the member is emailed). */
-export async function withdrawVerificationAction(
-  locale: AppLocale,
-  userId: string,
-  _previous: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  return run(locale, formData, () => withdrawCruisingVerification(userId));
-}
-
-/** The same for a user id the team copied from a report. */
+/** The same for a user id the team copied from a report: withdraws it in the three 18+ apps. */
 export async function withdrawVerificationByIdAction(
   locale: AppLocale,
   _previous: FormState,
@@ -283,7 +260,7 @@ export async function withdrawVerificationByIdAction(
       values: { userId },
     };
   }
-  return run(locale, formData, () => withdrawCruisingVerification(userId));
+  return run(locale, formData, () => withdrawAdultVerification(userId));
 }
 
 /** Deletes a room message the team reviewed (DELETE /admin/cruising/room-messages/:id). */

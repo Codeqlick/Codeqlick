@@ -8,6 +8,9 @@ import {
   FormTextarea,
 } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
+import { AdultVerificationQueue } from '@/components/adult/AdultVerificationQueue';
+import { AlsoReported } from '@/components/adult/AlsoReported';
+import { ReviewSuspensions } from '@/components/adult/ReviewSuspensions';
 import { PageHeader } from '@/components/app/PageHeader';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -18,17 +21,10 @@ import {
   listAdminSwipeReports,
   listAdminSwipeSuspensions,
   listAdminSwipeTakedowns,
-  listAdminSwipeVerifications,
   SWIPE_SUSPENSIONS,
 } from '@/lib/api/swipe';
-import { firstParam, formatDate, formatDateTime } from '@/lib/format';
-import {
-  liftAction,
-  photoAction,
-  reportAction,
-  takedownAction,
-  verificationAction,
-} from './actions';
+import { firstParam, formatDateTime } from '@/lib/format';
+import { liftAction, photoAction, reportAction, takedownAction } from './actions';
 import swipe from './swipe-admin.module.css';
 
 type PageProps = {
@@ -100,46 +96,7 @@ export default async function AdminSwipePage({ params, searchParams }: PageProps
 
       {tab === 'queue' ? (
         <>
-          <section className={styles.panel}>
-            <h2 className={styles.panelTitle}>{t('verifications.title')}</h2>
-            <p className={styles.muted}>{t('verifications.lead')}</p>
-            {(await listAdminSwipeVerifications()).map((item) => (
-              <article key={item.userId} className={swipe.item}>
-                {/* oxlint-disable-next-line nextjs/no-img-element -- private image through the BFF route */}
-                <img
-                  src={img('verification', item.userId)}
-                  alt={t('verifications.alt')}
-                  className={swipe.image}
-                />
-                <div className={swipe.body}>
-                  <p>
-                    <strong>{item.nickname}</strong> · {item.name} · {item.email}
-                  </p>
-                  <p className={styles.muted}>
-                    {t('memberSince', { date: formatDate(item.memberSince, locale) })} ·{' '}
-                    {t('sent', { date: formatDateTime(item.sentAt, locale) })}
-                  </p>
-                  <p className={styles.muted}>
-                    {t('verifications.check', { nickname: item.nickname ?? '' })}
-                  </p>
-                  <ActionForm
-                    action={verificationAction.bind(null, locale, item.userId)}
-                    className={styles.form}
-                  >
-                    <FormInput name="note" label={t('verifications.note')} maxLength={300} />
-                    <div className={styles.actions}>
-                      <SubmitButton size="sm" name="decision" value="approve">
-                        {t('approve')}
-                      </SubmitButton>
-                      <SubmitButton size="sm" variant="outline" name="decision" value="reject">
-                        {t('reject')}
-                      </SubmitButton>
-                    </div>
-                  </ActionForm>
-                </div>
-              </article>
-            ))}
-          </section>
+          <AdultVerificationQueue locale={locale} />
 
           <section className={styles.panel}>
             <h2 className={styles.panelTitle}>{t('photos.title')}</h2>
@@ -218,10 +175,14 @@ export default async function AdminSwipePage({ params, searchParams }: PageProps
                   ) : null}
                 </p>
                 <p>
-                  {t('reported')}: <strong>{report.reported.nickname}</strong> ·{' '}
-                  {report.reported.email} ·{' '}
+                  {t('reported')}:{' '}
+                  <Link href={`/admin/adult/users/${report.reported.id}`}>
+                    <strong>{report.reported.nickname}</strong>
+                  </Link>{' '}
+                  · {report.reported.email} ·{' '}
                   {t('reportsAgainst', { count: report.reported.reports })}
-                  {report.reported.suspended ? ` · ${t('suspendedNow')}` : ''}
+                  {report.reported.suspended ? ` · ${t('suspendedNow')}` : ''}{' '}
+                  <AlsoReported data={report.reported.alsoReported} />
                 </p>
                 <p className={styles.muted}>
                   {t('reporter')}: {report.reporter.nickname ?? report.reporter.name} ·{' '}
@@ -372,6 +333,8 @@ export default async function AdminSwipePage({ params, searchParams }: PageProps
         </section>
       ) : null}
 
+      {tab === 'suspended' ? <ReviewSuspensions locale={locale} /> : null}
+
       {tab === 'suspended' ? (
         <section className={styles.panel}>
           <h2 className={styles.panelTitle}>{t('tabs.suspended')}</h2>
@@ -379,7 +342,10 @@ export default async function AdminSwipePage({ params, searchParams }: PageProps
             <article key={item.user.id} className={swipe.item}>
               <div className={swipe.body}>
                 <p>
-                  <strong>{item.nickname}</strong> · {item.user.email}
+                  <Link href={`/admin/adult/users/${item.user.id}`}>
+                    <strong>{item.nickname ?? item.user.name}</strong>
+                  </Link>{' '}
+                  · {item.user.email}
                 </p>
                 <p className={styles.muted}>
                   {item.reason ?? '—'} ·{' '}
