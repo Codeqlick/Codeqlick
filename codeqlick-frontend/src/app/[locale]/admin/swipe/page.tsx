@@ -1,4 +1,3 @@
-import { buttonClassName } from '@/components/ui/buttonStyles';
 import { getTranslations } from 'next-intl/server';
 import {
   ActionForm,
@@ -12,6 +11,8 @@ import { AdultVerificationQueue } from '@/components/adult/AdultVerificationQueu
 import { AlsoReported } from '@/components/adult/AlsoReported';
 import { ReviewSuspensions } from '@/components/adult/ReviewSuspensions';
 import { PageHeader } from '@/components/app/PageHeader';
+import { Tabs } from '@/components/ui/Tabs';
+import { Stat, StatGrid } from '@/components/ui/Stat';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
@@ -65,34 +66,25 @@ export default async function AdminSwipePage({ params, searchParams }: PageProps
     <div className={styles.stack}>
       <PageHeader title={t('title')} lead={t('lead')} />
 
-      <ul className={styles.stats}>
+      <StatGrid>
         {cards.map((card) => (
-          <li key={card.label} className={`${styles.panel} ${styles.stat}`}>
-            <span className={styles.statValue}>{card.value}</span>
-            <span className={styles.statLabel}>{card.label}</span>
-          </li>
+          <Stat key={card.label} value={card.value} label={card.label} />
         ))}
-      </ul>
+      </StatGrid>
 
       <div className={styles.panel} role="note">
         <strong>{t('ruleTitle')}</strong> {t('rule')}
       </div>
 
-      <nav className={styles.actions} aria-label={t('title')}>
-        {TABS.map((value) => (
-          <Link
-            key={value}
-            href={`/admin/swipe?tab=${value}`}
-            className={buttonClassName({
-              variant: value === tab ? 'primary' : 'outline',
-              size: 'sm',
-            })}
-            aria-current={value === tab ? 'page' : undefined}
-          >
-            {t(`tabs.${value}`)}
-          </Link>
-        ))}
-      </nav>
+      <Tabs
+        variant="segmented"
+        label={t('title')}
+        items={TABS.map((value) => ({
+          href: `/admin/swipe?tab=${value}`,
+          label: t(`tabs.${value}`),
+          current: value === tab,
+        }))}
+      />
 
       {tab === 'queue' ? (
         <>

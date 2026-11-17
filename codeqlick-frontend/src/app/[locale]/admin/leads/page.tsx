@@ -3,6 +3,7 @@ import styles from '@/components/app/app.module.css';
 import { LeadStatusBadge } from '@/components/app/StatusBadges';
 import { PageHeader } from '@/components/app/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { FilterBar } from '@/components/ui/FilterBar';
 import { Input, Select } from '@/components/ui/Field';
 import { Pagination } from '@/components/ui/Pagination';
 import { buttonClassName } from '@/components/ui/buttonStyles';
@@ -56,7 +57,7 @@ export default async function AdminLeadsPage({ params, searchParams }: PageProps
         }
       />
 
-      <form method="get" className={styles.filters}>
+      <FilterBar>
         <Select
           name="status"
           label={t('status')}
@@ -74,14 +75,14 @@ export default async function AdminLeadsPage({ params, searchParams }: PageProps
         <button type="submit" className={buttonClassName({ variant: 'outline' })}>
           {tc('filter')}
         </button>
-      </form>
+      </FilterBar>
 
       {leads.items.length === 0 ? (
         <EmptyState title={t('emptyTitle')} body={t('emptyBody')} />
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={`${styles.table} ${styles.listTable}`}>
+            <table className={`${styles.table} ${styles.tableCompact} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('name')}</th>
@@ -98,7 +99,7 @@ export default async function AdminLeadsPage({ params, searchParams }: PageProps
                       <span className={styles.sub}>{lead.email}</span>
                     </th>
                     <td data-label={t('company')}>{lead.company ?? tc('none')}</td>
-                    <td data-label={t('status')} data-wide>
+                    <td data-label={t('status')} data-badge>
                       <LeadStatusBadge status={lead.status} label={ts(lead.status)} />
                     </td>
                     <td data-label={t('received')}>{formatDateTime(lead.createdAt, locale)}</td>

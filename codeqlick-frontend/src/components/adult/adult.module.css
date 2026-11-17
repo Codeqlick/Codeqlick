@@ -106,6 +106,17 @@
   gap: var(--space-4);
 }
 
+/* Save buttons at their own width (architecture 6.6); full width only on phones. */
+.form > button {
+  justify-self: start;
+}
+
+@media (max-width: 30rem) {
+  .form > button {
+    justify-self: stretch;
+  }
+}
+
 .inlineLink {
   color: var(--color-fuchsia-dark);
 }

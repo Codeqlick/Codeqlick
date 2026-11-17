@@ -2,8 +2,10 @@ import { getTranslations } from 'next-intl/server';
 import { ActionForm } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
+import { Stat, StatGrid } from '@/components/ui/Stat';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { FilterBar } from '@/components/ui/FilterBar';
 import { Input, Select } from '@/components/ui/Field';
 import { Pagination } from '@/components/ui/Pagination';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -56,16 +58,13 @@ export default async function AdminNewsletterPage({ params, searchParams }: Page
     <div className={styles.stack}>
       <PageHeader title={t('title')} lead={t('lead')} />
 
-      <ul className={styles.stats}>
+      <StatGrid>
         {cards.map((card) => (
-          <li key={card.label} className={`${styles.panel} ${styles.stat}`}>
-            <span className={styles.statValue}>{card.value}</span>
-            <span className={styles.statLabel}>{card.label}</span>
-          </li>
+          <Stat key={card.label} value={card.value} label={card.label} />
         ))}
-      </ul>
+      </StatGrid>
 
-      <form method="get" className={styles.filters}>
+      <FilterBar>
         <Select
           name="status"
           label={t('status')}
@@ -83,7 +82,7 @@ export default async function AdminNewsletterPage({ params, searchParams }: Page
         <button type="submit" className={buttonClassName({ variant: 'outline' })}>
           {tc('filter')}
         </button>
-      </form>
+      </FilterBar>
 
       {list.items.length === 0 ? (
         status || q ? (
@@ -94,7 +93,7 @@ export default async function AdminNewsletterPage({ params, searchParams }: Page
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={`${styles.table} ${styles.listTable}`}>
+            <table className={`${styles.table} ${styles.tableCompact} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('email')}</th>
@@ -122,7 +121,7 @@ export default async function AdminNewsletterPage({ params, searchParams }: Page
                     <tr key={subscriber.id}>
                       <th scope="row">{subscriber.email}</th>
                       <td data-label={t('language')}>{t(`languages.${subscriber.locale}`)}</td>
-                      <td data-label={t('status')} data-wide>
+                      <td data-label={t('status')} data-badge>
                         <Badge tone={STATUS_TONES[subscriber.status]}>
                           {t(`statuses.${subscriber.status}`)}
                         </Badge>

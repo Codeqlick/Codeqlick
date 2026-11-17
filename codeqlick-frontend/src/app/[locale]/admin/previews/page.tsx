@@ -44,7 +44,7 @@ export default async function AdminPreviewsPage({
         <EmptyState title={t('emptyTitle')} body={t('emptyBody')} />
       ) : (
         <div className={styles.tableWrap}>
-          <table className={`${styles.table} ${styles.listTable}`}>
+          <table className={`${styles.table} ${styles.tableCompact} ${styles.listTable}`}>
             <thead>
               <tr>
                 <th scope="col">{t('business')}</th>
@@ -72,7 +72,7 @@ export default async function AdminPreviewsPage({
                   <td data-label={t('style')}>
                     {preview.preset ? tk(`demos.${preview.preset}.kind`) : '—'}
                   </td>
-                  <td data-label={t('status')} data-wide>
+                  <td data-label={t('status')} data-badge>
                     {preview.purchased ? (
                       <Badge tone="success">{t('purchased')}</Badge>
                     ) : preview.status ? (

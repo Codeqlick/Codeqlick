@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { BarChart } from '@/components/app/BarChart';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
+import { Stat, StatGrid } from '@/components/ui/Stat';
 import { resolveLocale } from '@/i18n/locale';
 import { getAdminCruisingStats } from '@/lib/api/cruising-stats';
 import { countryName } from '@/lib/cruising';
@@ -40,7 +41,7 @@ function TopTable({
     <section className={styles.panel}>
       <h3 className={styles.panelTitle}>{caption}</h3>
       <div className={styles.tableWrap}>
-        <table className={styles.table}>
+        <table className={`${styles.table} ${styles.tableCompact}`}>
           <caption className="visually-hidden">{caption}</caption>
           <thead>
             <tr>
@@ -111,14 +112,11 @@ export default async function AdminCruisingStatsPage({ params }: PageProps) {
         <h2 id="cruising-stats-totals" className={styles.panelTitle}>
           {t('totals')}
         </h2>
-        <ul className={styles.stats}>
+        <StatGrid>
           {cards.map((card) => (
-            <li key={card.label} className={`${styles.panel} ${styles.stat}`}>
-              <span className={styles.statValue}>{card.value}</span>
-              <span className={styles.statLabel}>{card.label}</span>
-            </li>
+            <Stat key={card.label} value={card.value} label={card.label} />
           ))}
-        </ul>
+        </StatGrid>
         <p className={styles.muted}>
           {t('generated', { time: formatDateTime(stats.generatedAt, locale) })} {t('retention')}
         </p>
@@ -242,7 +240,7 @@ export default async function AdminCruisingStatsPage({ params }: PageProps) {
           <p>{t('none')}</p>
         ) : (
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.tableCompact}`}>
               <caption className="visually-hidden">{t('decisionsTitle')}</caption>
               <thead>
                 <tr>

@@ -11,6 +11,9 @@ import { AdultVerificationQueue } from '@/components/adult/AdultVerificationQueu
 import { AlsoReported } from '@/components/adult/AlsoReported';
 import { ReviewSuspensions } from '@/components/adult/ReviewSuspensions';
 import { PageHeader } from '@/components/app/PageHeader';
+import { FilterBar } from '@/components/ui/FilterBar';
+import { Tabs } from '@/components/ui/Tabs';
+import { Stat, StatGrid } from '@/components/ui/Stat';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { buttonClassName } from '@/components/ui/buttonStyles';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -327,34 +330,25 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
         }
       />
 
-      <ul className={styles.stats}>
+      <StatGrid>
         {cards.map((card) => (
-          <li key={card.label} className={`${styles.panel} ${styles.stat}`}>
-            <span className={styles.statValue}>{card.value}</span>
-            <span className={styles.statLabel}>{card.label}</span>
-          </li>
+          <Stat key={card.label} value={card.value} label={card.label} />
         ))}
-      </ul>
+      </StatGrid>
 
       <div className={styles.panel} role="note">
         <strong>{t('ruleTitle')}</strong> {t('rule')}
       </div>
 
-      <nav className={styles.actions} aria-label={t('title')}>
-        {TABS.map((value) => (
-          <Link
-            key={value}
-            href={`/admin/cruising?tab=${value}`}
-            className={buttonClassName({
-              variant: value === tab ? 'primary' : 'outline',
-              size: 'sm',
-            })}
-            aria-current={value === tab ? 'page' : undefined}
-          >
-            {t(`tabs.${value}`)}
-          </Link>
-        ))}
-      </nav>
+      <Tabs
+        variant="segmented"
+        label={t('title')}
+        items={TABS.map((value) => ({
+          href: `/admin/cruising?tab=${value}`,
+          label: t(`tabs.${value}`),
+          current: value === tab,
+        }))}
+      />
 
       {tab === 'queue' ? (
         <section className={styles.panel}>
@@ -392,21 +386,15 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
         <section className={styles.panel}>
           <h2 className={styles.panelTitle}>{t('media.title')}</h2>
           <p className={styles.muted}>{t('media.lead')}</p>
-          <nav className={styles.actions} aria-label={t('media.filter')}>
-            {MEDIA_QUEUES.map((value) => (
-              <Link
-                key={value}
-                href={`/admin/cruising?tab=media&queue=${value}`}
-                className={buttonClassName({
-                  variant: value === mediaQueue ? 'primary' : 'outline',
-                  size: 'sm',
-                })}
-                aria-current={value === mediaQueue ? 'page' : undefined}
-              >
-                {t(`media.queues.${value}`)}
-              </Link>
-            ))}
-          </nav>
+          <Tabs
+            variant="pills"
+            label={t('media.filter')}
+            items={MEDIA_QUEUES.map((value) => ({
+              href: `/admin/cruising?tab=media&queue=${value}`,
+              label: t(`media.queues.${value}`),
+              current: value === mediaQueue,
+            }))}
+          />
           {(await listAdminCruisingMedia(mediaQueue)).map((item) => (
             <article key={item.id} className={admin.item}>
               {preview(item)}
@@ -825,37 +813,27 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
       {tab === 'live' ? (
         <section className={styles.panel}>
           <h2 className={styles.panelTitle}>{t('tabs.live')}</h2>
-          <nav className={styles.actions} aria-label={t('live.filter')}>
-            {LIVE_FILTERS.map((value) => (
-              <Link
-                key={value}
-                href={`/admin/cruising?tab=live&status=${value}${search ? `&q=${encodeURIComponent(search)}` : ''}`}
-                className={buttonClassName({
-                  variant: value === liveFilter ? 'primary' : 'outline',
-                  size: 'sm',
-                })}
-                aria-current={value === liveFilter ? 'page' : undefined}
-              >
-                {t(`status.${value}`)}
-              </Link>
-            ))}
-          </nav>
-          <search>
-            <form method="get" className={admin.filters}>
-              <input type="hidden" name="tab" value="live" />
-              <input type="hidden" name="status" value={liveFilter} />
-              <FormInput
-                id="cruising-search"
-                name="q"
-                type="search"
-                label={t('live.search')}
-                defaultValue={search}
-              />
-              <SubmitButton size="sm" variant="outline">
-                {t('live.searchButton')}
-              </SubmitButton>
-            </form>
-          </search>
+          <Tabs
+            variant="pills"
+            label={t('live.filter')}
+            items={LIVE_FILTERS.map((value) => ({
+              href: `/admin/cruising?tab=live&status=${value}${search ? `&q=${encodeURIComponent(search)}` : ''}`,
+              label: t(`status.${value}`),
+              current: value === liveFilter,
+            }))}
+          />
+          <FilterBar>
+            <input type="hidden" name="tab" value="live" />
+            <input type="hidden" name="status" value={liveFilter} />
+            <FormInput
+              id="cruising-search"
+              name="q"
+              type="search"
+              label={t('live.search')}
+              defaultValue={search}
+            />
+            <SubmitButton variant="outline">{t('live.searchButton')}</SubmitButton>
+          </FilterBar>
           {(await listAdminCruisingSpots(liveFilter, search || undefined)).map((spot) => (
             <article key={spot.id} className={admin.item}>
               <div className={admin.body}>

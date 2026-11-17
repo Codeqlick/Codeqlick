@@ -23,6 +23,12 @@
   font-size: 1.1rem;
 }
 
+.header {
+  width: 3.5rem;
+  height: 3.5rem;
+  font-size: 1.35rem;
+}
+
 .lg {
   width: 6rem;
   height: 6rem;

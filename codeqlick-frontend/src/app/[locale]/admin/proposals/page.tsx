@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/app/PageHeader';
 import { ProposalStatusBadge } from '@/components/app/StatusBadges';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { FilterBar } from '@/components/ui/FilterBar';
 import { Select } from '@/components/ui/Field';
 import { Pagination } from '@/components/ui/Pagination';
 import { buttonClassName } from '@/components/ui/buttonStyles';
@@ -49,7 +50,7 @@ export default async function AdminProposalsPage({ params, searchParams }: PageP
         }
       />
 
-      <form method="get" className={styles.filters}>
+      <FilterBar>
         <Select
           name="status"
           label={t('status')}
@@ -60,14 +61,14 @@ export default async function AdminProposalsPage({ params, searchParams }: PageP
         <button type="submit" className={buttonClassName({ variant: 'outline' })}>
           {tc('filter')}
         </button>
-      </form>
+      </FilterBar>
 
       {proposals.items.length === 0 ? (
         <EmptyState title={t('emptyTitle')} body={t('emptyBody')} />
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={`${styles.table} ${styles.listTable}`}>
+            <table className={`${styles.table} ${styles.tableCompact} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('proposal')}</th>
@@ -88,7 +89,7 @@ export default async function AdminProposalsPage({ params, searchParams }: PageP
                       </span>
                     </th>
                     <td data-label={t('client')}>{proposal.client.name}</td>
-                    <td data-label={t('status')} data-wide>
+                    <td data-label={t('status')} data-badge>
                       <ProposalStatusBadge
                         status={proposal.status}
                         expired={proposal.expired}

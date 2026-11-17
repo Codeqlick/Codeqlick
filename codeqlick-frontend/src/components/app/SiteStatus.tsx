@@ -19,17 +19,26 @@ export async function SiteStatus({ monitor, locale }: { monitor: SiteMonitor; lo
     month: 'short',
     timeZone: 'UTC',
   });
-  const tone =
-    monitor.status === 'UP' ? 'success' : monitor.status === 'DOWN' ? 'danger' : 'neutral';
+  // Until its first check a new monitor says so, instead of "Down · 0 %" in red.
+  const pending = monitor.status === 'UNKNOWN' || monitor.lastCheckedAt === null;
+  const tone = pending
+    ? 'neutral'
+    : monitor.status === 'UP'
+      ? 'success'
+      : monitor.status === 'DOWN'
+        ? 'danger'
+        : 'neutral';
 
   return (
     <div className={styles.status}>
       <div className={styles.head}>
-        <Badge tone={tone}>{t(`statuses.${monitor.status}`)}</Badge>
-        <span className={styles.since}>
-          {t('since', { date: formatDateTime(monitor.statusSince, locale) })}
-        </span>
-        {monitor.uptime30 !== null ? (
+        <Badge tone={tone}>{pending ? t('checking') : t(`statuses.${monitor.status}`)}</Badge>
+        {pending ? null : (
+          <span className={styles.since}>
+            {t('since', { date: formatDateTime(monitor.statusSince, locale) })}
+          </span>
+        )}
+        {!pending && monitor.uptime30 !== null ? (
           <strong className={styles.uptime}>
             {t('uptime', { value: percent(monitor.uptime30, locale) })}
           </strong>

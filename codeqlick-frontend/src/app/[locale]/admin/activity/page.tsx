@@ -3,6 +3,7 @@ import { ActivityList } from '@/components/app/ActivityList';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { FilterBar } from '@/components/ui/FilterBar';
 import { Select } from '@/components/ui/Field';
 import { Pagination } from '@/components/ui/Pagination';
 import { buttonClassName } from '@/components/ui/buttonStyles';
@@ -30,7 +31,7 @@ export default async function AdminActivityPage({ params, searchParams }: PagePr
     <>
       <PageHeader title={t('title')} lead={t('lead')} />
 
-      <form method="get" className={styles.filters}>
+      <FilterBar>
         <Select
           name="type"
           label={t('type')}
@@ -41,7 +42,7 @@ export default async function AdminActivityPage({ params, searchParams }: PagePr
         <button type="submit" className={buttonClassName({ variant: 'outline' })}>
           {tc('filter')}
         </button>
-      </form>
+      </FilterBar>
 
       {activity.items.length === 0 ? (
         <EmptyState title={t('emptyTitle')} body={t('emptyBody')} />

@@ -10,6 +10,8 @@ import { countryName, placeHref } from '@/lib/cruising';
 import { roomHref } from '@/lib/cruising-rooms';
 import { formatDateTime } from '@/lib/format';
 import adult from '@/components/adult/adult.module.css';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { CruisingGate } from '../Gate';
 
 /** Behind the account: kept out of search results. */
@@ -40,7 +42,11 @@ export default async function CruisingRoomsPage({ params }: PageProps) {
         </Link>
       </p>
       {rooms.length === 0 ? (
-        <p>{t('none')}</p>
+        <EmptyState
+          title={t('emptyTitle')}
+          body={t('emptyBody')}
+          action={<Button href="/cruising/map">{t('emptyAction')}</Button>}
+        />
       ) : (
         <ul className={card.stack} aria-label={t('listTitle')}>
           {rooms.map((room) => (

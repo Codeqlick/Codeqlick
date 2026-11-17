@@ -196,7 +196,12 @@ export default async function PortalProjectPage({
             <div>
               <dt>{t('staging')}</dt>
               <dd>
-                <a href={project.stagingUrl} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={project.stagingUrl}
+                  className={styles.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   {project.stagingUrl}
                 </a>
               </dd>
@@ -206,7 +211,12 @@ export default async function PortalProjectPage({
             <div>
               <dt>{t('production')}</dt>
               <dd>
-                <a href={project.productionUrl} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={project.productionUrl}
+                  className={styles.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   {project.productionUrl}
                 </a>
               </dd>

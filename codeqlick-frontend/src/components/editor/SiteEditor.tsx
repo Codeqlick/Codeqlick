@@ -18,6 +18,7 @@ import {
   uploadEditorPhotoAction,
   type EditorResult,
 } from '@/app/[locale]/portal/projects/[id]/site/editor/actions';
+import { TabList } from '@/components/ui/TabList';
 import { Link } from '@/i18n/navigation';
 import type { AppLocale } from '@/i18n/routing';
 import type { SiteEditorView } from '@/lib/api/types';
@@ -360,23 +361,16 @@ export function SiteEditor({
           {statusLabel}
         </output>
         <div className={styles.toolbarActions}>
-          <div className={styles.tabs} role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === 'edit'}
-              onClick={() => setTab('edit')}
-            >
-              {t('tabEdit')}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === 'preview'}
-              onClick={() => setTab('preview')}
-            >
-              {t('tabPreview')}
-            </button>
+          <div className={styles.viewTabs}>
+            <TabList
+              label={t('viewLabel')}
+              value={tab}
+              onChange={setTab}
+              items={[
+                { value: 'edit', label: t('tabEdit'), controls: 'site-editor-forms' },
+                { value: 'preview', label: t('tabPreview'), controls: 'site-editor-preview' },
+              ]}
+            />
           </div>
           {changed ? (
             <button
@@ -419,28 +413,18 @@ export function SiteEditor({
       ) : null}
 
       <div className={styles.layout} data-tab={tab}>
-        <div className={styles.forms} data-editor-forms>
+        <div id="site-editor-forms" className={styles.forms} data-editor-forms>
           {english ? (
             <div className={styles.langBar}>
-              <fieldset className={styles.tabs}>
-                <legend className="visually-hidden">{t('english.editing')}</legend>
-                <button
-                  type="button"
-                  aria-pressed={lang === 'es'}
-                  lang="es"
-                  onClick={() => setLang('es')}
-                >
-                  Español
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={lang === 'en'}
-                  lang="en"
-                  onClick={() => setLang('en')}
-                >
-                  English
-                </button>
-              </fieldset>
+              <TabList
+                label={t('english.editing')}
+                value={lang}
+                onChange={setLang}
+                items={[
+                  { value: 'es', label: 'Español', lang: 'es' },
+                  { value: 'en', label: 'English', lang: 'en' },
+                ]}
+              />
               <span className={styles.hint}>
                 {lang === 'en'
                   ? t('english.editingEnglish')
@@ -1170,25 +1154,20 @@ export function SiteEditor({
           </Part>
         </div>
 
-        <div className={styles.preview}>
+        <div id="site-editor-preview" className={styles.preview}>
           <div className={styles.previewBar}>
             <span>{t('previewTitle')}</span>
-            <span className={styles.tabs}>
-              <button
-                type="button"
-                aria-pressed={width === 'desktop'}
-                onClick={() => setWidth('desktop')}
-              >
-                {t('desktop')}
-              </button>
-              <button
-                type="button"
-                aria-pressed={width === 'phone'}
-                onClick={() => setWidth('phone')}
-              >
-                {t('phoneView')}
-              </button>
-            </span>
+            <div className={styles.widthTabs}>
+              <TabList
+                label={t('widthLabel')}
+                value={width}
+                onChange={setWidth}
+                items={[
+                  { value: 'desktop', label: t('desktop') },
+                  { value: 'phone', label: t('phoneView') },
+                ]}
+              />
+            </div>
           </div>
           {view.draft?.previewStatus === 'READY' ? (
             <div ref={box} className={styles.frameBox} data-width={width}>

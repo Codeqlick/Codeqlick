@@ -1,8 +1,8 @@
 import { getTranslations } from 'next-intl/server';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
+import { Tabs } from '@/components/ui/Tabs';
 import { resolveLocale } from '@/i18n/locale';
-import { Link } from '@/i18n/navigation';
 import { adminListProposalTemplates } from '@/lib/api/proposals';
 import { firstParam } from '@/lib/format';
 import { createProposalAction } from '../actions';
@@ -33,26 +33,22 @@ export default async function NewProposalPage({
     <div className={styles.stack}>
       <PageHeader title={t('new')} back={{ href: '/admin/proposals', label: t('back') }} />
       {templates.length > 0 ? (
-        <nav className={styles.panel} aria-label={t('templates')}>
+        <div className={styles.panel}>
           <p className={styles.muted}>{t('startFrom')}</p>
-          <ul className={styles.chips}>
-            <li>
-              <Link href={href()} aria-current={template ? undefined : 'page'}>
-                {t('blank')}
-              </Link>
-            </li>
-            {templates.map((item) => (
-              <li key={item.id}>
-                <Link
-                  href={href(item.id)}
-                  aria-current={item.id === template?.id ? 'page' : undefined}
-                >
-                  {item.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+          <Tabs
+            variant="pills"
+            label={t('templates')}
+            items={[
+              { key: 'blank', href: href(), label: t('blank'), current: !template },
+              ...templates.map((item) => ({
+                key: item.id,
+                href: href(item.id),
+                label: item.name,
+                current: item.id === template?.id,
+              })),
+            ]}
+          />
+        </div>
       ) : null}
       <section className={styles.panel}>
         {template ? (

@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Tabs } from '@/components/ui/Tabs';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -7,7 +8,6 @@ import { DeploymentFiles } from '@/components/cloud/DeploymentFiles';
 import compareStyles from '@/components/cloud/DeploymentFiles.module.css';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import type { AppLocale } from '@/i18n/routing';
 import {
@@ -98,23 +98,22 @@ export default async function CloudDeploymentPage({ params, searchParams }: Page
           {deployment.commit ? ` · ${deployment.commit.slice(0, 7)}` : ''}
           {deployment.branch ? ` (${deployment.branch})` : ''}
         </p>
-        <nav
-          className={`${styles.tabs} ${styles.spacedTabs}`}
-          aria-label={t('deployment.title', { id: deployment.shortId })}
-        >
-          <Link href={base} className={styles.tab} aria-current={comparing ? undefined : 'page'}>
-            {t('deployment.tabs.files')}
-          </Link>
-          {deployment.isProduction ? null : (
-            <Link
-              href={`${base}?view=compare`}
-              className={styles.tab}
-              aria-current={comparing ? 'page' : undefined}
-            >
-              {t('deployment.tabs.compare')}
-            </Link>
-          )}
-        </nav>
+        <Tabs
+          label={t('deployment.title', { id: deployment.shortId })}
+          className={styles.spacedTabs}
+          items={[
+            { href: base, label: t('deployment.tabs.files'), current: !comparing },
+            ...(deployment.isProduction
+              ? []
+              : [
+                  {
+                    href: `${base}?view=compare`,
+                    label: t('deployment.tabs.compare'),
+                    current: comparing,
+                  },
+                ]),
+          ]}
+        />
       </PageHeader>
 
       {comparing ? (

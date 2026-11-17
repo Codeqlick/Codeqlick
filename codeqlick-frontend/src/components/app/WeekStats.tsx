@@ -1,3 +1,4 @@
+import { Stat, StatGrid } from '@/components/ui/Stat';
 import styles from './WeekStats.module.css';
 
 export type WeekStat = {
@@ -8,7 +9,10 @@ export type WeekStat = {
   previous: number;
 };
 
-/** "Your week" in the web apps: a few figures, each with its change against the week before. */
+/**
+ * "Your week" in the web apps: a few figures as compact counters (`Stat`), each with its change
+ * against the week before.
+ */
 export function WeekStats({
   title,
   lead,
@@ -30,24 +34,28 @@ export function WeekStats({
         {title}
       </h2>
       {lead ? <p className={styles.lead}>{lead}</p> : null}
-      <dl className={styles.grid}>
+      <StatGrid>
         {items.map((item) => {
           const trend =
             item.value > item.previous ? 'up' : item.value < item.previous ? 'down' : 'same';
           return (
-            <div key={item.label} className={styles.item}>
-              <dt className={styles.label}>{item.label}</dt>
-              <dd className={styles.value}>{number.format(item.value)}</dd>
-              <dd className={`${styles.previous} ${styles[trend]}`}>
-                <span aria-hidden="true">
-                  {trend === 'up' ? '▲ ' : trend === 'down' ? '▼ ' : ''}
-                </span>
-                {previousLabel(item.previous)}
-              </dd>
-            </div>
+            <Stat
+              key={item.label}
+              value={item.value === 0 ? 0 : number.format(item.value)}
+              label={item.label}
+              trend={trend}
+              note={
+                <>
+                  <span aria-hidden="true">
+                    {trend === 'up' ? '▲ ' : trend === 'down' ? '▼ ' : ''}
+                  </span>
+                  {previousLabel(item.previous)}
+                </>
+              }
+            />
           );
         })}
-      </dl>
+      </StatGrid>
     </section>
   );
 }

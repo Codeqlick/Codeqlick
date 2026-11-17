@@ -246,9 +246,7 @@ export default async function SwipePhotosPage({ params }: PageProps) {
             hint={t('profile.emailAlertsHint')}
             defaultChecked={profile.emailAlerts}
           />
-          <SubmitButton block pendingLabel={t('profile.saving')}>
-            {t('profile.save')}
-          </SubmitButton>
+          <SubmitButton pendingLabel={t('profile.saving')}>{t('profile.save')}</SubmitButton>
         </ActionForm>
       </section>
 

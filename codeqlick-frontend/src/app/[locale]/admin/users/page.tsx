@@ -6,8 +6,10 @@ import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { FilterBar } from '@/components/ui/FilterBar';
 import { Input, Select } from '@/components/ui/Field';
 import { Pagination } from '@/components/ui/Pagination';
+import { Tabs } from '@/components/ui/Tabs';
 import { buttonClassName } from '@/components/ui/buttonStyles';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
@@ -64,19 +66,18 @@ export default async function AdminUsersPage({ params, searchParams }: PageProps
       <PageHeader title={t('title')} actions={newButton} />
       {invitation === 'sent' && <Alert tone="success">{t('createdInvited')}</Alert>}
       {invitation === 'failed' && <Alert tone="error">{t('createdInvitationFailed')}</Alert>}
-      <nav aria-label={t('kindsLabel')}>
-        <ul className={styles.chips}>
-          {TABS.map((value) => (
-            <li key={value}>
-              <Link href={tabHref(value)} aria-current={value === tab ? 'page' : undefined}>
-                {value === 'all' ? t('allAccounts') : tk(`${value}Plural`)}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <Tabs
+        variant="pills"
+        label={t('kindsLabel')}
+        items={TABS.map((value) => ({
+          key: value,
+          href: tabHref(value),
+          label: value === 'all' ? t('allAccounts') : tk(`${value}Plural`),
+          current: value === tab,
+        }))}
+      />
       <p className={styles.muted}>{t(`kindHint.${tab}`)}</p>
-      <form method="get" className={styles.filters}>
+      <FilterBar>
         {tab === 'all' ? null : <input type="hidden" name="kind" value={tab} />}
         {tab === 'admin' ? null : (
           <Select
@@ -97,7 +98,7 @@ export default async function AdminUsersPage({ params, searchParams }: PageProps
         <button type="submit" className={buttonClassName({ variant: 'outline' })}>
           {tc('filter')}
         </button>
-      </form>
+      </FilterBar>
       {users.items.length === 0 ? (
         filtered ? (
           <EmptyState title={t('noMatchTitle')} body={t('noMatchBody')} />
@@ -107,7 +108,7 @@ export default async function AdminUsersPage({ params, searchParams }: PageProps
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={`${styles.table} ${styles.listTable}`}>
+            <table className={`${styles.table} ${styles.tableCompact} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('name')}</th>
@@ -135,10 +136,10 @@ export default async function AdminUsersPage({ params, searchParams }: PageProps
                         </span>
                       ) : null}
                     </th>
-                    <td data-label={t('kind')} data-wide>
+                    <td data-label={t('kind')} data-badge>
                       <AccountKindBadge user={user} />
                     </td>
-                    <td data-label={t('status')} data-wide>
+                    <td data-label={t('status')} data-badge>
                       <Badge tone={user.isActive ? 'success' : 'neutral'}>
                         {user.isActive ? t('active') : t('inactive')}
                       </Badge>{' '}

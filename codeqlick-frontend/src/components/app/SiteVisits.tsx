@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { Alert } from '@/components/ui/Alert';
-import { Link } from '@/i18n/navigation';
+import { Stat, StatGrid } from '@/components/ui/Stat';
+import { Tabs } from '@/components/ui/Tabs';
 import type { AppLocale } from '@/i18n/routing';
 import type { SiteVisits as Visits } from '@/lib/api/types';
 import styles from './app.module.css';
@@ -58,21 +59,20 @@ export async function SiteVisits({ visits, locale }: { visits: Visits; locale: A
   const header = (
     <div className={styles.panelHeader}>
       <h2 className={styles.panelTitle}>{t('title')}</h2>
-      <nav className={own.ranges} aria-label={t('range')}>
-        {VISIT_RANGES.map((days) => (
-          <Link
-            key={days}
-            href={`/admin?days=${days}`}
-            className={days === visits.days ? own.rangeActive : own.range}
-            aria-current={days === visits.days ? 'page' : undefined}
-          >
-            {t('days', { days })}
-          </Link>
-        ))}
+      <div className={own.ranges}>
+        <Tabs
+          variant="pills"
+          label={t('range')}
+          items={VISIT_RANGES.map((days) => ({
+            href: `/admin?days=${days}`,
+            label: t('days', { days }),
+            current: days === visits.days,
+          }))}
+        />
         <a href="https://stats.codeqlick.com" target="_blank" rel="noopener noreferrer">
           {t('openUmami')}
         </a>
-      </nav>
+      </div>
     </div>
   );
 
@@ -132,15 +132,11 @@ export async function SiteVisits({ visits, locale }: { visits: Visits; locale: A
     <section className={styles.panel}>
       <div className={styles.stack}>
         {header}
-        <ul className={own.cards}>
+        <StatGrid>
           {cards.map((card) => (
-            <li key={card.label} className={own.card}>
-              <span className={styles.statValue}>{card.value}</span>
-              <span className={styles.statLabel}>{card.label}</span>
-              {card.note ? <span className={own.note}>{card.note}</span> : null}
-            </li>
+            <Stat key={card.label} value={card.value} label={card.label} note={card.note} />
           ))}
-        </ul>
+        </StatGrid>
         <div className={own.chart}>
           <BarChart
             title={weekly ? t('chartWeekly') : t('chartDaily')}

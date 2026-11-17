@@ -1,10 +1,10 @@
-import { buttonClassName } from '@/components/ui/buttonStyles';
 import { getTranslations } from 'next-intl/server';
 import { BarChart } from '@/components/app/BarChart';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
+import { Tabs } from '@/components/ui/Tabs';
+import { Stat, StatGrid } from '@/components/ui/Stat';
 import { Button } from '@/components/ui/Button';
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getVideochatHistory, HISTORY_PERIODS, type HistoryPeriod } from '@/lib/api/videochat';
 import { firstParam } from '@/lib/format';
@@ -79,34 +79,25 @@ export default async function AdminVideochatStatsPage({ params, searchParams }: 
         }
       />
 
-      <nav className={styles.actions} aria-label={t('period')}>
-        {HISTORY_PERIODS.map((value) => (
-          <Link
-            key={value}
-            href={`/admin/videochat/stats?days=${value}`}
-            className={buttonClassName({
-              variant: value === days ? 'primary' : 'outline',
-              size: 'sm',
-            })}
-            aria-current={value === days ? 'page' : undefined}
-          >
-            {t(`periods.${value}`)}
-          </Link>
-        ))}
-      </nav>
+      <Tabs
+        variant="pills"
+        label={t('period')}
+        items={HISTORY_PERIODS.map((value) => ({
+          href: `/admin/videochat/stats?days=${value}`,
+          label: t(`periods.${value}`),
+          current: value === days,
+        }))}
+      />
 
       <section className={styles.stack} aria-labelledby="videochat-period">
         <h2 id="videochat-period" className={styles.panelTitle}>
           {t('periodTotals')}
         </h2>
-        <ul className={styles.stats}>
+        <StatGrid>
           {periodCards.map((card) => (
-            <li key={card.label} className={`${styles.panel} ${styles.stat}`}>
-              <span className={styles.statValue}>{card.value}</span>
-              <span className={styles.statLabel}>{card.label}</span>
-            </li>
+            <Stat key={card.label} value={card.value} label={card.label} />
           ))}
-        </ul>
+        </StatGrid>
       </section>
 
       <div className={styles.charts}>
@@ -184,14 +175,11 @@ export default async function AdminVideochatStatsPage({ params, searchParams }: 
         <h2 id="videochat-now" className={styles.panelTitle}>
           {t('now')}
         </h2>
-        <ul className={styles.stats}>
+        <StatGrid>
           {nowCards.map((card) => (
-            <li key={card.label} className={`${styles.panel} ${styles.stat}`}>
-              <span className={styles.statValue}>{card.value}</span>
-              <span className={styles.statLabel}>{card.label}</span>
-            </li>
+            <Stat key={card.label} value={card.value} label={card.label} />
           ))}
-        </ul>
+        </StatGrid>
       </section>
     </div>
   );

@@ -67,7 +67,7 @@ export default async function AdminCalculatorPage({
           <h2 className={styles.panelTitle}>{t('typesTitle')}</h2>
           <p className={styles.muted}>{t('typesLead')}</p>
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.tableCompact}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('type')}</th>
@@ -137,7 +137,7 @@ export default async function AdminCalculatorPage({
           <h2 className={styles.panelTitle}>{t('extrasTitle')}</h2>
           <p className={styles.muted}>{t('extrasLead')}</p>
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.tableCompact}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('extra')}</th>

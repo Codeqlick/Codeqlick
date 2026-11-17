@@ -1,0 +1,52 @@
+/* A list's filters (architecture 6.6): fields and buttons 44 px, bottom-aligned, wrapping. */
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.bar > * {
+  min-width: 0;
+}
+
+.bar > div:not(.actions) {
+  flex: 0 1 12rem;
+  min-width: 10rem;
+}
+
+.bar :is(input:not([type='checkbox'], [type='radio'], [type='hidden']), select) {
+  min-height: 44px;
+  padding-block: 0.5rem;
+}
+
+/* The search box grows, with room for its placeholder ("Name, email or company…"). */
+.bar > div:has(input[type='search']) {
+  flex: 1 1 18rem;
+  max-width: 26rem;
+}
+
+/* A checkbox sits on the fields' line, centred in their 44 px. */
+.bar > div:has(input[type='checkbox']) {
+  flex: none;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+@media (max-width: 30rem) {
+  .bar > div:not(.actions),
+  .bar > div:has(input[type='search']) {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+}

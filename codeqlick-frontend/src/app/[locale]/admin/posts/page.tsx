@@ -30,7 +30,7 @@ export default async function AdminPostsPage({ params, searchParams }: PageProps
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={`${styles.table} ${styles.listTable}`}>
+            <table className={`${styles.table} ${styles.tableCompact} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('postTitle')}</th>
@@ -47,7 +47,7 @@ export default async function AdminPostsPage({ params, searchParams }: PageProps
                       </Link>
                       <span className={styles.sub}>/{post.slug}</span>
                     </th>
-                    <td data-label={t('status')} data-wide>
+                    <td data-label={t('status')} data-badge>
                       <PublishStatusBadge
                         status={post.status}
                         scheduled={isScheduled(post)}
