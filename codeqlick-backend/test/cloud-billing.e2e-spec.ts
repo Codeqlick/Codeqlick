@@ -178,7 +178,15 @@ describe('Codeqlick Cloud PRO plan (e2e)', () => {
         customer: `cus_${tag}`,
         cancel_at_period_end: cancel,
         metadata: { kind: 'cloud-pro', cloudTeamId: team.id },
-        items: { data: [{ current_period_end: 1_900_000_000 }] },
+        items: {
+          data: [
+            {
+              current_period_end: 1_900_000_000,
+              quantity: 1,
+              price: { unit_amount: 900, recurring: { interval: 'month', interval_count: 1 } },
+            },
+          ],
+        },
       }) as unknown as StripeSubscription;
 
     // Paid: PRO, the owners are told once.
@@ -209,7 +217,11 @@ describe('Codeqlick Cloud PRO plan (e2e)', () => {
     subscriptions.set(`sub_${tag}`, subscription('past_due'));
     await send('invoice.payment_failed', { object: 'invoice', id: 'in_1', customer: `cus_${tag}` });
     await send('customer.subscription.updated', { object: 'subscription', id: `sub_${tag}` });
-    expect((await prisma.cloudTeam.findUniqueOrThrow({ where: { id: team.id } })).plan).toBe('PRO');
+    // The month's bill before VAT is kept for the admin overview's MRR (decision 122).
+    expect(await prisma.cloudTeam.findUniqueOrThrow({ where: { id: team.id } })).toMatchObject({
+      plan: 'PRO',
+      subscriptionAmountCents: 900,
+    });
     expect(sent.some((m) => /couldn't charge/.test(m.subject))).toBe(true);
 
     // Canceled: back to FREE, nothing deleted.

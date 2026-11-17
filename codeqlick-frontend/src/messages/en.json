@@ -840,6 +840,7 @@
   "Admin": {
     "title": "Admin",
     "nav": {
+      "overview": "Overview",
       "dashboard": "Dashboard",
       "leads": "Leads",
       "posts": "Posts",
@@ -8073,6 +8074,98 @@
       "emptyBody": "They show up here when a client takes the plan or you mark it as included.",
       "ticketIncluded": "Change included in the plan",
       "ticketOutside": "Outside the plan: quote it"
+    }
+  },
+  "AdminOverview": {
+    "title": "Overview",
+    "lead": "The whole platform at a glance: people, revenue, activity and health over the last 12 weeks (Monday to Sunday, Madrid time). Totals only; nobody is listed.",
+    "totals": "Totals",
+    "week": "Week",
+    "none": "Nothing in these 12 weeks.",
+    "generated": "Computed at {time}; the figures are refreshed every 10 minutes.",
+    "cards": {
+      "accounts": "Accounts",
+      "active": "Active this week",
+      "mrr": "MRR (before VAT)",
+      "leads": "Leads this week",
+      "supportOpen": "Open support requests",
+      "disk": "Free disk"
+    },
+    "apps": {
+      "cruising": "Cruising",
+      "swipe": "Swipe",
+      "videochat": "Videochat",
+      "cloud": "Cloud",
+      "citas": "Citas",
+      "meetings": "Meetings",
+      "portal": "Client portal"
+    },
+    "people": {
+      "title": "People",
+      "newChart": "New accounts",
+      "activeChart": "Active accounts",
+      "appsChart": "New per app",
+      "appsTable": "Accounts per app",
+      "app": "App",
+      "now": "Now",
+      "new12": "New in 12 weeks",
+      "activeNote": "Active means signed in or kept a session going that week. Sessions are deleted 30 days after they expire, so weeks more than about 8 weeks back undercount. Team accounts aren't counted."
+    },
+    "revenue": {
+      "title": "Revenue",
+      "mrrTable": "Monthly recurring revenue",
+      "plan": "Plan",
+      "subscriptions": "Subscriptions",
+      "mrr": "MRR",
+      "cloudPro": "Cloud PRO",
+      "maintenance": "Maintenance plans (paid)",
+      "included": "Maintenance plans (included)",
+      "total": "Total",
+      "mrrNote": "Monthly amounts before VAT, as kept from Stripe's subscriptions.",
+      "unpriced": "{count, plural, one {# subscription has} other {# subscriptions have}} no amount yet and {count, plural, one {is} other {are}} left out until {count, plural, one {its} other {their}} next renewal.",
+      "purchasesChart": "Website purchases",
+      "purchasesTable": "Website purchases by week",
+      "purchases": "Purchases",
+      "charged": "Charged (VAT included)"
+    },
+    "activity": {
+      "title": "Activity",
+      "totals": "{open} support requests open now · {subscribers} newsletter subscribers.",
+      "leads": "Leads",
+      "supportOpened": "Support requests opened",
+      "supportClosed": "Support requests resolved or closed",
+      "deployments": "Cloud deployments",
+      "siteChecks": "Website checks",
+      "newsletter": "Newsletter sign-ups"
+    },
+    "health": {
+      "title": "Health",
+      "server": "Server and errors",
+      "disk": "Disk",
+      "diskState": {
+        "ok": "OK",
+        "low": "Low",
+        "full": "Full"
+      },
+      "diskFree": "{free} free of {total} ({used} % used)",
+      "diskUnknown": "Couldn't be read",
+      "errors": "Open error groups",
+      "csp": "Open CSP report groups",
+      "monitors": "Client sites down",
+      "monitorsValue": "{down} of {watched}",
+      "uptimeNote": "The server monitor keeps no history, so codeqlick.com's uptime isn't shown here; it emails the team when the site is down.",
+      "moderation": "Waiting for moderation ({count})",
+      "queue": "Queue",
+      "waiting": "Waiting"
+    },
+    "moderation": {
+      "spots": "Spots to review",
+      "reports": "Open reports",
+      "media": "Media to review",
+      "verifications": "Verification photos",
+      "takedowns": "Removal requests",
+      "photos": "Photos to review",
+      "appeals": "Appeals"
     }
   }
 }
