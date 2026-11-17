@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { NEOQLICK_EXOCLICK_VERIFICATION } from '@/lib/neoqlick-exoclick';
 import type { ReactNode } from 'react';
 import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -53,7 +54,7 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
     // Indexed; the account-only pages (new, my-spots) opt out.
     robots: { index: true, follow: true, 'max-image-preview': 'large' },
     // Content for adults: Google's label, so SafeSearch filters it as it must.
-    other: { rating: 'adult' },
+    other: { rating: 'adult', ...NEOQLICK_EXOCLICK_VERIFICATION },
     // Neoqlick's favicons and home screen icon (architecture 4.18).
     icons: BRANDS.neoqlick.icons,
     applicationName: 'Cruising',

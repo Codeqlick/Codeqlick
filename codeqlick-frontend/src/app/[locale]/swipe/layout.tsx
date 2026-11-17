@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { NEOQLICK_EXOCLICK_VERIFICATION } from '@/lib/neoqlick-exoclick';
 import type { ReactNode } from 'react';
 import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -45,6 +46,7 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
     // Sexual content between adults: Google's label, so SafeSearch filters it as it must.
     other: {
       rating: 'adult',
+      ...NEOQLICK_EXOCLICK_VERIFICATION,
       // Search Console's ownership check of the old host; Neoqlick's own comes with its property.
       ...(old ? { 'google-site-verification': '_A3wQZIogBMzJQNEVq_--g1xi9eYTwtYVMRBFwH5kZU' } : {}),
     },

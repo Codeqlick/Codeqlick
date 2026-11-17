@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { NEOQLICK_EXOCLICK_VERIFICATION } from '@/lib/neoqlick-exoclick';
 import type { ReactNode } from 'react';
 import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -51,13 +52,13 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
       // Sexual content between adults: Google's label, so SafeSearch filters it as it must.
       rating: 'adult',
       // The old host's ExoClick and Search Console checks (`other` replaces the root layout's);
-      // Neoqlick's come with its own sites, when the owner registers them (architecture 4.18).
+      // on Neoqlick's host, Neoqlick's own ExoClick check (architecture 4.18).
       ...(old
         ? {
             '6a97888e-site-verification': '5e55aa28a6c9210038f92e69880e6449',
             'google-site-verification': '_A3wQZIogBMzJQNEVq_--g1xi9eYTwtYVMRBFwH5kZU',
           }
-        : {}),
+        : NEOQLICK_EXOCLICK_VERIFICATION),
     },
     icons: BRANDS.neoqlick.icons,
     // Installed on a phone it opens as its own app (manifest: app/manifest.ts on this host).
