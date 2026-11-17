@@ -10,6 +10,6 @@ export async function GET(
   const { kind, id } = await params;
   if (!UUID.test(id)) return new Response(null, { status: 404 });
   if (kind === 'photo') return fetchSwipeImage(`/swipe/photos/${id}/file`);
-  if (kind === 'verification') return fetchSwipeImage(`/admin/swipe/verifications/${id}/file`);
+  if (kind === 'verification') return fetchSwipeImage(`/admin/adult/verifications/${id}/file`);
   return new Response(null, { status: 404 });
 }

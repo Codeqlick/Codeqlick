@@ -4,14 +4,13 @@ import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import type { AppLocale } from '@/i18n/routing';
 import { failedState } from '@/lib/actions';
+import { parseCategory } from '@/lib/adult';
 import {
   bulkVideochatReports,
   clearVideochatSuspicion,
-  decideVideochatVerification,
   dismissVideochatReport,
   liftVideochatSuspension,
   resolveVideochatAppeal,
-  revokeVideochatVerification,
   setVideochatAgeVerified,
   SUSPENSION_DURATIONS,
   suspendFromVideochatReport,
@@ -104,16 +103,22 @@ export async function suspendUserAction(
   formData: FormData,
 ): Promise<FormState> {
   const reason = text(formData, 'reason');
-  if (!reason) {
+  const category = parseCategory(formData.get('category'));
+  if (!reason || !category) {
     const t = await getTranslations({ locale, namespace: 'AdminVideochat' });
+    const ta = await getTranslations({ locale, namespace: 'AdminAdult' });
     return {
       status: 'error',
-      fieldErrors: { reason: t('reasonRequired') },
-      values: { duration: duration(formData) },
+      fieldErrors: {
+        ...(reason ? {} : { reason: t('reasonRequired') }),
+        ...(category ? {} : { category: ta('required') }),
+      },
+      values: { duration: duration(formData), reason: reason ?? '' },
     };
   }
+  // A serious category (minor, non-consensual, illegal) makes it a suspension in the three apps.
   return run(locale, formData, () =>
-    suspendVideochatUser(userId, { reason, duration: duration(formData) }),
+    suspendVideochatUser(userId, { reason, duration: duration(formData), category }),
   );
 }
 
@@ -147,27 +152,4 @@ export async function clearSuspicionAction(
   formData: FormData,
 ): Promise<FormState> {
   return run(locale, formData, () => clearVideochatSuspicion(userId));
-}
-
-/** Approves or rejects a verification photo (the button pressed is `decision`). */
-export async function verificationAction(
-  locale: AppLocale,
-  userId: string,
-  _previous: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  const approve = formData.get('decision') === 'approve';
-  return run(locale, formData, () =>
-    decideVideochatVerification(userId, approve, text(formData, 'note')),
-  );
-}
-
-/** Takes the verified badge away. */
-export async function revokeVerificationAction(
-  locale: AppLocale,
-  userId: string,
-  _previous: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  return run(locale, formData, () => revokeVideochatVerification(userId));
 }

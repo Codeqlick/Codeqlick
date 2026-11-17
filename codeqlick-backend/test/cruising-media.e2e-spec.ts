@@ -80,9 +80,20 @@ describe('Cruising media (e2e)', () => {
         termsVersion: version,
         acceptedAt: new Date(),
         nickname: options.nickname === false ? null : who.nick,
-        verificationStatus: options.verified ? 'APPROVED' : 'NONE',
       },
     });
+    // The badge is the account's one verification for the three 18+ apps (architecture 4.16).
+    if (options.verified) {
+      await prisma.adultVerification.create({
+        data: {
+          userId: who.id,
+          status: 'APPROVED',
+          sourceApp: 'CRUISING',
+          verifiedName: who.nick,
+          decidedAt: new Date(),
+        },
+      });
+    }
     return who;
   }
 
@@ -185,15 +196,17 @@ describe('Cruising media (e2e)', () => {
     expect(image.headers['content-type']).toBe('image/webp');
     expect(image.headers['cache-control']).toBe('private, no-store');
 
-    const key = (await prisma.cruisingProfile.findUniqueOrThrow({ where: { userId: ana.id } }))
-      .verificationKey as string;
-    const dir = app.get(AppConfigService).cruisingUploadsDir;
+    // One verification for the three 18+ apps; the approved photo is kept privately while it
+    // stands (decision 113), in the shared folder.
+    const key = (await prisma.adultVerification.findUniqueOrThrow({ where: { userId: ana.id } }))
+      .photoKey as string;
+    const dir = join(app.get(AppConfigService).swipeUploadsDir, 'verification');
     await request(server())
       .post(`/v1/admin/cruising/verifications/${ana.id}`)
       .set(admin.auth)
       .send({ approve: true })
       .expect(204);
-    await expect(readFile(join(dir, key))).rejects.toThrow(/ENOENT/);
+    expect((await readFile(join(dir, key))).length).toBeGreaterThan(0);
     const after = await request(server()).get('/v1/cruising/me').set(ana.auth).expect(200);
     expect(after.body.verified).toBe(true);
     expect(after.body.profile.verified).toBe(true);

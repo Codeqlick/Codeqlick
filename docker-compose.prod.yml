@@ -65,6 +65,8 @@ services:
       SITE_URL: ${SITE_URL}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in .env}
       CREDENTIALS_SECRET: ${CREDENTIALS_SECRET:?set CREDENTIALS_SECRET in .env}
+      # Keys the email hashes kept after serious 18+ suspensions (architecture 4.16, decision 120).
+      ADULT_BAN_HASH_KEY: ${ADULT_BAN_HASH_KEY:-}
       SMTP_HOST: ${SMTP_HOST:?set SMTP_HOST in .env}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}

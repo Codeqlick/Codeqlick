@@ -8,7 +8,6 @@ import {
   actOnSwipeReport,
   approveSwipePhoto,
   decideSwipeTakedown,
-  decideSwipeVerification,
   dismissSwipeReport,
   hideSwipePhoto,
   liftSwipeSuspension,
@@ -40,18 +39,6 @@ function text(formData: FormData, name: string): string | undefined {
 function suspension(formData: FormData): SwipeSuspension | null {
   const value = formData.get('suspend');
   return SWIPE_SUSPENSIONS.find((d) => d === value) ?? null;
-}
-
-export async function verificationAction(
-  locale: AppLocale,
-  userId: string,
-  _previous: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  const approve = formData.get('decision') === 'approve';
-  return run(locale, formData, () =>
-    decideSwipeVerification(userId, approve, text(formData, 'note')),
-  );
 }
 
 export async function photoAction(

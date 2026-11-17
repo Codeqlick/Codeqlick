@@ -23,10 +23,7 @@ import {
   type SuspiciousAccount,
 } from './videochat-suspicious.service.js';
 import { privateImage } from '../swipe/swipe.controller.js';
-import {
-  VideochatVerificationService,
-  type PendingVerification,
-} from './videochat-verification.service.js';
+import { AdultVerificationService } from '../adult/adult-verification.service.js';
 import { VideochatGateway } from './videochat.gateway.js';
 import {
   appealDecisionSchema,
@@ -67,14 +64,15 @@ export class VideochatAdminController {
     private readonly gateway: VideochatGateway,
     private readonly statistics: VideochatStatsService,
     private readonly suspicious: VideochatSuspiciousService,
-    private readonly verification: VideochatVerificationService,
+    private readonly verification: AdultVerificationService,
   ) {}
 
   /** Accounts that look like bots or fake profiles, highest score first (architecture 4.7). */
   /** Verification photos waiting for review, oldest first. */
+  /** The one queue of the 18+ apps (architecture 4.16): `/admin/adult/verifications`. */
   @Get('verifications')
-  async verifications(): Promise<{ items: PendingVerification[] }> {
-    return { items: await this.verification.pending() };
+  verifications() {
+    return this.verification.pending();
   }
 
   @Get('verifications/:userId/file')
@@ -82,7 +80,7 @@ export class VideochatAdminController {
   async verificationFile(
     @Param({ schema: userIdParamSchema }) params: UserIdParam,
   ): Promise<StreamableFile> {
-    return privateImage(await this.verification.file(params.userId));
+    return privateImage(await this.verification.adminFile(params.userId));
   }
 
   @Post('verifications/:userId')
@@ -95,14 +93,14 @@ export class VideochatAdminController {
     return this.verification.decide(user, params.userId, body);
   }
 
-  /** Takes the verified badge away; the person may send a new photo. */
+  /** Takes the verified badge away in the three 18+ apps; the person may send a new photo. */
   @Delete('users/:userId/verification')
   @HttpCode(HttpStatus.NO_CONTENT)
   revokeVerification(
     @CurrentUser() user: AuthUser,
     @Param({ schema: userIdParamSchema }) params: UserIdParam,
   ): Promise<void> {
-    return this.verification.revoke(user, params.userId);
+    return this.verification.withdraw(user, params.userId, null);
   }
 
   @Get('suspicious')
@@ -150,7 +148,7 @@ export class VideochatAdminController {
     @CurrentUser() admin: AuthUser,
     @Body({ schema: bulkReportsSchema }) body: BulkReportsInput,
   ): Promise<{ done: number; skipped: number }> {
-    return this.videochat.bulkReports(admin, body.ids, body.action, body.duration);
+    return this.videochat.bulkReports(admin, body.ids, body.action, body.duration, body.category);
   }
 
   /** Suspends the reported account from the video chat (disconnected at once). */
@@ -161,7 +159,13 @@ export class VideochatAdminController {
     @Param({ schema: idParamSchema }) params: IdParam,
     @Body({ schema: suspendSchema }) body: SuspendInput,
   ): Promise<void> {
-    return this.videochat.suspendFromReport(admin, params.id, body.reason, body.duration);
+    return this.videochat.suspendFromReport(
+      admin,
+      params.id,
+      body.reason,
+      body.duration,
+      body.category,
+    );
   }
 
   /** The team checked this person's age by hand (needed when VIDEOCHAT_AGE_VERIFICATION_REQUIRED is on). */
@@ -210,7 +214,7 @@ export class VideochatAdminController {
     @Param({ schema: userIdParamSchema }) params: UserIdParam,
     @Body({ schema: suspendUserSchema }) body: SuspendUserInput,
   ): Promise<void> {
-    return this.videochat.suspend(admin, params.userId, body.reason, body.duration);
+    return this.videochat.suspend(admin, params.userId, body.reason, body.duration, body.category);
   }
 
   @Get('appeals')

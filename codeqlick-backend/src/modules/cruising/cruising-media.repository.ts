@@ -20,11 +20,12 @@ const ownerSelect = {
   cruisingProfile: {
     select: {
       nickname: true,
-      verificationStatus: true,
       suspendedAt: true,
       suspendedUntil: true,
     },
   },
+  // The account's verification gives the badge in the three 18+ apps (architecture 4.16).
+  adultVerification: { select: { status: true } },
 } as const;
 
 /** What a list shows next to a member's nickname: the badge and the cover photo (decision 87). */
@@ -190,9 +191,9 @@ export class CruisingMediaRepository {
         where: { userId: { in: ids } },
         select: {
           userId: true,
-          verificationStatus: true,
           suspendedAt: true,
           suspendedUntil: true,
+          user: { select: { adultVerification: { select: { status: true } } } },
         },
       }),
       this.prisma.cruisingMedia.findMany({
@@ -207,7 +208,7 @@ export class CruisingMediaRepository {
       profiles.map((profile) => [
         profile.userId,
         {
-          verified: profile.verificationStatus === 'APPROVED',
+          verified: profile.user.adultVerification?.status === 'APPROVED',
           coverId: isSuspended(profile, now) ? null : (covers.get(profile.userId) ?? null),
         },
       ]),
@@ -317,16 +318,6 @@ export class CruisingMediaRepository {
     await this.prisma.cruisingReport.updateMany({
       where: { mediaId, status: 'OPEN' },
       data: { status: 'ACTIONED', reviewedById, reviewedAt: now },
-    });
-  }
-
-  /** Verification photos waiting for the team, oldest first. */
-  pendingVerifications() {
-    return this.prisma.cruisingProfile.findMany({
-      where: { verificationStatus: 'PENDING' },
-      orderBy: { verificationSentAt: 'asc' },
-      take: ADMIN_LIST_LIMIT,
-      include: { user: { select: { id: true, name: true, email: true, createdAt: true } } },
     });
   }
 }

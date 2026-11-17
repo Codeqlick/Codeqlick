@@ -22,6 +22,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
+import { AdultVerificationService } from '../adult/adult-verification.service.js';
 import { MAX_PHOTO_BYTES, MAX_VIDEO_BYTES } from './cruising-media.rules.js';
 import {
   CruisingMediaService,
@@ -199,6 +200,7 @@ export class CruisingMediaAdminController {
   constructor(
     private readonly media: CruisingMediaService,
     private readonly cruising: CruisingService,
+    private readonly verification: AdultVerificationService,
   ) {}
 
   @Get('media')
@@ -226,8 +228,9 @@ export class CruisingMediaAdminController {
   }
 
   @Get('verifications')
-  async verifications() {
-    return { items: await this.media.pendingVerifications() };
+  verifications() {
+    // The one queue of the 18+ apps (architecture 4.16): `/admin/adult/verifications`.
+    return this.verification.pending();
   }
 
   @Get('verifications/:userId/file')
@@ -245,7 +248,7 @@ export class CruisingMediaAdminController {
     @Param({ schema: userIdParamSchema }) params: UserIdParam,
     @Body({ schema: verificationDecisionSchema }) body: VerificationDecision,
   ): Promise<void> {
-    return this.media.decideVerification(user, params.userId, body);
+    return this.verification.decide(user, params.userId, body);
   }
 
   /** Takes a member's "Verified" badge away. */

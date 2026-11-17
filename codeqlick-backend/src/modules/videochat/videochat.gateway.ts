@@ -28,6 +28,7 @@ import {
 } from './videochat.schemas.js';
 import { VideochatStatsService } from './videochat-stats.service.js';
 import { VideochatPushService } from './videochat-push.service.js';
+import { AdultEvents } from '../adult/adult-events.js';
 import { VideochatService, type TranscriptLine } from './videochat.service.js';
 
 /** Where browsers open the signaling socket (Nginx maps wss://videochat.codeqlick.com/ws here). */
@@ -165,6 +166,8 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
   private rematcher?: NodeJS.Timeout;
   private peakChecker?: NodeJS.Timeout;
   private suspensions?: Subscription;
+  /** The shared safety of the 18+ apps (architecture 4.16): blocks and suspensions from anywhere. */
+  private adultEvents: Subscription[] = [];
   private readonly onUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer) =>
     this.upgrade(request, socket, head);
 
@@ -174,6 +177,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     private readonly config: AppConfigService,
     private readonly push: VideochatPushService,
     private readonly statistics: VideochatStatsService,
+    private readonly adult: AdultEvents,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -191,6 +195,10 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
       this.peakChecker.unref();
     }
     this.suspensions = this.videochat.suspensions.subscribe((userId) => this.suspended(userId));
+    this.adultEvents = [
+      this.adult.suspended.subscribe((userId) => this.suspended(userId)),
+      this.adult.blocked.subscribe(({ a, b }) => this.blockedElsewhere(a, b)),
+    ];
   }
 
   onModuleDestroy(): void {
@@ -199,6 +207,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     if (this.rematcher) clearInterval(this.rematcher);
     if (this.peakChecker) clearInterval(this.peakChecker);
     this.suspensions?.unsubscribe();
+    for (const subscription of this.adultEvents) subscription.unsubscribe();
     for (const connection of this.connections.values()) connection.socket.terminate();
     this.wss.close();
   }
@@ -1084,6 +1093,29 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
           status: status(item.contactId),
         })),
     });
+  }
+
+  /**
+   * Two people now blocked (in any of the 18+ apps, decision 112): they never meet again, and a
+   * call, a ringing call or a group invitation between them ends.
+   */
+  private blockedElsewhere(a: string, b: string): void {
+    const first = this.byUser.get(a);
+    const second = this.byUser.get(b);
+    first?.participant?.blocked.add(b);
+    second?.participant?.blocked.add(a);
+    if (!first || !second) return;
+    if (this.matchmaker.partnerOf(first.id)?.userId === b) this.endCall(first);
+    if (first.ring && first.ring === second.ring) this.finishRing(first.ring, 'cancelled');
+    for (const [from, to] of [
+      [first, second],
+      [second, first],
+    ] as const) {
+      const group = from.group;
+      if (group && to.participant && group.invites.has(to.participant.userId)) {
+        this.endInvite(group, to.participant.userId, 'blocked');
+      }
+    }
   }
 
   private suspended(userId: string): void {

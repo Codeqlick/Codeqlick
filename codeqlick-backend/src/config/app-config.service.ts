@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from './env.schema.js';
@@ -58,6 +59,14 @@ export class AppConfigService {
   /** Key material for project credentials; falls back to JWT_ACCESS_SECRET (see env.schema.ts). */
   get credentialsSecret(): string {
     return this.get('CREDENTIALS_SECRET') ?? this.get('JWT_ACCESS_SECRET');
+  }
+
+  /** Key of the 18+ apps' banned-email hashes (decision 120): its own, or derived from the above. */
+  get adultBanHashKey(): string {
+    return (
+      this.get('ADULT_BAN_HASH_KEY') ??
+      createHmac('sha256', this.credentialsSecret).update('adult-ban-hash-v1').digest('hex')
+    );
   }
 
   /** Access token lifetime in seconds. */

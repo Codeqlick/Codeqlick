@@ -50,6 +50,7 @@ async function member(
   await expect(page).toHaveURL(`${base}/es/deck`);
   await page.getByLabel('Fecha de nacimiento').fill('1992-05-20');
   await page.getByLabel(/Tengo 18 años o más/).check();
+  await page.getByLabel(/Consiento que Codeqlick trate datos/).check();
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page.getByLabel('Fecha de nacimiento')).toBeHidden();
 
@@ -117,7 +118,7 @@ test('two people get approved, match on Swipe and talk', async ({ browser, reque
       [ben, 12],
     ] as const) {
       await page.reload();
-      await expect(page.getByText('Verificada. Ya puedes subir fotos.')).toBeVisible();
+      await expect(page.getByText(/Ya puedes subir fotos/)).toBeVisible();
       await upload(page, 'Elige una foto', /Solo aparezco yo/, seed, 'En revisión');
     }
     await admin.reload();

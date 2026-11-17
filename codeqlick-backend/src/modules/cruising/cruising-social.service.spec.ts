@@ -11,6 +11,7 @@ import type { MailMessage, MailService } from '../mail/mail.service.js';
 import type { CruisingMediaRepository } from './cruising-media.repository.js';
 import type { CruisingNotificationsService } from './cruising-notifications.service.js';
 import type { CruisingPushService } from './cruising-push.service.js';
+import type { AdultSafetyService } from '../adult/adult-safety.service.js';
 import type { CruisingWinksService } from './cruising-winks.service.js';
 import type { CruisingRepository } from './cruising.repository.js';
 import { CruisingSocialService } from './cruising-social.service.js';
@@ -118,9 +119,6 @@ function build() {
         Promise.resolve({ id: 'message-1', text, createdAt: now }),
       ),
     deleteConversation: vi.fn().mockResolvedValue(undefined),
-    block: vi.fn().mockResolvedValue(undefined),
-    unblock: vi.fn().mockResolvedValue(true),
-    blocksMade: vi.fn().mockResolvedValue([]),
     recentlyActiveConversations: vi.fn().mockResolvedValue([]),
     markNotified: vi.fn().mockResolvedValue(undefined),
     recipient: vi.fn().mockResolvedValue({
@@ -155,6 +153,12 @@ function build() {
     recordVisit: vi.fn().mockResolvedValue(undefined),
     winkedToday: vi.fn().mockResolvedValue(false),
   };
+  // The shared safety of the 18+ apps (architecture 4.16).
+  const safety = {
+    block: vi.fn().mockResolvedValue(undefined),
+    unblock: vi.fn().mockResolvedValue(true),
+    blocks: vi.fn().mockResolvedValue({ items: [] }),
+  };
   const service = new CruisingSocialService(
     repo as unknown as CruisingRepository,
     mediaRepo as unknown as CruisingMediaRepository,
@@ -163,8 +167,9 @@ function build() {
     push as unknown as CruisingPushService,
     notifications as unknown as CruisingNotificationsService,
     winks as unknown as CruisingWinksService,
+    safety as unknown as AdultSafetyService,
   );
-  return { service, repo, sent, push, notifications, winks };
+  return { service, repo, sent, push, notifications, winks, safety };
 }
 
 const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
@@ -689,12 +694,12 @@ describe('CruisingSocialService', () => {
     it('blocking from a conversation blocks the other person', async () => {
       t.repo.findConversation.mockResolvedValue(conversation({ userAId: OTHER, userBId: ME }));
       await t.service.blockConversation(ME, CONVERSATION);
-      expect(t.repo.block).toHaveBeenCalledWith(ME, OTHER);
+      expect(t.safety.block).toHaveBeenCalledWith(ME, OTHER, 'CRUISING');
     });
 
     it('blocks a person by nickname', async () => {
       await t.service.block(ME, SECRET_NICKNAME);
-      expect(t.repo.block).toHaveBeenCalledWith(ME, OTHER);
+      expect(t.safety.block).toHaveBeenCalledWith(ME, OTHER, 'CRUISING');
     });
 
     it('does not block an unknown person or myself', async () => {
@@ -702,14 +707,16 @@ describe('CruisingSocialService', () => {
       await expect(t.service.block(ME, 'nobody')).rejects.toBeInstanceOf(NotFoundException);
       t.repo.findProfileByNickname.mockResolvedValue(profile());
       await expect(t.service.block(ME, 'me_myself')).rejects.toBeInstanceOf(BadRequestException);
-      expect(t.repo.block).not.toHaveBeenCalled();
+      expect(t.safety.block).not.toHaveBeenCalled();
     });
 
-    it('lists my blocks by nickname', async () => {
-      t.repo.blocksMade.mockResolvedValue([
-        { createdAt: NOW, blocked: { cruisingProfile: { nickname: SECRET_NICKNAME } } },
-        { createdAt: NOW, blocked: { cruisingProfile: null } },
-      ]);
+    it('lists my blocks by nickname (people without one in Cruising left out)', async () => {
+      t.safety.blocks.mockResolvedValue({
+        items: [
+          { ref: 'a', name: SECRET_NICKNAME, sourceApp: 'SWIPE', createdAt: NOW.toISOString() },
+          { ref: 'b', name: null, sourceApp: 'VIDEOCHAT', createdAt: NOW.toISOString() },
+        ],
+      });
       expect(await t.service.blocks(ME)).toEqual({
         items: [{ nickname: SECRET_NICKNAME, createdAt: NOW.toISOString() }],
       });
@@ -717,8 +724,8 @@ describe('CruisingSocialService', () => {
 
     it('lifts a block, and answers 404 when there was none', async () => {
       await t.service.unblock(ME, SECRET_NICKNAME);
-      expect(t.repo.unblock).toHaveBeenCalledWith(ME, OTHER);
-      t.repo.unblock.mockResolvedValue(false);
+      expect(t.safety.unblock).toHaveBeenCalledWith(ME, OTHER);
+      t.safety.unblock.mockResolvedValue(false);
       await expect(t.service.unblock(ME, SECRET_NICKNAME)).rejects.toBeInstanceOf(
         NotFoundException,
       );

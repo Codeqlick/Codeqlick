@@ -5,6 +5,7 @@ import {
   slugSchema,
 } from '../../common/schemas/common.schemas.js';
 import { COUNTRIES, SAFE_CHAT_MESSAGES, TRANSCRIPT_LINES } from '../swipe/swipe.schemas.js';
+import { SUSPENSION_CATEGORIES } from '../adult/adult.rules.js';
 import { SUSPENSION_DURATIONS, ageOn } from '../videochat/videochat.schemas.js';
 import { SPOT_TAGS } from './cruising-insights.rules.js';
 import { MEDIA_ALBUMS } from './cruising-media.rules.js';
@@ -396,6 +397,8 @@ export const reportActionSchema = z.object({
   reason: z.string().trim().max(500).optional(),
   /** Phase 4: also takes the reported person's "Verified" badge away. */
   withdrawVerification: z.boolean().optional(),
+  /** The suspension's category; the report's reason when left out (architecture 4.16). */
+  category: z.enum(SUSPENSION_CATEGORIES).optional(),
 });
 export type ReportActionInput = z.infer<typeof reportActionSchema>;
 
@@ -416,6 +419,8 @@ export const suspendUserSchema = z.object({
   reason: z.string().trim().max(500).optional(),
   /** Phase 4: also takes the person's "Verified" badge away. */
   withdrawVerification: z.boolean().optional(),
+  /** Required (decision 114): MINOR, NON_CONSENSUAL and ILLEGAL apply in the three 18+ apps. */
+  category: z.enum(SUSPENSION_CATEGORIES),
 });
 export type SuspendUserInput = z.infer<typeof suspendUserSchema>;
 
@@ -459,6 +464,8 @@ export const removeMediaSchema = z.object({
   /** Blocks the image (the photo, or the video's poster) so it can't be uploaded again. */
   blockHash: z.boolean().default(true),
   suspend: z.enum(SUSPENSION_DURATIONS).nullable().default(null),
+  /** The suspension's category (architecture 4.16); OTHER when left out. */
+  category: z.enum(SUSPENSION_CATEGORIES).default('OTHER'),
   withdrawVerification: z.boolean().default(false),
 });
 export type RemoveMediaInput = z.infer<typeof removeMediaSchema>;

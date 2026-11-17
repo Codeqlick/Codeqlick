@@ -1338,6 +1338,7 @@
         "booking": "Calls",
         "videochat": "Video chat",
         "swipe": "Swipe",
+        "adult": "18+ apps",
         "site_news": "News",
         "newsletter": "Newsletter"
       },
@@ -1505,6 +1506,14 @@
           "published": "published the news post <target>{label}</target>",
           "unpublished": "unpublished the news post <target>{label}</target>",
           "deleted": "deleted the news post <target>{label}</target>"
+        },
+        "adult": {
+          "suspension": "suspended <target>{label}</target> in the three 18+ apps",
+          "suspension_lifted": "lifted the 18+ apps suspension of <target>{label}</target>",
+          "verification_decided": "decided the 18+ apps verification of <target>{label}</target>",
+          "verification_withdrawn": "withdrew the 18+ apps verification of <target>{label}</target>",
+          "banned_email_deleted": "deleted a banned email hash of the 18+ apps",
+          "suspension_kept": "left a per-app suspension as it was"
         },
         "newsletter": {
           "subscriber_deleted": "deleted a subscriber from the newsletter"
@@ -3505,7 +3514,11 @@
       "invalidDate": "Enter a valid date of birth.",
       "mustAccept": "You have to accept the rules to enter.",
       "rulesChanged": "The rules changed: read and accept them again.",
-      "error": "We couldn't save it. Try again."
+      "error": "We couldn't save it. Try again.",
+      "consent": "I consent to Codeqlick handling data that may reveal my sexual orientation or sex life, for using the video chat, and that safety measures (blocks, serious suspensions, verification) apply across Codeqlick's 18+ apps",
+      "consentHint": "Special category data (GDPR art. 9.2.a). You can withdraw your consent whenever you like by deleting your account.",
+      "mustConsent": "We need your explicit consent to enter.",
+      "notAllowed": "This account can't use Codeqlick's 18+ apps; contact hello@codeqlick.com"
     },
     "suspended": {
       "title": "Your access is suspended",
@@ -3646,7 +3659,7 @@
     },
     "rules": {
       "title": "Video chat rules",
-      "updated": "Version of 7 November 2026",
+      "updated": "Version of 17 November 2026",
       "intro": "Codeqlick's video chat is an adult service. By entering you accept these rules. If you break them, we suspend your access.",
       "sections": [
         {
@@ -3674,7 +3687,15 @@
           "body": "We can't stop someone from filming their screen with another device. Don't show what you don't want seen outside the call, and don't share personal details."
         },
         {
-          "title": "7. Contact",
+          "title": "7. Safety across Codeqlick's 18+ apps",
+          "body": "Codeqlick runs three 18+ apps on the same account: Cruising, Swipe and the video chat. A block in one applies in all three, both ways. A suspension for minors, non-consensual content or illegal content applies in all three with the same end date, and also stops you from entering an app you hadn't used. One verification gives the “Verified” badge in all three; its photo is kept privately while the verification stands (only the team sees it) and deleted when it is withdrawn or lost, replaced, or when you delete your account (the video chat used to delete it once reviewed). If you delete your account while a serious suspension applies, we keep a keyed hash of your email, not the email, for the length of the suspension or 2 years if it was permanent, so that account can't enter the 18+ apps again; write to hello@codeqlick.com if you think it is a mistake. When moderating, the team sees a person's reports and suspensions in the three apps. Nothing else is shared between them."
+        },
+        {
+          "title": "8. Why we process this, and your consent",
+          "body": "Legal basis: our legitimate interest in protecting members and preventing abuse (article 6.1.f GDPR). The balance holds because a member reasonably expects that someone removed for sexual content involving minors does not stay in a sister app on the same account; only safety measures are shared and only moderators see the history. Because using these apps can reveal your sex life or sexual orientation (article 9), it also rests on the explicit consent you give when you enter (article 9.2.a), which includes that safety measures (blocks, serious suspensions, verification) apply across Codeqlick's 18+ apps. You can withdraw it by deleting your account or writing to hello@codeqlick.com."
+        },
+        {
+          "title": "9. Contact",
           "body": "To report content, appeal a suspension or ask anything: hello@codeqlick.com."
         }
       ],
@@ -3821,15 +3842,17 @@
       "status": {
         "NONE": "Optional: verify your profile and whoever talks to you sees a badge next to your nickname.",
         "PENDING": "We are reviewing your photo. We'll tell you by email.",
-        "APPROVED": "Your profile is verified: others see the badge next to your nickname.",
+        "APPROVED": "Your profile is verified in all of Codeqlick's 18+ apps: others see the badge next to your nickname.",
         "REJECTED": "We couldn't approve your photo. Send another one following the instructions."
       },
-      "lead": "Take a photo holding a paper that reads “{nickname}”, “Videochat” and today's date, with your face visible. Only the team sees it, and we delete it as soon as we have reviewed it.",
+      "lead": "Take a photo holding a paper that reads “{nickname}”, “Codeqlick” and today's date, with your face visible. Only the team sees it, and we keep it privately while the verification stands.",
       "nicknameFirst": "Choose your nickname above and save it first.",
       "pick": "Choose the photo",
       "consent": "It's me, and I send it to verify my profile.",
       "send": "Send for review",
-      "alt": "Your verification photo"
+      "alt": "Your verification photo",
+      "shared": "One verification for all of Codeqlick's 18+ apps (Cruising, Swipe and Videochat): the badge shows in the three. We keep the photo privately while it stands (only the team sees it) and delete it if the verification is withdrawn or lost, if you replace it or if you delete your account.",
+      "notAllowed": "You can't send it right now."
     },
     "stats": {
       "title": "Your week",
@@ -3838,6 +3861,18 @@
       "likes": "Likes received",
       "contacts": "New contacts",
       "previous": "{count} the week before"
+    },
+    "blocks": {
+      "title": "Blocked members",
+      "lead": "Blocked members and you can't see each other in any of Codeqlick's 18+ apps. Unblocking lifts it in all three.",
+      "empty": "You haven't blocked anyone.",
+      "blockedOn": "blocked on {date}",
+      "blockedOnIn": "blocked in {app} on {date}",
+      "otherApp": "A member of another 18+ app",
+      "unblock": "Unblock",
+      "unblocking": "Unblocking…",
+      "unblocked": "Unblocked in the three 18+ apps.",
+      "error": "We couldn't unblock them. Try again."
     }
   },
   "AdminVideochat": {
@@ -4592,7 +4627,11 @@
       "mustAccept": "You must accept the rules to enter.",
       "underage": "Swipe is only for people aged 18 or over.",
       "rulesChanged": "The rules changed: reload the page and read them.",
-      "error": "We couldn't save it. Try again."
+      "error": "We couldn't save it. Try again.",
+      "consent": "I consent to Codeqlick handling data that may reveal my sexual orientation or sex life, for using Swipe, and that safety measures (blocks, serious suspensions, verification) apply across Codeqlick's 18+ apps",
+      "consentHint": "Special category data (GDPR art. 9.2.a). You can withdraw your consent whenever you like by deleting your account.",
+      "mustConsent": "We need your explicit consent to enter.",
+      "notAllowed": "This account can't use Codeqlick's 18+ apps; contact hello@codeqlick.com"
     },
     "suspended": {
       "title": "Your Swipe account is suspended",
@@ -4687,15 +4726,20 @@
       "status": {
         "NONE": "To upload photos, first send a verification photo.",
         "PENDING": "We are reviewing your verification photo. You'll see the answer here.",
-        "APPROVED": "Verified. You can upload photos now.",
+        "APPROVED": "Verified in all of Codeqlick's 18+ apps. You can upload photos now.",
         "REJECTED": "We didn't approve your verification photo. Send another one following the steps."
       },
-      "lead": "Take a photo holding a paper that reads “{nickname}”, “Swipe” and today's date. Your face must be clear, or a mark that also shows on your photos (a tattoo, for example). Only the team sees it.",
+      "lead": "Take a photo holding a paper that reads “{nickname}”, “Codeqlick” and today's date. Your face must be clear, or a mark that also shows on your photos (a tattoo, for example). Only the team sees it.",
       "nicknameFirst": "First choose your nickname in your profile and save it.",
       "pick": "Choose the photo",
       "consent": "It's me, I am 18 or over, and I send it to verify my account.",
       "send": "Send for review",
-      "alt": "Your verification photo"
+      "alt": "Your verification photo",
+      "shared": "One verification for all of Codeqlick's 18+ apps (Cruising, Swipe and Videochat): the badge shows in the three. We keep the photo privately while it stands (only the team sees it) and delete it if the verification is withdrawn or lost, if you replace it or if you delete your account.",
+      "errors": {
+        "notAllowed": "You can't send it right now.",
+        "conflict": "You already have a photo waiting or approved, or you haven't chosen a nickname yet."
+      }
     },
     "photos": {
       "title": "My photos",
@@ -4783,7 +4827,9 @@
       "privacy": "Of your date of birth we only keep the year, for the age filter. Your photos are stored without camera data or location, with your nickname as a watermark, and are only seen inside Swipe. You can delete any photo whenever you like, and deleting your account deletes them all.",
       "takedownTitle": "Removing photos",
       "takedown": "If you find a photo of you that you didn't upload, or a photo that shouldn't be here, anyone can ask us to remove it, without an account. It is hidden at once when you give its reference, and we answer within 24 hours.",
-      "takedownLink": "Ask for a photo to be removed"
+      "takedownLink": "Ask for a photo to be removed",
+      "rule9Title": "Across the 18+ apps",
+      "rule9": "Swipe shares its safety measures with Cruising and Videochat on the same account: a block, a suspension for minors, non-consent or illegal content, and the verification apply in all three. See the terms of use and the privacy policy."
     },
     "takedown": {
       "title": "Ask for a photo to be removed",
@@ -4850,6 +4896,18 @@
       "matchHint": "Private album: {count, plural, one {# photo} other {# photos}}",
       "alt": "Photo from {nickname}'s private album",
       "open": "See the album"
+    },
+    "blocks": {
+      "title": "Blocked members",
+      "lead": "Blocked members and you can't see each other in any of Codeqlick's 18+ apps. Unblocking lifts it in all three.",
+      "empty": "You haven't blocked anyone.",
+      "blockedOn": "blocked on {date}",
+      "blockedOnIn": "blocked in {app} on {date}",
+      "otherApp": "A member of another 18+ app",
+      "unblock": "Unblock",
+      "unblocking": "Unblocking…",
+      "unblocked": "Unblocked in the three 18+ apps.",
+      "error": "We couldn't unblock them. Try again."
     }
   },
   "AdminSwipe": {
@@ -5008,7 +5066,7 @@
       "birthDate": "Date of birth",
       "birthDateHint": "We check that you are 18 or older. We only keep the year.",
       "accept": "I'm 18 or older and accept Cruising's rules and terms of use",
-      "consent": "I consent to Codeqlick handling data that may reveal my sexual orientation or sex life, for using Cruising",
+      "consent": "I consent to Codeqlick handling data that may reveal my sexual orientation or sex life, for using Cruising, and that safety measures (blocks, serious suspensions, verification) apply across Codeqlick's 18+ apps",
       "consentHint": "Special category data (GDPR art. 9.2.a). You can withdraw your consent whenever you like by deleting your account.",
       "readRules": "Read the rules",
       "submit": "Continue",
@@ -5018,7 +5076,8 @@
       "mustConsent": "We need your explicit consent to continue.",
       "underage": "Cruising is only for people aged 18 or over.",
       "rulesChanged": "The rules changed: reload the page and read them.",
-      "error": "We couldn't save it. Try again."
+      "error": "We couldn't save it. Try again.",
+      "notAllowed": "This account can't use Codeqlick's 18+ apps; contact hello@codeqlick.com"
     },
     "suspended": {
       "title": "Your Cruising access is suspended",
@@ -5376,7 +5435,7 @@
       "alertsLabel": "Email me when a spot of mine is published or a message waits unread",
       "alertsHint": "The team's decisions (a rejection, a suspension) are always emailed. Emails never name a spot, a nickname or a message.",
       "blocksTitle": "Blocked members",
-      "blocksLead": "Blocked members and you can't see each other anywhere. Unblock to lift it.",
+      "blocksLead": "Blocked members and you can't see each other in any of Codeqlick's 18+ apps. Unblocking lifts it in all three.",
       "blocksEmpty": "You haven't blocked anyone.",
       "blockedOn": "blocked on {date}",
       "unblock": "Unblock",
@@ -5400,7 +5459,9 @@
       "languageTitle": "Language",
       "languageLead": "The language of Cruising's emails and of the notifications on your devices. Emails from the rest of Codeqlick come in English when Spanish isn't chosen.",
       "languageLabel": "Language of emails and notifications",
-      "languageInvalid": "Choose a language from the list."
+      "languageInvalid": "Choose a language from the list.",
+      "blockedOnIn": "blocked in {app} on {date}",
+      "blockOtherApp": "A member of another 18+ app"
     },
     "presence": {
       "title": "Here now",
@@ -5488,11 +5549,11 @@
     },
     "verification": {
       "title": "Verification",
-      "lead": "Optional: get the Verified badge, so other members know your profile is yours and that you are an adult. You send one photo of yourself, once.",
-      "step1": "A paper with your nickname, \"Cruising\" and today's date",
+      "lead": "Optional: get the Verified badge, so other members know your profile is yours and that you are an adult. You send one photo of yourself, once, and it counts for all of Codeqlick's 18+ apps (Cruising, Swipe and Videochat).",
+      "step1": "A paper with your nickname, \"Codeqlick\" and today's date",
       "step2": "You holding it, your face visible",
       "step3": "Well lit and sharp",
-      "privacy": "Only the team sees this photo. It is deleted as soon as it is reviewed; only the decision is kept. We don't ask for an identity document, and the badge doesn't mean one was checked.",
+      "privacy": "Only the team sees this photo. While the verification stands we keep it privately; it is deleted if the verification is withdrawn or lost, if you replace it, or if you delete your account. We don't ask for an identity document, and the badge doesn't mean one was checked.",
       "fileLabel": "Your verification photo",
       "preview": "Preview of your verification photo",
       "send": "Send for review",
@@ -5500,7 +5561,7 @@
       "sending": "Sending…",
       "sent": "Sent. The team will review it and we will email you.",
       "pending": "Your photo is waiting for the team's review. We will email you when it is done.",
-      "approved": "The team approved your photo: your profile shows the Verified badge. If you change your nickname the badge is removed and you need to verify again.",
+      "approved": "The team approved your photo: your profile shows the Verified badge in all of Codeqlick's 18+ apps. If the name on your paper stops being one of your names in these apps, for example when you change your nickname, the badge is removed and you need to verify again.",
       "rejected": "The team couldn't approve your photo.",
       "rejectedNote": "Reason: {note}",
       "errors": {
@@ -8065,6 +8126,121 @@
       "emptyBody": "They show up here when a client takes the plan or you mark it as included.",
       "ticketIncluded": "Change included in the plan",
       "ticketOutside": "Outside the plan: quote it"
+    }
+  },
+  "AdminAdult": {
+    "title": "Across the 18+ apps",
+    "lead": "Cruising, Swipe and Videochat on one account: shared suspensions, verification and history.",
+    "back": "Back",
+    "done": "Done.",
+    "required": "Required.",
+    "notFound": "This person hasn't entered any of the three 18+ apps.",
+    "openPage": "Open the page across the 18+ apps",
+    "alsoReported": "Also reported in {apps} ({count} open)",
+    "appliesInAll": "applies in the three 18+ apps",
+    "categories": {
+      "MINOR": "Minor",
+      "NON_CONSENSUAL": "Non-consensual content",
+      "ILLEGAL": "Illegal content",
+      "HARASSMENT": "Harassment",
+      "HATE": "Hate or discrimination",
+      "SPAM": "Spam or scam",
+      "STOLEN": "Stolen pictures or impersonation",
+      "DANGER": "Danger",
+      "WRONG_INFO": "Wrong information",
+      "OTHER": "Other"
+    },
+    "durations": {
+      "24h": "24 hours",
+      "7d": "7 days",
+      "30d": "30 days",
+      "permanent": "Permanent"
+    },
+    "queue": {
+      "title": "Verification (shared)",
+      "lead": "One queue for Cruising, Swipe and Videochat: deciding here decides for the three apps. The paper must show the person's name in the app they sent it from, \"Codeqlick\" and the date.",
+      "empty": "Nothing waiting.",
+      "alt": "Verification photo",
+      "sentFrom": "Sent from {app}.",
+      "check": "The paper should read “{name}”, “Codeqlick” and the date.",
+      "names": "Names in the apps: {names}",
+      "note": "Note for the person (optional)",
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "review": {
+      "title": "Review for all 18+ apps",
+      "lead": "Suspensions made before categories existed, whose report was for a minor, non-consent or illegal content. Share one to apply it in the three apps, or leave it in its app.",
+      "where": "In {app}",
+      "report": "Report: {reason}",
+      "share": "Share in the three apps",
+      "keep": "Leave in its app"
+    },
+    "panel": {
+      "title": "Across the 18+ apps",
+      "lead": "What the person did in each app, reports, suspensions and the one verification. Only admins see this.",
+      "entered": "Entered on {date}",
+      "notEntered": "Has not entered",
+      "nameHere": "Name here: {name}",
+      "received": "Reports received: {open} open · {actioned} actioned · {dismissed} dismissed",
+      "made": "Reports made: {count}",
+      "suspended": "Suspended",
+      "shared": "Shared",
+      "since": "since {date}",
+      "until": "until {date}",
+      "blockedBy": "Blocked by {count, plural, one {# person} other {# people}}",
+      "sharedTitle": "Shared suspensions",
+      "noShared": "None.",
+      "active": "Active",
+      "lifted": "Lifted",
+      "from": "from {app}",
+      "by": "by {name}",
+      "liftedOn": "lifted on {date} by {name}",
+      "verificationTitle": "Verification",
+      "noVerification": "No verification.",
+      "verifiedName": "name on the paper: {name}",
+      "sent": "sent {date}",
+      "decided": "decided {date}",
+      "verificationStatus": {
+        "NONE": "None",
+        "PENDING": "Pending",
+        "APPROVED": "Approved",
+        "REJECTED": "Rejected"
+      }
+    },
+    "actions": {
+      "title": "Actions for the three apps"
+    },
+    "suspend": {
+      "title": "Suspend in the three apps",
+      "lead": "Serious categories only: the suspension applies in Cruising, Swipe and Videochat with the same end date, ends what the person is doing live and withdraws their verification. For other reasons, suspend in the app.",
+      "perAppLead": "A minor, non-consensual or illegal category applies in the three 18+ apps; the others only here.",
+      "category": "Category",
+      "sourceApp": "App where it started",
+      "duration": "Duration",
+      "reason": "Reason (the person receives it)",
+      "submit": "Suspend in the three apps"
+    },
+    "lift": {
+      "title": "Lift the shared suspension",
+      "lead": "It is lifted in the three apps and logged with your reason.",
+      "reason": "Reason",
+      "submit": "Lift in the three apps"
+    },
+    "withdraw": {
+      "title": "Withdraw the verification",
+      "lead": "Withdrawn in the three apps: the photo is deleted and the person is emailed.",
+      "reason": "Reason (optional)",
+      "submit": "Withdraw in the three apps"
+    },
+    "bannedEmail": {
+      "title": "Delete a banned email",
+      "lead": "After an accepted appeal by email: deletes the keyed hash kept after a serious suspension, so that address can enter the 18+ apps again. The action is logged.",
+      "email": "Email address",
+      "submit": "Delete",
+      "invalid": "Enter a valid email address.",
+      "notFound": "No banned email matches.",
+      "done": "Deleted."
     }
   },
   "AdminOverview": {

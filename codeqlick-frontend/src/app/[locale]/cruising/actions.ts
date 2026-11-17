@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { cruisingLocaleOrDefault } from '@/i18n/locale';
 import { routing, type AppLocale } from '@/i18n/routing';
+import { entryRefusal } from '@/lib/adult-entry';
+import { unblockAdult, uploadAdultVerification } from '@/lib/api/adult';
 import { isApiError } from '@/lib/api/errors';
 import {
   blockCruisingConversation,
@@ -25,12 +27,10 @@ import {
   setCruisingFavorite,
   setCruisingReviewHelpful,
   subscribeCruisingPush,
-  unblockCruisingMember,
   updateCruisingMedia,
   unsubscribeCruisingPush,
   updateCruisingProfile,
   updateCruisingSpot,
-  uploadCruisingVerification,
   type CruisingMessage,
 } from '@/lib/api/cruising';
 import { COMMUNITY_REPORT_REASONS } from '@/lib/cruising-community';
@@ -99,7 +99,7 @@ export async function onboardAction(_previous: FormState, formData: FormData): P
     });
   } catch (error) {
     const status = isApiError(error) ? error.status : 0;
-    if (status === 403) return { status: 'error', message: t('underage'), values };
+    if (status === 403) return { status: 'error', message: entryRefusal(error, t), values };
     if (status === 409) return { status: 'error', message: t('rulesChanged'), values };
     return { status: 'error', message: t('error'), values };
   }
@@ -545,14 +545,15 @@ export async function blockMemberAction(
 /** Lifts one of my blocks. */
 export async function unblockAction(
   locale: AppLocale,
-  nickname: string,
+  ref: string,
   _previous: FormState,
   _formData: FormData,
 ): Promise<FormState> {
   const t = await getTranslations({ locale, namespace: 'Cruising.me' });
-  if (!isNickname(nickname)) return { status: 'error', message: t('error') };
+  if (!ref || ref.length > 200) return { status: 'error', message: t('error') };
   try {
-    await unblockCruisingMember(nickname);
+    // Lifts the block in the three 18+ apps (DELETE /adult/blocks/:ref).
+    await unblockAdult(ref);
   } catch {
     return { status: 'error', message: t('error') };
   }
@@ -627,7 +628,7 @@ export async function blockConversationAction(
 
 export type MediaActionResult = { ok: true } | { ok: false; message: string };
 
-/** Sends my verification photo (POST /cruising/verification): the team reviews it, once. */
+/** Sends my verification photo (POST /adult/verification?app=CRUISING): one for the three 18+ apps. */
 export async function uploadVerificationAction(
   locale: AppLocale,
   formData: FormData,
@@ -637,7 +638,7 @@ export async function uploadVerificationAction(
   if (!(file instanceof File) || file.size === 0)
     return { ok: false, message: t('errors.invalid') };
   try {
-    await uploadCruisingVerification(file);
+    await uploadAdultVerification('CRUISING', file);
   } catch (error) {
     const status = isApiError(error) ? error.status : 0;
     if (status === 400) return { ok: false, message: t('errors.invalid') };

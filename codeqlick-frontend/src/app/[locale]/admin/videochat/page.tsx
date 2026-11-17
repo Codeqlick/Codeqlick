@@ -1,6 +1,9 @@
 import { buttonClassName } from '@/components/ui/buttonStyles';
 import { getTranslations } from 'next-intl/server';
-import { ActionForm, FormInput, FormSelect, FormTextarea } from '@/components/app/ActionForm';
+import { AdultVerificationQueue } from '@/components/adult/AdultVerificationQueue';
+import { AlsoReported } from '@/components/adult/AlsoReported';
+import { ReviewSuspensions } from '@/components/adult/ReviewSuspensions';
+import { ActionForm, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { Badge } from '@/components/ui/Badge';
@@ -13,7 +16,6 @@ import {
   listVideochatAppeals,
   listVideochatReports,
   listVideochatSuspensions,
-  listVideochatVerifications,
   SUSPENSION_DURATIONS,
   type ReportStatus,
 } from '@/lib/api/videochat';
@@ -24,11 +26,9 @@ import {
   liftSuspensionAction,
   resolveAppealAction,
   suspendReportAction,
-  verificationAction,
 } from './actions';
 import { ModerationKeys } from './ModerationKeys';
 import moderation from './moderation.module.css';
-import swipe from '../swipe/swipe-admin.module.css';
 
 const BULK_FORM = 'bulk-reports';
 
@@ -46,12 +46,11 @@ export default async function AdminVideochatPage({ params, searchParams }: PageP
   const th = await getTranslations({ locale, namespace: 'AdminVideochat.personHistory' });
   const requested = firstParam((await searchParams).status);
   const status = STATUSES.find((value) => value === requested) ?? 'OPEN';
-  const [stats, reports, suspensions, appeals, verifications] = await Promise.all([
+  const [stats, reports, suspensions, appeals] = await Promise.all([
     getVideochatStats(),
     listVideochatReports(status),
     listVideochatSuspensions(),
     listVideochatAppeals('OPEN'),
-    listVideochatVerifications(),
   ]);
   const durations = SUSPENSION_DURATIONS.map((value) => ({
     value,
@@ -190,7 +189,8 @@ export default async function AdminVideochatPage({ params, searchParams }: PageP
                         {t('recent', { count: report.reported.recentReports })}{' '}
                         {report.reported.suspendedAt ? (
                           <Badge tone="danger">{t('suspendedBadge')}</Badge>
-                        ) : null}
+                        ) : null}{' '}
+                        <AlsoReported data={report.reported.alsoReported} />
                       </p>
                       {report.details ? (
                         <p className={styles.prewrap}>
@@ -280,52 +280,9 @@ export default async function AdminVideochatPage({ params, searchParams }: PageP
         )}
       </section>
 
-      <section className={styles.panel}>
-        <h2 className={styles.panelTitle}>{t('verifications.title')}</h2>
-        <p className={styles.muted}>{t('verifications.lead')}</p>
-        {verifications.items.length === 0 ? (
-          <p className={styles.muted}>{t('verifications.empty')}</p>
-        ) : (
-          verifications.items.map((item) => (
-            <article key={item.userId} className={swipe.item}>
-              {/* oxlint-disable-next-line nextjs/no-img-element -- private image through the BFF route */}
-              <img
-                src={`/${locale}/admin/videochat/verification/${item.userId}`}
-                alt={t('verifications.alt')}
-                className={swipe.image}
-              />
-              <div className={swipe.body}>
-                <p>
-                  <Link href={userLink(item.userId)}>
-                    <strong>{item.nickname ?? item.name}</strong>
-                  </Link>{' '}
-                  · {item.name} · {item.email}
-                </p>
-                {item.sentAt ? (
-                  <p className={styles.muted}>{formatDateTime(item.sentAt, locale)}</p>
-                ) : null}
-                <p className={styles.muted}>
-                  {t('verifications.check', { nickname: item.nickname ?? '' })}
-                </p>
-                <ActionForm
-                  action={verificationAction.bind(null, locale, item.userId)}
-                  className={styles.form}
-                >
-                  <FormInput name="note" label={t('verifications.note')} maxLength={300} />
-                  <div className={styles.actions}>
-                    <SubmitButton size="sm" name="decision" value="approve">
-                      {t('verifications.approve')}
-                    </SubmitButton>
-                    <SubmitButton size="sm" variant="outline" name="decision" value="reject">
-                      {t('verifications.reject')}
-                    </SubmitButton>
-                  </div>
-                </ActionForm>
-              </div>
-            </article>
-          ))
-        )}
-      </section>
+      <AdultVerificationQueue locale={locale} />
+
+      <ReviewSuspensions locale={locale} />
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t('appealsTitle')}</h2>

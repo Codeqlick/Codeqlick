@@ -1,6 +1,6 @@
 import { fetchSwipeImage } from '@/lib/api/swipe';
 
-/** My verification photo while it waits for review (the API checks who asks; BFF). */
+/** My own verification photo, the one shared by the 18+ apps (the API checks who asks; BFF). */
 export async function GET() {
-  return fetchSwipeImage('/videochat/verification/file');
+  return fetchSwipeImage('/adult/verification/file');
 }
