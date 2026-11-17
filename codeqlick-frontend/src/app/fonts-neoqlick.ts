@@ -6,12 +6,6 @@ import localFont from 'next/font/local';
  * and code fonts. Space Grotesk is not loaded on Neoqlick's hosts: this module is only imported
  * for them (`fontVariablesFor`).
  */
-const display = localFont({
-  src: '../assets/fonts/montserrat-latin-wght.woff2',
-  weight: '100 900',
-  variable: '--font-display-neoqlick',
-  display: 'swap',
-});
 const body = localFont({
   src: '../assets/fonts/ibm-plex-sans-latin-wght.woff2',
   weight: '100 700',
@@ -25,4 +19,4 @@ const mono = localFont({
   display: 'swap',
 });
 
-export const neoqlickFontVariables = `${display.variable} ${body.variable} ${mono.variable}`;
+export const neoqlickFontVariables = `${body.variable} ${mono.variable}`;
