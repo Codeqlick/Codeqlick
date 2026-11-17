@@ -15,6 +15,7 @@ import { getCurrentUser, safeNextPath } from '@/lib/auth/session';
 import { homeAfterSignIn, onAccountHost, shortNext } from '@/lib/webapp-request';
 import { siteLocale } from '@/i18n/routing';
 import { env } from '@/lib/env';
+import { turnstileSiteKey } from '@/lib/turnstile';
 import { requestBrand } from '@/lib/request-brand';
 import { firstParam } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
@@ -53,6 +54,10 @@ export default async function LoginPage({ params, searchParams }: PageProps) {
   const query = await searchParams;
   const accountHost = await onAccountHost();
   const neoqlick = (await requestBrand()) === 'neoqlick';
+  const siteKey = turnstileSiteKey(neoqlick ? 'neoqlick' : 'codeqlick', {
+    codeqlick: env.TURNSTILE_SITE_KEY,
+    neoqlick: env.TURNSTILE_SITE_KEY_NEOQLICK,
+  });
   if (user) {
     redirect(
       (await shortNext(safeNextPath(firstParam(query.next), locale), locale)) ??
@@ -92,9 +97,7 @@ export default async function LoginPage({ params, searchParams }: PageProps) {
               autoComplete="current-password"
               required
             />
-            {env.TURNSTILE_SITE_KEY ? (
-              <Turnstile siteKey={env.TURNSTILE_SITE_KEY} locale={locale} />
-            ) : null}
+            {siteKey ? <Turnstile siteKey={siteKey} locale={locale} /> : null}
             <SubmitButton block pendingLabel={t('submitting')}>
               {t('submit')}
             </SubmitButton>

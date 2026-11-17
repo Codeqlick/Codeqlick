@@ -132,6 +132,8 @@ services:
       NEOQLICK_VAPID_SUBJECT: ${NEOQLICK_VAPID_SUBJECT:-mailto:hello@neoqlick.com}
       # Cloudflare Turnstile on sign-up and sign-in (architecture 4.3); off while empty.
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      # Neoqlick's widget is in its own Cloudflare account: its own secret (off for Neoqlick while empty).
+      TURNSTILE_SECRET_KEY_NEOQLICK: ${TURNSTILE_SECRET_KEY_NEOQLICK:-}
       PAGESPEED_API_KEY: ${PAGESPEED_API_KEY:-}
       # IndexNow submissions for posts and case studies (architecture 4.1); off unless true.
       INDEXNOW_ENABLED: ${INDEXNOW_ENABLED:-false}
@@ -213,6 +215,7 @@ services:
       NEOQLICK_LEGAL_OWNER_ADDRESS: ${NEOQLICK_LEGAL_OWNER_ADDRESS:-}
       # Cloudflare Turnstile's public site key: the sign-in and sign-up widget; off while empty.
       TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      TURNSTILE_SITE_KEY_NEOQLICK: ${TURNSTILE_SITE_KEY_NEOQLICK:-}
       # The strict Content Security Policy: report-only while false, enforced when true
       # (architecture 6.4, decision 109; deploy/README.md, "Security headers").
       CSP_ENFORCE: ${CSP_ENFORCE:-false}

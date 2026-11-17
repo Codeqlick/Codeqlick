@@ -91,7 +91,7 @@ export class AuthController {
     @Req() request: AppRequest,
   ): Promise<LoginResult> {
     const client = clientInfo(request);
-    await this.captcha.verify(body.captcha, client.ip);
+    await this.captcha.verify(body.captcha, client.ip, realm);
     return this.auth.login(realm, body.email, body.password, client);
   }
 
@@ -116,7 +116,7 @@ export class AuthController {
     @RequestRealm() realm: RealmName,
     @Req() request: AppRequest,
   ): Promise<void> {
-    await this.captcha.verify(body.captcha, clientInfo(request).ip);
+    await this.captcha.verify(body.captcha, clientInfo(request).ip, realm);
     await this.auth.register(realm, body);
   }
 

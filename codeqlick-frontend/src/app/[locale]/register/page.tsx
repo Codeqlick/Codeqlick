@@ -15,6 +15,7 @@ import { getCurrentUser, safeNextPath } from '@/lib/auth/session';
 import { WEBAPPS } from '@/lib/webapps';
 import { homeAfterSignIn } from '@/lib/webapp-request';
 import { env } from '@/lib/env';
+import { turnstileSiteKey } from '@/lib/turnstile';
 import { portalUrl } from '@/lib/portal-links';
 import { requestBrand } from '@/lib/request-brand';
 import { firstParam } from '@/lib/format';
@@ -61,6 +62,10 @@ export default async function RegisterPage({ params, searchParams }: PageProps) 
   if (user) redirect(next ?? (await homeAfterSignIn(locale, user.role)));
   const app = WEBAPPS.find((name) => name === firstParam(query.app));
   const neoqlick = (await requestBrand()) === 'neoqlick';
+  const siteKey = turnstileSiteKey(neoqlick ? 'neoqlick' : 'codeqlick', {
+    codeqlick: env.TURNSTILE_SITE_KEY,
+    neoqlick: env.TURNSTILE_SITE_KEY_NEOQLICK,
+  });
   const sent = firstParam(query.sent);
   const token = firstParam(query.invitation);
   const invited = token ? await signupInvitation(token).catch(() => null) : null;
@@ -172,9 +177,7 @@ export default async function RegisterPage({ params, searchParams }: PageProps) 
                     autoComplete="off"
                   />
                 </div>
-                {env.TURNSTILE_SITE_KEY && !invited ? (
-                  <Turnstile siteKey={env.TURNSTILE_SITE_KEY} locale={locale} />
-                ) : null}
+                {siteKey && !invited ? <Turnstile siteKey={siteKey} locale={locale} /> : null}
                 <SubmitButton block pendingLabel={t('submitting')}>
                   {t('submit')}
                 </SubmitButton>

@@ -493,6 +493,15 @@ export class AppConfigService {
     return this.get('TURNSTILE_SECRET_KEY');
   }
 
+  /**
+   * The Turnstile secret of a realm (architecture 4.18): Neoqlick has a widget in its own
+   * Cloudflare account, so it never falls back to Codeqlick's secret (every token would fail).
+   * Undefined: no check for that realm.
+   */
+  turnstileSecretFor(realm: RealmName): string | undefined {
+    return realm === 'NEOQLICK' ? this.get('TURNSTILE_SECRET_KEY_NEOQLICK') : this.turnstileSecret;
+  }
+
   /** Google PageSpeed Insights' key for the website check (architecture 4.12); undefined: off. */
   get pageSpeedApiKey(): string | undefined {
     return this.get('PAGESPEED_API_KEY');

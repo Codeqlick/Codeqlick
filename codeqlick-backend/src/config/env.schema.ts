@@ -257,6 +257,8 @@ export const envSchema = z.object({
   NEOQLICK_UMAMI_WEBSITE_ID: optionalString,
   /** Cloudflare Turnstile's secret key: sign-up and sign-in need a valid token; unset: off. */
   TURNSTILE_SECRET_KEY: optionalString,
+  /** Neoqlick's own Turnstile secret (its own Cloudflare account); unset: off for NEOQLICK. */
+  TURNSTILE_SECRET_KEY_NEOQLICK: optionalString,
   PAGESPEED_API_KEY: optionalString,
   /** Tells search engines about changed posts and case studies (architecture 4.1, IndexNow). */
   INDEXNOW_ENABLED: booleanString,
