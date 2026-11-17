@@ -21,6 +21,9 @@ import { PasskeyRepository } from './passkeys.repository.js';
 import { PasskeyService } from './passkeys.service.js';
 import { PasswordService } from './password.service.js';
 import { TokenCleanupService } from './token-cleanup.service.js';
+import { SsoController } from './sso.controller.js';
+import { SsoRepository } from './sso.repository.js';
+import { SsoService } from './sso.service.js';
 import { UsernameService } from './username.service.js';
 
 @Module({
@@ -39,6 +42,7 @@ import { UsernameService } from './username.service.js';
   controllers: [
     AuthController,
     PasskeysController,
+    SsoController,
     AccountController,
     AvatarsController,
     EmailPreferencesController,
@@ -48,6 +52,8 @@ import { UsernameService } from './username.service.js';
     AuthRepository,
     PasskeyService,
     PasskeyRepository,
+    SsoService,
+    SsoRepository,
     CaptchaService,
     AccountService,
     AccountRepository,

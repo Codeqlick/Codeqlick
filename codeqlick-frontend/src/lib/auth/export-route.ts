@@ -1,20 +1,20 @@
 import 'server-only';
 import { hasLocale } from 'next-intl';
-import { SITE_LOCALES } from '@/i18n/routing';
+import { routing } from '@/i18n/routing';
 import { exportMyData } from '@/lib/api/auth';
 import { isApiError } from '@/lib/api/errors';
 import { redirectTo } from '@/lib/redirect';
 
 /**
- * "Download my data" (GDPR): the API's JSON export of the signed-in person, as a file. Served
- * under /portal and /admin so the proxy has refreshed the session first.
+ * "Download my data" (GDPR): the API's JSON export of the signed-in person, as a file. Served by
+ * the account site (decision 108), whose proxy rule refreshes the session first.
  */
 export async function exportMyDataRoute(
   _request: Request,
   { params }: { params: Promise<{ locale: string }> },
 ): Promise<Response> {
   const { locale } = await params;
-  if (!hasLocale(SITE_LOCALES, locale)) return new Response('Not found', { status: 404 });
+  if (!hasLocale(routing.locales, locale)) return new Response('Not found', { status: 404 });
   let json: string;
   try {
     json = await exportMyData();

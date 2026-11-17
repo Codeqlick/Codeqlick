@@ -11,7 +11,8 @@ import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { signupInvitation } from '@/lib/api/auth';
-import { getCurrentUser } from '@/lib/auth/session';
+import { getCurrentUser, safeNextPath } from '@/lib/auth/session';
+import { WEBAPPS } from '@/lib/webapps';
 import { homeAfterSignIn } from '@/lib/webapp-request';
 import { env } from '@/lib/env';
 import { firstParam } from '@/lib/format';
@@ -24,6 +25,9 @@ type PageProps = {
     email?: string | string[];
     invitation?: string | string[];
     sent?: string | string[];
+    /** Single sign-on (decision 108): the authorize address to go back to, and the app. */
+    next?: string | string[];
+    app?: string | string[];
   }>;
 };
 
@@ -50,8 +54,10 @@ export default async function RegisterPage({ params, searchParams }: PageProps) 
   const tc = await getTranslations({ locale, namespace: 'Common' });
 
   const user = await getCurrentUser();
-  if (user) redirect(await homeAfterSignIn(locale, user.role));
   const query = await searchParams;
+  const next = safeNextPath(firstParam(query.next), locale);
+  if (user) redirect(next ?? (await homeAfterSignIn(locale, user.role)));
+  const app = WEBAPPS.find((name) => name === firstParam(query.app));
   const sent = firstParam(query.sent);
   const token = firstParam(query.invitation);
   const invited = token ? await signupInvitation(token).catch(() => null) : null;
@@ -73,6 +79,8 @@ export default async function RegisterPage({ params, searchParams }: PageProps) 
               {token && !invited ? <Alert tone="error">{t('invitationExpired')}</Alert> : null}
               <ActionForm action={registerAction} className={styles.form}>
                 <input type="hidden" name="locale" value={locale} />
+                {next ? <input type="hidden" name="next" value={next} /> : null}
+                {app ? <input type="hidden" name="app" value={app} /> : null}
                 {invited ? <input type="hidden" name="invitation" value={token} /> : null}
                 <FormInput
                   name="name"
@@ -150,7 +158,10 @@ export default async function RegisterPage({ params, searchParams }: PageProps) 
             </>
           )}
           <p>
-            {t('haveAccount')} <Link href="/login">{t('signIn')}</Link>
+            {t('haveAccount')}{' '}
+            <Link href={next ? `/login?next=${encodeURIComponent(next)}` : '/login'}>
+              {t('signIn')}
+            </Link>
           </p>
         </Card>
         <Link href="/" className={styles.back}>

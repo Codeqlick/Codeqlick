@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Publishes <app>.codeqlick.com for one of Codeqlick's own web apps (architecture 6.3): the DNS
-# record, the Nginx site and its Let's Encrypt certificate. Safe to run again: each step checks
+# Publishes <app>.codeqlick.com for one of Codeqlick's own web apps (architecture 6.3), or the
+# account site account.codeqlick.com (`account`, architecture 6.5, decision 108): the DNS record,
+# the Nginx site and its Let's Encrypt certificate. Safe to run again: each step checks
 # first, and it never changes a DNS record or an Nginx site that already exists.
 #
 #   sudo codeqlick-webapp-site <app>
@@ -104,6 +105,23 @@ else
     }
 "
   fi
+  # The account site has no WebSocket: the website serves every address.
+  ws="
+    location = /ws {
+        proxy_pass http://127.0.0.1:$API_PORT/v1/$APP/ws;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \$$upgrade;
+        proxy_set_header Host \$host;
+        proxy_set_header Origin \$http_origin;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+    }
+"
+  [ "$APP" = account ] && ws=""
   # HTTP only on purpose: certbot adds the TLS listener and the redirect.
   cat >"$AVAILABLE" <<CONF
 # $HOST: one of Codeqlick's web apps (architecture 6.3), written by codeqlick-webapp-site.
@@ -121,21 +139,7 @@ server {
     http2 on;
 
     client_max_body_size 1m;
-$extra
-    location = /ws {
-        proxy_pass http://127.0.0.1:$API_PORT/v1/$APP/ws;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection \$$upgrade;
-        proxy_set_header Host \$host;
-        proxy_set_header Origin \$http_origin;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_read_timeout 120s;
-        proxy_send_timeout 120s;
-    }
-
+$extra$ws
     location / {
         proxy_pass http://127.0.0.1:$WEB_PORT;
         proxy_http_version 1.1;

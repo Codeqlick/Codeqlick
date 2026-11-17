@@ -9,12 +9,13 @@ import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { firstParam } from '@/lib/format';
+import { WEBAPPS } from '@/lib/webapps';
 import { pageMetadata } from '@/lib/seo';
 import { confirmSignupAction } from '../actions';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ token?: string | string[] }>;
+  searchParams: Promise<{ token?: string | string[]; app?: string | string[] }>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -36,7 +37,9 @@ export default async function ConfirmSignupPage({ params, searchParams }: PagePr
   const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Register' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
-  const token = firstParam((await searchParams).token);
+  const query = await searchParams;
+  const token = firstParam(query.token);
+  const app = WEBAPPS.find((name) => name === firstParam(query.app));
 
   return (
     <main className={styles.login}>
@@ -50,6 +53,7 @@ export default async function ConfirmSignupPage({ params, searchParams }: PagePr
               <ActionForm action={confirmSignupAction} className={styles.form}>
                 <input type="hidden" name="locale" value={locale} />
                 <input type="hidden" name="token" value={token} />
+                {app ? <input type="hidden" name="app" value={app} /> : null}
                 <SubmitButton block pendingLabel={t('confirming')}>
                   {t('confirm')}
                 </SubmitButton>

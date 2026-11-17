@@ -154,6 +154,28 @@ the certificate once the DNS answers. A failure there never fails the release; t
 again. Run `setup-webapps.sh` again after changing `webapp-site.sh`, since the installed copy is
 root's. An app that needs its own settings (keys, secrets) still gets them in `.env`.
 
+### Account site (account.codeqlick.com, decision 108)
+
+Signing in, signing up and every account setting live on `account.codeqlick.com`; every other
+host gets its session from it by single sign-on (architecture 4.3 and 6.5). It is published by the
+same helper as the apps' subdomains (`codeqlick-webapp-site account`: DNS record, an Nginx site
+that sends every address to the website, without the apps' `/ws`, and the certificate), and
+`deploy/deploy.sh` runs it after each release while the site has no certificate. **One manual step
+when the release that brings it is merged** (it reinstalls the helper, whose installed copy is
+root's, and publishes the site at once instead of waiting for the next release):
+
+```bash
+cd /srv/codeqlick
+git pull
+sudo ./deploy/setup-account-site.sh
+```
+
+It is idempotent: it keeps an existing Nginx site (with a dated copy), checks `nginx -t`, and asks
+certbot only when there is no certificate yet. Until the site answers, signing in anywhere sends
+people to a host that isn't there, so run it right after the deploy. No variable is needed: the
+API's `ACCOUNT_URL` defaults to `SITE_URL` with `account.`, and the website derives the account host
+from the request's host. Staging has no account host and sets `ACCOUNT_SSO=false` for its website.
+
 ## Updating
 
 ```bash

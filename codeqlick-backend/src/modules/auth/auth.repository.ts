@@ -10,6 +10,9 @@ export interface CreateSessionData {
   expiresAt: Date;
   userAgent: string | null;
   ip: string | null;
+  /** Single sign-on (decision 108): the client host and the account session it came from. */
+  client?: string | null;
+  parentFamilyId?: string | null;
 }
 
 export type SessionWithUser = Session & { user: User };
@@ -267,19 +270,45 @@ export class AuthRepository {
     });
   }
 
-  /** Signs out one of the user's sessions. Returns false when it isn't theirs or already ended. */
+  /**
+   * Signs out one of the user's sessions and the sessions single sign-on made from it (decision
+   * 108). Returns false when it isn't theirs or already ended.
+   */
   async revokeUserFamily(userId: string, familyId: string): Promise<boolean> {
     const result = await this.prisma.session.updateMany({
-      where: { userId, familyId, revokedAt: null },
+      where: { userId, revokedAt: null, OR: [{ familyId }, { parentFamilyId: familyId }] },
       data: { revokedAt: new Date() },
     });
     return result.count > 0;
   }
 
-  /** Signs out every session of the user except the family `keepFamilyId`. */
+  /** Signs out every session of the user. */
+  async revokeAllFamilies(userId: string): Promise<void> {
+    await this.prisma.session.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  /** The live row of a session family (not revoked, not expired), or null. */
+  findLiveFamily(familyId: string, now: Date): Promise<Session | null> {
+    return this.prisma.session.findFirst({
+      where: { familyId, revokedAt: null, expiresAt: { gt: now } },
+    });
+  }
+
+  /**
+   * Signs out every session of the user except the family `keepFamilyId` and the sessions single
+   * sign-on made from it (this browser's apps).
+   */
   async revokeOtherFamilies(userId: string, keepFamilyId: string): Promise<void> {
     await this.prisma.session.updateMany({
-      where: { userId, revokedAt: null, familyId: { not: keepFamilyId } },
+      where: {
+        userId,
+        revokedAt: null,
+        familyId: { not: keepFamilyId },
+        OR: [{ parentFamilyId: null }, { parentFamilyId: { not: keepFamilyId } }],
+      },
       data: { revokedAt: new Date() },
     });
   }

@@ -9,6 +9,7 @@ import { isApiError } from '@/lib/api/errors';
 import { formatBytes, usageWarnings } from '@/lib/cloud';
 import { removeMemberAction } from '../../actions';
 import styles from '../../cloud.module.css';
+import { accountUrl } from '@/lib/account-links';
 
 type LayoutProps = { children: ReactNode; params: Promise<{ locale: string; team: string }> };
 
@@ -41,7 +42,7 @@ export default async function CloudTeamLayout({ children, params }: LayoutProps)
           </h2>
           <Alert tone="info">{t('twoFactor.blockedBody')}</Alert>
           <div className={styles.actions}>
-            <Link href="/portal/account">{t('twoFactor.accountLink')}</Link>
+            <a href={accountUrl(locale, '/security')}>{t('twoFactor.accountLink')}</a>
             <form action={removeMemberAction}>
               <input type="hidden" name="locale" value={locale} />
               <input type="hidden" name="team" value={team.slug} />

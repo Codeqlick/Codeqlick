@@ -49,6 +49,50 @@ describe('proxy: languages per host (decision 103)', () => {
   });
 });
 
+describe('proxy: single sign-on through the account host (decision 108)', () => {
+  it('starts the flow from a client host’s sign-in page, with a host-only cookie', async () => {
+    const response = await visit('cruising.codeqlick.com', '/fr/login?next=/fr/me');
+    const location = new URL(response.headers.get('location')!);
+    expect(location.origin).toBe('http://account.codeqlick.com');
+    expect(location.pathname).toBe('/fr/authorize');
+    expect(location.searchParams.get('client')).toBe('cruising');
+    expect(location.searchParams.get('code_challenge_method')).toBe('S256');
+    const cookie = response.headers.get('set-cookie') ?? '';
+    expect(cookie).toMatch(/^cq_sso_[A-Za-z0-9_-]{16}=/);
+    expect(cookie).toMatch(/HttpOnly/i);
+    expect(cookie).toMatch(/SameSite=lax/i);
+    expect(cookie).not.toMatch(/Domain=/i);
+  });
+
+  it('answers a Link’s prefetch of the sign-in page with nothing, so it never loops', async () => {
+    const response = await proxy(
+      new NextRequest('http://videochat.codeqlick.com/en/login?next=%2Fen%2Froom', {
+        headers: { host: 'videochat.codeqlick.com', rsc: '1', 'next-router-prefetch': '1' },
+      }),
+    );
+    expect(response.status).toBe(204);
+    expect(response.headers.get('location')).toBeNull();
+    expect(response.headers.get('set-cookie')).toBeNull();
+  });
+
+  it('sends the pages reached from emails to the account host, query kept', async () => {
+    const response = await visit('codeqlick.com', '/es/reset-password?token=abc');
+    expect(response.headers.get('location')).toBe(
+      'http://account.codeqlick.com/es/reset-password?token=abc',
+    );
+  });
+
+  it('serves the account pages at short addresses on the account host, in six languages', async () => {
+    const response = await visit('account.codeqlick.com', '/de/privacy');
+    // Signed out: the account's own sign-in page, coming back here.
+    expect(response.headers.get('location')).toBe(
+      'http://account.codeqlick.com/de/login?next=%2Fde%2Faccount%2Fprivacy',
+    );
+    const login = await visit('account.codeqlick.com', '/pt/login');
+    expect(login.headers.get('location')).toBeNull();
+  });
+});
+
 describe('proxy: Content Security Policy (architecture 6.4)', () => {
   afterEach(() => vi.unstubAllEnvs());
 
@@ -101,6 +145,24 @@ describe('proxy: Content Security Policy (architecture 6.4)', () => {
     expect(policy).toContain('https://meetings.codeqlick.com');
     expect(response.headers.get('content-security-policy-report-only')).toBeNull();
     expect(forwarded(response)['x-nonce']).toBe(/'nonce-([^']+)'/.exec(policy)?.[1]);
+  });
+
+  it('covers the account host: its nonce, and forms that go on to every client host', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('CSP_ENFORCE', 'true');
+    const response = await page('account.codeqlick.com', '/fr/login');
+    const policy = response.headers.get('content-security-policy')!;
+    expect(forwarded(response)['x-nonce']).toBe(/'nonce-([^']+)'/.exec(policy)?.[1]);
+    const formAction = /form-action ([^;]+)/.exec(policy)?.[1] ?? '';
+    for (const origin of [
+      'https://codeqlick.com',
+      'https://account.codeqlick.com',
+      'https://cruising.codeqlick.com',
+    ]) {
+      expect(formAction).toContain(origin);
+    }
+    // No remote images on the account host (no Markdown, no ads there).
+    expect(/img-src ([^;]+)/.exec(policy)?.[1]).not.toContain('https:');
   });
 
   it('makes a new nonce for every response', async () => {

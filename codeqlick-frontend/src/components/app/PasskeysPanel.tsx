@@ -2,7 +2,7 @@ import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import type { SiteLocale } from '@/i18n/routing';
+import type { AppLocale } from '@/i18n/routing';
 import { listPasskeys } from '@/lib/api/auth';
 import {
   deletePasskeyAction,
@@ -18,7 +18,7 @@ import styles from './app.module.css';
 import own from './Passkeys.module.css';
 
 /** "Passkeys" in My account → Security (decision 104): the list, renaming, deleting, adding. */
-export async function PasskeysPanel({ locale }: { locale: SiteLocale }) {
+export async function PasskeysPanel({ locale }: { locale: AppLocale }) {
   const t = await getTranslations({ locale, namespace: 'Passkeys' });
   const ts = await getTranslations({ locale, namespace: 'Sessions' });
   const [{ items }, requestHeaders] = await Promise.all([listPasskeys(), headers()]);

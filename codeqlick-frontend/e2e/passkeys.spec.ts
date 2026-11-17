@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { adminHeaders, API_URL, runTag, signIn } from './helpers';
+import { accountUrl, adminHeaders, API_URL, runTag, signIn } from './helpers';
 
 // Chromium's virtual authenticator (DevTools protocol) stands in for Touch ID or a phone.
 test('a client adds a passkey in their account and signs in with it', async ({ page, request }) => {
@@ -29,8 +29,9 @@ test('a client adds a passkey in their account and signs in with it', async ({ p
   });
 
   try {
-    await signIn(page, client, '/es/portal/account');
-    await page.goto('/es/portal/account');
+    // Passkeys are added on the account site's security page (decision 108).
+    await signIn(page, client, '/es/portal');
+    await page.goto(accountUrl('/es/security'));
     const passkeys = page.getByRole('region', { name: 'Llaves de acceso' });
     await expect(passkeys.getByText('Aún no has añadido ninguna llave de acceso.')).toBeVisible();
 
@@ -44,9 +45,9 @@ test('a client adds a passkey in their account and signs in with it', async ({ p
     // Signed out, the passkey alone signs in: no password, no code. First from the email field's
     // suggestions (conditional UI), which the virtual authenticator accepts at once.
     await page.context().clearCookies();
-    await page.goto('/es/login?next=%2Fes%2Fportal%2Faccount');
+    await page.goto(accountUrl('/es/login?next=%2Fes%2Faccount%2Fsecurity'));
     // The Server Action redirects: a client-side navigation, so no new page load to wait for.
-    await expect(page).toHaveURL(/\/es\/portal\/account$/);
+    await expect(page).toHaveURL(/\/es\/security$/);
     await expect(passkeys.getByText(/usada por última vez/)).toBeVisible();
 
     // Then with the button, in a browser without those suggestions.
@@ -54,13 +55,13 @@ test('a client adds a passkey in their account and signs in with it', async ({ p
       PublicKeyCredential.isConditionalMediationAvailable = async () => false;
     });
     await page.context().clearCookies();
-    await page.goto('/es/login?next=%2Fes%2Fportal%2Faccount');
+    await page.goto(accountUrl('/es/login?next=%2Fes%2Faccount%2Fsecurity'));
     await expect(page.getByLabel('Correo electrónico')).toHaveAttribute(
       'autocomplete',
       'username webauthn',
     );
     await page.getByRole('button', { name: 'Entrar con una llave de acceso' }).click();
-    await expect(page).toHaveURL(/\/es\/portal\/account$/);
+    await expect(page).toHaveURL(/\/es\/security$/);
     await expect(passkeys.getByText('Portátil de pruebas', { exact: true })).toBeVisible();
   } finally {
     await request.patch(`${API_URL}/admin/users/${clientId}`, {

@@ -498,7 +498,12 @@ export type AdminSearch = {
 };
 
 /** `GET /auth/preferences`: the caller's email preferences. */
-export type Preferences = { weeklyDigest: boolean; monthlyReport: boolean };
+export type Preferences = {
+  weeklyDigest: boolean;
+  monthlyReport: boolean;
+  /** The language of the emails (read only: `PATCH /auth/me` changes it). */
+  locale?: 'en' | 'es';
+};
 
 /** Without `password`, the user is emailed a link to choose one. `locale`: language of their emails. */
 export type UserInput = {
@@ -639,6 +644,23 @@ export type ActiveSession = {
   ip: string | null;
   lastActiveAt: string;
   current: boolean;
+  /** Single sign-on (decision 108): the website (`site`) or app it belongs to; null on the account host. */
+  client: string | null;
+  /** The account session it came from. */
+  parentId: string | null;
+};
+
+/** An entry of the caller's own account activity (`GET /auth/activity`). */
+export type AccountActivity = {
+  action: string;
+  at: string;
+  details: Record<string, unknown> | null;
+};
+
+/** A part of the platform the caller uses (`GET /auth/apps`). */
+export type AccountApp = {
+  app: 'admin' | 'portal' | 'cloud' | 'meetings' | 'citas' | 'videochat' | 'swipe' | 'cruising';
+  count: number;
 };
 
 /** One of the account's passkeys (`GET /auth/passkeys`, decision 104). Never the key. */

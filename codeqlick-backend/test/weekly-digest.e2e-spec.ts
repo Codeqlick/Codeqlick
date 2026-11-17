@@ -151,7 +151,7 @@ describe('Weekly project summary (e2e)', () => {
     await request(server)
       .get('/v1/auth/preferences')
       .set(clientAuth)
-      .expect(200, { weeklyDigest: true, monthlyReport: true });
+      .expect(200, { weeklyDigest: true, monthlyReport: true, locale: 'es' });
     await request(server)
       .patch('/v1/auth/preferences')
       .set(clientAuth)

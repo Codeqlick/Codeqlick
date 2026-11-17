@@ -20,7 +20,7 @@ import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Public } from '../../common/decorators/public.decorator.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
-import { AccountService } from './account.service.js';
+import { AccountService, type AccountActivity, type AccountApp } from './account.service.js';
 import {
   changeEmailSchema,
   confirmEmailChangeSchema,
@@ -44,6 +44,20 @@ const EXPORT_LIMIT = { default: { limit: 3, ttl: 3_600_000 } };
 @Controller('auth')
 export class AccountController {
   constructor(private readonly account: AccountService) {}
+
+  /** The caller's recent account activity (the account site's security page, decision 108). */
+  @ApiBearerAuth()
+  @Get('activity')
+  activity(@CurrentUser() user: AuthUser): Promise<{ items: AccountActivity[] }> {
+    return this.account.ownActivity(user.id);
+  }
+
+  /** The parts of the platform the caller uses (the account site's "Your apps"). */
+  @ApiBearerAuth()
+  @Get('apps')
+  apps(@CurrentUser() user: AuthUser): Promise<{ items: AccountApp[] }> {
+    return this.account.apps(user);
+  }
 
   @ApiBearerAuth()
   @Patch('me')

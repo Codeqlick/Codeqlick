@@ -11,6 +11,8 @@ import {
   disableTwoFactor,
   enableTwoFactor,
   logout,
+  revokeAllSessions,
+  revokeDevice,
   revokeOtherSessions,
   revokeSession,
   startTwoFactorSetup,
@@ -203,6 +205,48 @@ export async function revokeOtherSessionsAction(
   return { status: 'success', message: t('signedOutOthers') };
 }
 
+/**
+ * "Sign out of this device everywhere" (decision 108): the account session of this browser and
+ * every app session it signed in; then this host's cookies go and the sign-in page shows.
+ */
+export async function revokeDeviceAction(
+  locale: AppLocale,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const { refreshToken } = await getTokens();
+  if (refreshToken) {
+    try {
+      await revokeDevice(refreshToken);
+    } catch (error) {
+      if (!(isApiError(error) && error.status === 401)) {
+        const tc = await getTranslations({ locale, namespace: 'Common' });
+        return { status: 'error', message: tc('genericError') };
+      }
+    }
+  }
+  await clearAuthCookies();
+  redirect(`/${locale}/login`);
+}
+
+/** "Sign out of all devices": every session of the account, this one too. */
+export async function revokeAllSessionsAction(
+  locale: AppLocale,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  try {
+    await revokeAllSessions();
+  } catch (error) {
+    if (!(isApiError(error) && error.status === 401)) {
+      const tc = await getTranslations({ locale, namespace: 'Common' });
+      return { status: 'error', message: tc('genericError') };
+    }
+  }
+  await clearAuthCookies();
+  redirect(`/${locale}/login`);
+}
+
 /** The caller's email preferences (clients: the weekly summary and the monthly website report). */
 export async function updatePreferencesAction(
   locale: AppLocale,
@@ -219,7 +263,7 @@ export async function updatePreferencesAction(
     const tc = await getTranslations({ locale, namespace: 'Common' });
     return { status: 'error', message: tc('genericError') };
   }
-  revalidatePath(`/${locale}/portal`, 'layout');
+  revalidatePath(`/${locale}`, 'layout');
   const tc = await getTranslations({ locale, namespace: 'Common' });
   return { status: 'success', message: tc('saved') };
 }

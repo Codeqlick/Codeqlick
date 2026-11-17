@@ -32,6 +32,11 @@ const envSchema = z.object({
   MEETINGS_WS_URL: z.url().optional(),
   /** Cloudflare Turnstile's public site key: sign-in and sign-up show its widget; unset: none. */
   TURNSTILE_SITE_KEY: z.string().trim().min(1).optional(),
+  /**
+   * Single sign-on through the account host (decision 108). `false` only where there is no account
+   * host (staging): sign-in and the account pages then stay on the same host.
+   */
+  ACCOUNT_SSO: z.enum(['true', 'false']).default('true'),
 });
 
 const parsed = envSchema.safeParse({
@@ -50,6 +55,7 @@ const parsed = envSchema.safeParse({
   VIDEOCHAT_WS_URL: process.env.VIDEOCHAT_WS_URL || undefined,
   MEETINGS_WS_URL: process.env.MEETINGS_WS_URL || undefined,
   TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY || undefined,
+  ACCOUNT_SSO: process.env.ACCOUNT_SSO || undefined,
 });
 
 if (!parsed.success) {
