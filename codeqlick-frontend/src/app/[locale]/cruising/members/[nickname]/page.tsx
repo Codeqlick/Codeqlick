@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import { ActionForm } from '@/components/app/ActionForm';
 import { AlbumShare } from '@/components/cruising/AlbumShare';
 import community from '@/components/cruising/CruisingCommunity.module.css';
+import card from '@/components/cruising/CruisingCard.module.css';
 import styles from '@/components/cruising/CruisingProfile.module.css';
 import { MeetupCard } from '@/components/cruising/MeetupCard';
 import { MemberGallery } from '@/components/cruising/MemberGallery';
@@ -144,7 +145,7 @@ export default async function CruisingMemberPage({ params }: PageProps) {
                   <summary>{t('block')}</summary>
                   <ActionForm
                     action={blockMemberAction.bind(null, locale, member.nickname)}
-                    className={styles.cards}
+                    className={styles.formStack}
                   >
                     <p className={styles.muted}>{t('blockLead', { nickname: member.nickname })}</p>
                     <SubmitButton variant="outline" size="sm" pendingLabel={t('blocking')}>
@@ -205,19 +206,19 @@ export default async function CruisingMemberPage({ params }: PageProps) {
           ) : reviews.length === 0 ? (
             <p className={styles.empty}>{t('reviewsEmpty')}</p>
           ) : (
-            <ul className={styles.cards}>
+            <ul className={card.stack}>
               {reviews.map((review) => (
                 <li key={review.id}>
-                  <article className={styles.card} aria-labelledby={`review-${review.id}`}>
+                  <article className={card.card} aria-labelledby={`review-${review.id}`}>
                     <div className={styles.itemHead}>
-                      <h3 id={`review-${review.id}`} className={styles.cardTitle}>
+                      <h3 id={`review-${review.id}`} className={card.title}>
                         <Link href={spotHref(review.spot.slug)} className={styles.link}>
                           {review.spot.name}
                         </Link>
                       </h3>
                       <Stars rating={review.rating} label={tr('stars', { count: review.rating })} />
                     </div>
-                    <p className={styles.meta}>
+                    <p className={card.meta}>
                       {review.spot.city} · {countryName(review.spot.countryCode, locale)} ·{' '}
                       <time dateTime={review.createdAt}>
                         {formatDate(review.createdAt, locale)}
@@ -225,7 +226,7 @@ export default async function CruisingMemberPage({ params }: PageProps) {
                     </p>
                     {review.text ? <p className={styles.bio}>{review.text}</p> : null}
                     {review.helpful > 0 ? (
-                      <p className={styles.meta}>{tr('helpfulCount', { count: review.helpful })}</p>
+                      <p className={card.meta}>{tr('helpfulCount', { count: review.helpful })}</p>
                     ) : null}
                   </article>
                 </li>
@@ -243,18 +244,18 @@ export default async function CruisingMemberPage({ params }: PageProps) {
           ) : spots.length === 0 ? (
             <p className={styles.empty}>{t('spotsEmpty')}</p>
           ) : (
-            <ul className={styles.cardGrid}>
+            <ul className={card.grid}>
               {spots.map((spot) => (
-                <li key={spot.id} className={styles.card}>
-                  <h3 className={styles.cardTitle}>
+                <li key={spot.id} className={card.card}>
+                  <h3 className={card.title}>
                     <Link href={spotHref(spot.slug)} className={styles.link}>
                       {spot.name}
                     </Link>
                   </h3>
-                  <p className={styles.meta}>
+                  <p className={card.meta}>
                     {tt(spot.type)} · {spot.city} · {countryName(spot.countryCode, locale)}
                   </p>
-                  <p className={styles.meta}>
+                  <p className={card.meta}>
                     {spot.ratingCount > 0
                       ? ts('rating', {
                           rating: formatRating(spot.ratingAvg),

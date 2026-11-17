@@ -8,6 +8,7 @@ import {
   FormSelect,
   FormTextarea,
 } from '@/components/app/ActionForm';
+import card from '@/components/cruising/CruisingCard.module.css';
 import styles from '@/components/cruising/CruisingProfile.module.css';
 import { InstallApp } from '@/components/videochat/InstallApp';
 import { AlbumGrantsPanel } from '@/components/cruising/AlbumShare';
@@ -120,6 +121,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
     verification: verification.status,
     verified: status.verified,
   });
+  // Every block of the page is the shared Cruising card, as a settings panel.
+  const panel = `${card.card} ${card.panel}`;
   const sections = meSections(Boolean(profile?.nickname));
   // The account itself (email, password, sign-in, the data download) lives on the main site.
   const accountBase = `${env.SITE_URL.replace(/\/$/, '')}/${siteLocale(locale)}/${
@@ -136,8 +139,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
 
       {profile ? (
         <div className={styles.overview}>
-          <section className={styles.card} aria-labelledby="me-preview">
-            <h2 id="me-preview" className={styles.cardTitle}>
+          <section className={panel} aria-labelledby="me-preview">
+            <h2 id="me-preview" className={card.title}>
               {t('previewTitle')}
             </h2>
             <ProfileHeader
@@ -162,8 +165,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
             </ProfileHeader>
           </section>
 
-          <section className={styles.card} aria-labelledby="me-complete">
-            <h2 id="me-complete" className={styles.cardTitle}>
+          <section className={panel} aria-labelledby="me-complete">
+            <h2 id="me-complete" className={card.title}>
               {t('completeTitle')}
             </h2>
             <progress
@@ -209,7 +212,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
             <h2 id="me-profile" className={styles.groupTitle}>
               {t('sections.profile')}
             </h2>
-            <div className={styles.card}>
+            <div className={panel}>
               <ActionForm action={profileAction.bind(null, locale)} className={vc.form}>
                 <FormInput
                   id="me-nickname"
@@ -267,7 +270,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
               </ActionForm>
             </div>
             {profile ? (
-              <div className={styles.card}>
+              <div className={panel}>
                 <MemberContributions
                   locale={locale}
                   badges={profile.badges}
@@ -278,8 +281,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
                 />
               </div>
             ) : null}
-            <section className={styles.card} aria-labelledby="me-language">
-              <h3 id="me-language" className={styles.cardTitle}>
+            <section className={panel} aria-labelledby="me-language">
+              <h3 id="me-language" className={card.title}>
                 {t('languageTitle')}
               </h3>
               <p className={styles.muted}>{t('languageLead')}</p>
@@ -306,8 +309,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
               <h2 id="me-photos" className={styles.groupTitle}>
                 {t('sections.photos')}
               </h2>
-              <section className={styles.card} aria-labelledby="me-media">
-                <h3 id="me-media" className={styles.cardTitle}>
+              <section className={panel} aria-labelledby="me-media">
+                <h3 id="me-media" className={card.title}>
                   {tm('title')}
                 </h3>
                 <p className={styles.muted}>{tm('lead')}</p>
@@ -322,8 +325,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
                   <Alert tone="error">{tm('loadError')}</Alert>
                 )}
               </section>
-              <section className={styles.card} aria-labelledby="me-album">
-                <h3 id="me-album" className={styles.cardTitle}>
+              <section className={panel} aria-labelledby="me-album">
+                <h3 id="me-album" className={card.title}>
                   {ta('title')}
                 </h3>
                 <p className={styles.muted}>{ta('lead')}</p>
@@ -337,8 +340,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
               <h2 id="me-verify" className={styles.groupTitle}>
                 {t('sections.verification')}
               </h2>
-              <section className={styles.card} aria-labelledby="me-verification">
-                <h3 id="me-verification" className={styles.cardTitle}>
+              <section className={panel} aria-labelledby="me-verification">
+                <h3 id="me-verification" className={card.title}>
                   {tv('title')}
                 </h3>
                 {status.verified ? (
@@ -383,8 +386,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
             <h2 id="me-notifications" className={styles.groupTitle}>
               {t('sections.notifications')}
             </h2>
-            <section className={styles.card} aria-labelledby="me-push">
-              <h3 id="me-push" className={styles.cardTitle}>
+            <section className={panel} aria-labelledby="me-push">
+              <h3 id="me-push" className={card.title}>
                 {tp('title')}
               </h3>
               <p className={styles.muted}>{tp('lead')}</p>
@@ -402,8 +405,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
               )}
             </section>
 
-            <section id="me-favorites" className={styles.card} aria-labelledby="me-favorites-title">
-              <h3 id="me-favorites-title" className={styles.cardTitle}>
+            <section id="me-favorites" className={panel} aria-labelledby="me-favorites-title">
+              <h3 id="me-favorites-title" className={card.title}>
                 {tf('title')}
               </h3>
               <ActionForm action={favoriteSettingsAction.bind(null, locale)} className={vc.form}>
@@ -427,8 +430,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
               </ActionForm>
             </section>
 
-            <section className={styles.card} aria-labelledby="me-alerts">
-              <h3 id="me-alerts" className={styles.cardTitle}>
+            <section className={panel} aria-labelledby="me-alerts">
+              <h3 id="me-alerts" className={card.title}>
                 {t('alertsTitle')}
               </h3>
               <ActionForm action={emailAlertsAction.bind(null, locale)} className={vc.form}>
@@ -446,8 +449,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
             </section>
 
             {visits ? (
-              <section id="me-visits" className={styles.card} aria-labelledby="me-visits-title">
-                <h3 id="me-visits-title" className={styles.cardTitle}>
+              <section id="me-visits" className={panel} aria-labelledby="me-visits-title">
+                <h3 id="me-visits-title" className={card.title}>
                   {tvs('settingsTitle')}
                 </h3>
                 <ActionForm action={visitsSettingsAction.bind(null, locale)} className={vc.form}>
@@ -471,8 +474,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
               {t('sections.safety')}
             </h2>
             {profile ? (
-              <section className={styles.card} aria-labelledby="me-checkin">
-                <h3 id="me-checkin" className={styles.cardTitle}>
+              <section className={panel} aria-labelledby="me-checkin">
+                <h3 id="me-checkin" className={card.title}>
                   {t('checkInTitle')}
                 </h3>
                 {checkIn ? (
@@ -500,7 +503,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
             <SafetyPanels
               locale={locale}
               part="safety"
-              className={styles.card}
+              className={panel}
               checkInSpot={checkIn ? { id: checkIn.spot.id, name: checkIn.spot.name } : null}
             />
           </section>
@@ -509,16 +512,11 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
             <h2 id="me-privacy" className={styles.groupTitle}>
               {t('sections.privacy')}
             </h2>
-            <SafetyPanels
-              locale={locale}
-              part="health"
-              className={styles.card}
-              checkInSpot={null}
-            />
+            <SafetyPanels locale={locale} part="health" className={panel} checkInSpot={null} />
 
             {profile ? (
-              <section className={styles.card} aria-labelledby="me-blocks">
-                <h3 id="me-blocks" className={styles.cardTitle}>
+              <section className={panel} aria-labelledby="me-blocks">
+                <h3 id="me-blocks" className={card.title}>
                   {t('blocksTitle')}
                 </h3>
                 {blocks.length === 0 ? (
@@ -545,8 +543,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
               </section>
             ) : null}
 
-            <section className={styles.card} aria-labelledby="me-data">
-              <h3 id="me-data" className={styles.cardTitle}>
+            <section className={panel} aria-labelledby="me-data">
+              <h3 id="me-data" className={card.title}>
                 {t('dataTitle')}
               </h3>
               <p className={styles.muted}>{t('dataLead')}</p>
@@ -565,10 +563,10 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
             </section>
           </section>
 
-          <InstallApp className={styles.card} namespace="Cruising.install" />
+          <InstallApp className={panel} namespace="Cruising.install" />
 
-          <section className={styles.card} aria-labelledby="me-tour">
-            <h2 id="me-tour" className={styles.cardTitle}>
+          <section className={panel} aria-labelledby="me-tour">
+            <h2 id="me-tour" className={card.title}>
               {t('tourTitle')}
             </h2>
             <p className={styles.muted}>{t('tourLead')}</p>
