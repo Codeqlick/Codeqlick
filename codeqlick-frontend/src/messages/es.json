@@ -5399,7 +5399,33 @@
       "languageTitle": "Idioma",
       "languageLead": "El idioma de los correos de Cruising y de las notificaciones en tus dispositivos. Los correos del resto de Codeqlick llegan en inglés si no eliges español.",
       "languageLabel": "Idioma de los correos y las notificaciones",
-      "languageInvalid": "Elige un idioma de la lista."
+      "languageInvalid": "Elige un idioma de la lista.",
+      "sectionsLabel": "Secciones del perfil",
+      "sections": {
+        "profile": "Perfil",
+        "photos": "Fotos y vídeos",
+        "verification": "Verificación",
+        "notifications": "Notificaciones",
+        "safety": "Seguridad",
+        "privacy": "Privacidad"
+      },
+      "previewTitle": "Cómo te ven los demás",
+      "completeTitle": "Perfil completado",
+      "completeValue": "{done} de {total} hechos",
+      "completeDone": "Tu perfil está completo.",
+      "missingLead": "Falta:",
+      "gaps": {
+        "nickname": "Un nombre de usuario",
+        "photo": "Una foto",
+        "bio": "Una descripción",
+        "lookingFor": "Qué buscas",
+        "country": "Tu país",
+        "verification": "La verificación"
+      },
+      "dataTitle": "Tus datos y tu cuenta",
+      "dataLead": "Descarga lo que Codeqlick guarda sobre ti, Cruising incluido, o cambia tu correo, tu contraseña y cómo inicias sesión.",
+      "dataExport": "Descargar mis datos",
+      "accountSettings": "Ajustes de la cuenta"
     },
     "presence": {
       "title": "Aquí ahora",
@@ -5446,7 +5472,20 @@
       "notFound": "Este miembro no está disponible.",
       "tooManyConversations": "Has llegado al límite de conversaciones nuevas de hoy. Inténtalo mañana.",
       "notAllowed": "Necesitas haber entrado en Cruising y no estar suspendido para enviar mensajes.",
-      "contributions": "Aportaciones"
+      "contributions": "Aportaciones",
+      "moreActions": "Más acciones",
+      "sectionsLabel": "Secciones del perfil",
+      "sections": {
+        "photos": "Fotos",
+        "reviews": "Reseñas",
+        "spots": "Sitios",
+        "meetups": "Quedadas"
+      },
+      "photosEmpty": "{nickname} aún no ha subido fotos.",
+      "reviewsEmpty": "Aún no hay reseñas.",
+      "spotsEmpty": "Aún no hay sitios publicados.",
+      "meetupsEmpty": "No hay quedadas próximas.",
+      "loadError": "No se ha podido cargar esta parte del perfil. Inténtalo más tarde."
     },
     "messages": {
       "title": "Mensajes",

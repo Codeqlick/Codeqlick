@@ -5399,7 +5399,33 @@
       "languageTitle": "Language",
       "languageLead": "The language of Cruising's emails and of the notifications on your devices. Emails from the rest of Codeqlick come in English when Spanish isn't chosen.",
       "languageLabel": "Language of emails and notifications",
-      "languageInvalid": "Choose a language from the list."
+      "languageInvalid": "Choose a language from the list.",
+      "sectionsLabel": "Profile sections",
+      "sections": {
+        "profile": "Profile",
+        "photos": "Photos & videos",
+        "verification": "Verification",
+        "notifications": "Notifications",
+        "safety": "Safety",
+        "privacy": "Privacy"
+      },
+      "previewTitle": "How others see you",
+      "completeTitle": "Profile completeness",
+      "completeValue": "{done} of {total} done",
+      "completeDone": "Your profile is complete.",
+      "missingLead": "Missing:",
+      "gaps": {
+        "nickname": "A nickname",
+        "photo": "A photo",
+        "bio": "A bio",
+        "lookingFor": "What you're looking for",
+        "country": "Your country",
+        "verification": "Verification"
+      },
+      "dataTitle": "Your data and account",
+      "dataLead": "Download what Codeqlick keeps about you, Cruising included, or change your email, password and sign-in options.",
+      "dataExport": "Download my data",
+      "accountSettings": "Account settings"
     },
     "presence": {
       "title": "Here now",
@@ -5446,7 +5472,20 @@
       "notFound": "This member isn't available.",
       "tooManyConversations": "You've reached today's limit of new conversations. Try again tomorrow.",
       "notAllowed": "You need to enter Cruising and not be suspended to send messages.",
-      "contributions": "Contributions"
+      "contributions": "Contributions",
+      "moreActions": "More actions",
+      "sectionsLabel": "Profile sections",
+      "sections": {
+        "photos": "Photos",
+        "reviews": "Reviews",
+        "spots": "Spots",
+        "meetups": "Meetups"
+      },
+      "photosEmpty": "{nickname} hasn't added any photos yet.",
+      "reviewsEmpty": "No reviews yet.",
+      "spotsEmpty": "No published spots yet.",
+      "meetupsEmpty": "No upcoming meetups.",
+      "loadError": "This part of the profile couldn't be loaded. Try again later."
     },
     "messages": {
       "title": "Messages",

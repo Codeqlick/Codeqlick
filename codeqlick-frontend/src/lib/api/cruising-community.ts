@@ -59,9 +59,12 @@ export type CruisingSafetyAlert = {
 
 // ---- Meetups ---------------------------------------------------------------------------------------
 
-/** Upcoming meetups at a spot, in a city, or (no filter) at my favourites and in my countries. */
+/**
+ * Upcoming meetups at a spot, in a city, of a member's profile (hosted or joined without being
+ * anonymous), or (no filter) at my favourites and in my countries.
+ */
 export async function listCruisingMeetups(
-  filter: { spotId?: string; countryCode?: string; citySlug?: string } = {},
+  filter: { spotId?: string; countryCode?: string; citySlug?: string; member?: string } = {},
 ): Promise<CruisingMeetup[]> {
   return (
     await apiFetch<{ items: CruisingMeetup[] }>('/cruising/meetups', {

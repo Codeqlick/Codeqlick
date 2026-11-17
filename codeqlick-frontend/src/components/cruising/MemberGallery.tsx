@@ -22,6 +22,8 @@ type MemberGalleryProps = {
   album?: MediaAlbum;
   /** Hides the heading's own text from sighted readers when a parent already names the section. */
   headingId?: string;
+  /** The heading's level, to keep the page's outline (h2 by default). */
+  headingLevel?: 'h2' | 'h3';
 };
 
 /**
@@ -35,6 +37,7 @@ export async function MemberGallery({
   own,
   album = 'PUBLIC',
   headingId = `gallery-title-${album.toLowerCase()}`,
+  headingLevel: Heading = 'h2',
 }: MemberGalleryProps) {
   const items = all.filter((item) => (item.album ?? 'PUBLIC') === album);
   if (items.length === 0) return null;
@@ -42,9 +45,9 @@ export async function MemberGallery({
   const onHost = (await requestWebapp()) === 'cruising';
   return (
     <section aria-labelledby={headingId}>
-      <h2 id={headingId} className={album === 'PRIVATE' ? styles.galleryTitle : styles.srOnly}>
+      <Heading id={headingId} className={album === 'PRIVATE' ? styles.galleryTitle : styles.srOnly}>
         {t(album === 'PRIVATE' ? 'privateTitle' : 'title', { nickname })}
-      </h2>
+      </Heading>
       <ul className={styles.gallery}>
         {items.map((item, index) => (
           <MediaTile

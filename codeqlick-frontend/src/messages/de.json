@@ -721,7 +721,33 @@
       "languageTitle": "Sprache",
       "languageLead": "Die Sprache der E-Mails von Cruising und der Benachrichtigungen auf deinen Geräten. E-Mails vom Rest von Codeqlick kommen auf Englisch, wenn nicht Spanisch gewählt ist.",
       "languageLabel": "Sprache der E-Mails und Benachrichtigungen",
-      "languageInvalid": "Wähle eine Sprache aus der Liste."
+      "languageInvalid": "Wähle eine Sprache aus der Liste.",
+      "sectionsLabel": "Profilbereiche",
+      "sections": {
+        "profile": "Profil",
+        "photos": "Fotos & Videos",
+        "verification": "Verifizierung",
+        "notifications": "Benachrichtigungen",
+        "safety": "Sicherheit",
+        "privacy": "Privatsphäre"
+      },
+      "previewTitle": "So sehen dich andere",
+      "completeTitle": "Profil-Vollständigkeit",
+      "completeValue": "{done} von {total} erledigt",
+      "completeDone": "Dein Profil ist vollständig.",
+      "missingLead": "Es fehlt:",
+      "gaps": {
+        "nickname": "Ein Nickname",
+        "photo": "Ein Foto",
+        "bio": "Eine Beschreibung",
+        "lookingFor": "Wonach du suchst",
+        "country": "Dein Land",
+        "verification": "Die Verifizierung"
+      },
+      "dataTitle": "Deine Daten und dein Konto",
+      "dataLead": "Lade herunter, was Codeqlick über dich speichert, Cruising inklusive, oder ändere deine E-Mail, dein Passwort und deine Anmeldeoptionen.",
+      "dataExport": "Meine Daten herunterladen",
+      "accountSettings": "Kontoeinstellungen"
     },
     "presence": {
       "title": "Gerade hier",
@@ -768,7 +794,20 @@
       "notFound": "Dieses Mitglied ist nicht verfügbar.",
       "tooManyConversations": "Du hast das heutige Limit an neuen Unterhaltungen erreicht. Versuch es morgen wieder.",
       "notAllowed": "Um Nachrichten zu senden, musst du Cruising betreten haben und darfst nicht gesperrt sein.",
-      "contributions": "Beiträge"
+      "contributions": "Beiträge",
+      "moreActions": "Weitere Aktionen",
+      "sectionsLabel": "Profilbereiche",
+      "sections": {
+        "photos": "Fotos",
+        "reviews": "Bewertungen",
+        "spots": "Orte",
+        "meetups": "Treffen"
+      },
+      "photosEmpty": "{nickname} hat noch keine Fotos hinzugefügt.",
+      "reviewsEmpty": "Noch keine Bewertungen.",
+      "spotsEmpty": "Noch keine veröffentlichten Orte.",
+      "meetupsEmpty": "Keine anstehenden Treffen.",
+      "loadError": "Dieser Teil des Profils konnte nicht geladen werden. Versuch es später noch einmal."
     },
     "messages": {
       "title": "Nachrichten",
