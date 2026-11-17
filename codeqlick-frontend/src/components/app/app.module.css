@@ -158,14 +158,15 @@
   outline-offset: -3px;
 }
 
-/* Admin tables (architecture 6.6): 14 px text and 8 × 14 px cells, rows about 52 px. */
+/* Admin tables (architecture 6.6): 14 px text and 7 × 14 px cells, rows about 52 px. */
 .tableCompact {
   font-size: var(--text-sm);
+  line-height: 1.4;
 }
 
 .tableCompact th,
 .tableCompact td {
-  padding: 0.5rem 0.875rem;
+  padding: 0.4375rem 0.875rem;
 }
 
 .tableCompact .sub {
@@ -743,4 +744,9 @@
 
 .confirmAction[open] > summary {
   margin-bottom: var(--space-3);
+}
+
+/* A grid of cards: each card fills its cell, so a row lines up. */
+.cards > li > * {
+  height: 100%;
 }

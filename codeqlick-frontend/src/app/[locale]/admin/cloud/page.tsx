@@ -183,7 +183,7 @@ async function Projects({
                       </form>
                     </div>
                   ) : (
-                    <div className={styles.stack}>
+                    <div className={styles.actions}>
                       <Badge tone="success">{t('active')}</Badge>
                       {/* Destructive: a danger button that opens its confirmation (the reason). */}
                       <details className={styles.confirmAction}>
