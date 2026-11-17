@@ -624,7 +624,7 @@ describe('18+ apps: shared safety (e2e, architecture 4.16 phase 1)', () => {
       const sql = await readFile(
         join(
           import.meta.dirname,
-          '../prisma/migrations/20261117140000_adult_shared_safety/migration.sql',
+          '../prisma/migrations/20261117170000_adult_shared_safety/migration.sql',
         ),
         'utf8',
       );
