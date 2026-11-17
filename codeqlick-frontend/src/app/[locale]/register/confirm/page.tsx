@@ -9,7 +9,8 @@ import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { firstParam } from '@/lib/format';
-import { WEBAPPS } from '@/lib/webapps';
+import { requestBrand } from '@/lib/request-brand';
+import { appsOfBrand } from '@/lib/webapps';
 import { pageMetadata } from '@/lib/seo';
 import { confirmSignupAction } from '../actions';
 
@@ -39,7 +40,7 @@ export default async function ConfirmSignupPage({ params, searchParams }: PagePr
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const query = await searchParams;
   const token = firstParam(query.token);
-  const app = WEBAPPS.find((name) => name === firstParam(query.app));
+  const app = appsOfBrand(await requestBrand()).find((name) => name === firstParam(query.app));
 
   return (
     <main className={styles.login}>

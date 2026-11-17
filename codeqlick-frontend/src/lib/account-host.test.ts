@@ -13,9 +13,9 @@ describe('the account host (decision 108)', () => {
     expect(isAccountHost('account.localhost:3000')).toBe(true);
     expect(isAccountHost('codeqlick.com')).toBe(false);
     expect(mainHostOf('account.codeqlick.com')).toBe('codeqlick.com');
-    expect(mainHostOf('cruising.localhost:3000')).toBe('localhost:3000');
+    expect(mainHostOf('meetings.localhost:3000')).toBe('localhost:3000');
     expect(accountHostFor('www.codeqlick.com')).toBe('account.codeqlick.com');
-    expect(accountHostFor('swipe.codeqlick.com')).toBe('account.codeqlick.com');
+    expect(accountHostFor('citas.codeqlick.com')).toBe('account.codeqlick.com');
   });
 
   it('serves its pages at short addresses and the sign-in pages as they are', () => {

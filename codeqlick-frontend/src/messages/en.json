@@ -622,10 +622,10 @@
     "sending": "Sending…",
     "changeEmailSubmit": "Send link",
     "yourData": "Your personal data",
-    "yourDataBody": "Download as a file (JSON) everything we keep about you: your account, sessions, projects, proposals and requests, and your video chat profile if you use it.",
+    "yourDataBody": "Download as a file (JSON) everything we keep about you: your account, sessions, projects, proposals and requests.",
     "download": "Download my data",
     "deleteTitle": "Delete account",
-    "deleteBody": "Your account and what hangs from it (requests, proposals, your video chat profile…) will be deleted. This cannot be undone. You will get a confirmation email.",
+    "deleteBody": "Your account and what hangs from it (requests, proposals…) will be deleted. This cannot be undone. You will get a confirmation email.",
     "deleteConfirm": "I understand this cannot be undone",
     "deleteConfirmNeeded": "Tick the box to confirm.",
     "deleteSubmit": "Delete my account",
@@ -650,7 +650,7 @@
     },
     "avatar": {
       "title": "Profile photo",
-      "lead": "It shows in your account, in Meetings while your camera is off and on your Citas page. Never in Videochat or Swipe.",
+      "lead": "It shows in your account, in Meetings while your camera is off and on your Citas page.",
       "pick": "Choose a photo",
       "change": "Change photo",
       "remove": "Remove photo",
@@ -686,7 +686,7 @@
       "apps": "{count, plural, =0 {You don't use any app yet.} one {You use # part of Codeqlick.} other {You use # parts of Codeqlick.}}"
     },
     "profile": {
-      "lead": "How you appear across Codeqlick (never in the 18+ apps, where only your username shows).",
+      "lead": "How you appear across Codeqlick.",
       "languageTitle": "Language of our emails",
       "languageBody": "The emails we send you are written in this language.",
       "languageLabel": "Language"
@@ -4216,13 +4216,6 @@
     "title": "What we build for ourselves",
     "lead": "Besides building websites and apps for our clients, we build and run our own web apps. You sign in to all of them with your Codeqlick account.",
     "listLabel": "Codeqlick apps",
-    "videochat": {
-      "title": "Video chat",
-      "adult": "18+",
-      "body": "Video chat with a random person and, if there is no spark, move on to the next one. With filters by interests, country and language, and mutual contacts.",
-      "warning": "Adults only (18+): there may be adult content. You need a verified Codeqlick account.",
-      "open": "Open the video chat"
-    },
     "meetings": {
       "title": "Meetings",
       "badge": "For everyone",
@@ -4235,25 +4228,11 @@
       "body": "Your booking page with one link: publish your free hours and your clients book without calling you or creating an account. With confirmation emails, calendar invitations and an optional video call.",
       "open": "Open Citas"
     },
-    "swipe": {
-      "title": "Swipe",
-      "adult": "18+",
-      "body": "Swipe intimate photos of adults who choose to share them: right if you like one, left if you don't. When you both like each other it's a match and you can talk. Every photo is reviewed before it goes live.",
-      "warning": "Adults only (18+): nudity and explicit sexual content. You need a verified Codeqlick account.",
-      "open": "Open Swipe"
-    },
     "cloud": {
       "title": "Codeqlick Cloud",
       "badge": "For developers",
       "body": "Deploy static sites from your terminal with one command: a preview address for every deployment, instant rollbacks, your own domains with HTTPS, teams and API tokens for your CI. Free plan.",
       "open": "Open Cloud"
-    },
-    "cruising": {
-      "title": "Cruising",
-      "adult": "18+",
-      "body": "A worldwide map of cruising spots for gay and bisexual men, with reviews by other adults. Every spot is reviewed before it goes live, and safety and respect come first.",
-      "warning": "Adults only (18+): about adult sexuality. You can browse the map without an account; proposing and reviewing need a verified Codeqlick account.",
-      "open": "Open Cruising"
     }
   },
   "AppSwitcher": {

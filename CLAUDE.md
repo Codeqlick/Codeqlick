@@ -11,7 +11,7 @@ This repo holds the whole platform:
 | Folder | What | Status |
 |---|---|---|
 | `codeqlick-backend/` | NestJS 12 (ESM) + Prisma 7.10 + PostgreSQL 18 REST API under `/v1` | Running; lint, typecheck, unit and e2e tests and build pass |
-| `codeqlick-frontend/` | Next.js 16 + React 19 + next-intl (EN/ES) website, blog, portfolio, contact, client portal, admin panel | Running; all sections of architecture 6 exist; the landing follows the approved design ("Codeqlick Website" canvas); lint, typecheck, unit tests and build pass |
+| `codeqlick-frontend/` | Next.js 16 + React 19 + next-intl (EN/ES) website, blog, portfolio, contact, client portal, admin panel | Running; it also serves Neoqlick's hosts (the 18+ apps Cruising, Swipe and Videochat live on `*.neoqlick.com`, architecture 4.18 and never on codeqlick.com); all sections of architecture 6 exist; the landing follows the approved design ("Codeqlick Website" canvas); lint, typecheck, unit tests and build pass |
 | `codeqlick-sites/` | Astro template of the basic websites (`web-basica`, demos in `examples/`) + `builder/`, the service that builds managed client sites | Running |
 | `deploy/` + `docker-compose.prod.yml` | Production stack for the OVH VPS (Nginx sites, env template, runbook); `deploy/sites/` publishes static client sites | Deployed |
 | `codeqlick-cli/` | The `codeqlick` command of Codeqlick Cloud (architecture 4.13): sign-in, projects, deployments and domains, zero dependencies, published as `@codeqlick/cli` (tag `cli-v<version>` publishes it from CI) | Published (0.1.0) |

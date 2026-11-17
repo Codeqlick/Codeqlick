@@ -19,8 +19,8 @@ test('signing in once on the account host opens the website and the apps without
   expect(created.ok()).toBeTruthy();
 
   // An app's "Sign in" link (a client-side Link, prefetched) leads to the account host's sign-in.
-  const videochat = (baseURL ?? '').replace('://', '://videochat.');
-  await page.goto(`${videochat}/en`);
+  const citas = (baseURL ?? '').replace('://', '://citas.');
+  await page.goto(`${citas}/en`);
   await page.getByRole('main').getByRole('link', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/account\.[^/]+\/en\/login\?next=/);
 

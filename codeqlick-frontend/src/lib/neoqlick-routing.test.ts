@@ -98,8 +98,10 @@ describe('single sign-on per realm', () => {
     expect(parseAuthorizeQuery(query('cruising'), 'account.neoqlick.com')?.client).toBe('cruising');
     expect(parseAuthorizeQuery(query('site'), 'account.neoqlick.com')).toBeNull();
     expect(parseAuthorizeQuery(query('meetings'), 'account.neoqlick.com')).toBeNull();
-    expect(parseAuthorizeQuery(query('cruising'), 'account.codeqlick.com')?.client).toBe(
-      'cruising',
+    // The 18+ apps are no client of Codeqlick's account host any more (architecture 4.18).
+    expect(parseAuthorizeQuery(query('cruising'), 'account.codeqlick.com')).toBeNull();
+    expect(parseAuthorizeQuery(query('meetings'), 'account.codeqlick.com')?.client).toBe(
+      'meetings',
     );
   });
 

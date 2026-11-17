@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import en from '@/messages/en.json';
 import es from '@/messages/es.json';
 import { OPTIONAL_SESSION_PATH, PROTECTED_PATH } from './auth/constants';
@@ -54,26 +54,30 @@ import {
   toSpotInput,
   WORLD_VIEW,
 } from './cruising';
-import { ADULT_WEBAPPS, routeWebapp, switcherApps, WEBAPPS, webappForHost } from './webapps';
+import { NEOQLICK_APPS, routeWebapp, switcherApps, WEBAPPS, webappForHost } from './webapps';
 
 describe('Cruising as a web app', () => {
-  it('is a web app and an 18+ one', () => {
+  beforeEach(() => vi.stubEnv('NEOQLICK_URL', 'https://neoqlick.com'));
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("is a web app on Neoqlick's hosts only", () => {
     expect(WEBAPPS).toContain('cruising');
-    expect(ADULT_WEBAPPS).toContain('cruising');
-    expect(webappForHost('cruising.codeqlick.com')).toBe('cruising');
-    expect(webappForHost('cruising.localhost:3000')).toBe('cruising');
+    expect(NEOQLICK_APPS).toContain('cruising');
+    expect(webappForHost('cruising.neoqlick.com')).toBe('cruising');
+    expect(webappForHost('cruising.codeqlick.com')).toBeNull();
   });
 
-  it("leaves it out of the apps for everyone's menus and lists it last in the 18+ ones", () => {
+  it("keeps it out of Codeqlick's apps menus and lists only Neoqlick's other apps in its own", () => {
     expect(switcherApps('meetings').map((item) => item.app)).not.toContain('cruising');
     expect(switcherApps('citas').map((item) => item.app)).not.toContain('cruising');
-    expect(switcherApps('swipe').at(-1)).toEqual({ app: 'cruising', adult: true });
-    expect(switcherApps('cruising').map((item) => item.app)).toContain('swipe');
-    expect(switcherApps('cruising').map((item) => item.app)).not.toContain('cruising');
+    expect(switcherApps('cruising', 'neoqlick').map((item) => item.app)).toEqual([
+      'swipe',
+      'videochat',
+    ]);
   });
 
   it("serves its pages at the host's short addresses", () => {
-    const host = 'cruising.codeqlick.com';
+    const host = 'cruising.neoqlick.com';
     expect(routeWebapp('/es', host, 'https:')).toEqual({ action: 'rewrite', to: '/es/cruising' });
     expect(routeWebapp('/es/map', host, 'https:')).toEqual({
       action: 'rewrite',
@@ -96,7 +100,7 @@ describe('Cruising as a web app', () => {
   });
 
   it('serves the social pages at short addresses too, and sends the long ones there', () => {
-    const host = 'cruising.codeqlick.com';
+    const host = 'cruising.neoqlick.com';
     expect(routeWebapp('/es/me', host, 'https:')).toEqual({
       action: 'rewrite',
       to: '/es/cruising/me',
@@ -126,28 +130,30 @@ describe('Cruising as a web app', () => {
       action: 'redirect',
       to: '/es/messages/abc',
     });
-    expect(routeWebapp('/es/cruising/me', 'codeqlick.com', 'https:')).toEqual({
+    expect(routeWebapp('/es/cruising/me', 'neoqlick.com', 'https:')).toEqual({
       action: 'redirect',
-      to: 'https://cruising.codeqlick.com/es/me',
+      to: 'https://cruising.neoqlick.com/es/me',
     });
   });
 
   it('sends its old addresses, and the main host, to the short ones', () => {
-    expect(routeWebapp('/es/cruising/map', 'cruising.codeqlick.com', 'https:')).toEqual({
+    expect(routeWebapp('/es/cruising/map', 'cruising.neoqlick.com', 'https:')).toEqual({
       action: 'redirect',
       to: '/es/map',
     });
-    expect(routeWebapp('/es/cruising/map', 'codeqlick.com', 'https:')).toEqual({
+    expect(routeWebapp('/es/cruising/map', 'neoqlick.com', 'https:')).toEqual({
       action: 'redirect',
-      to: 'https://cruising.codeqlick.com/es/map',
+      to: 'https://cruising.neoqlick.com/es/map',
     });
-    expect(routeWebapp('/en/cruising', 'localhost:3000', 'http:')).toEqual({
+    vi.stubEnv('NEOQLICK_URL', 'http://neoqlick.localhost:3000');
+    expect(routeWebapp('/en/cruising', 'neoqlick.localhost:3000', 'http:')).toEqual({
       action: 'redirect',
-      to: 'http://cruising.localhost:3000/en',
+      to: 'http://cruising.neoqlick.localhost:3000/en',
     });
-    expect(routeWebapp('/es/blog', 'cruising.codeqlick.com', 'https:')).toEqual({
+    vi.stubEnv('NEOQLICK_URL', 'https://neoqlick.com');
+    expect(routeWebapp('/es/blog', 'cruising.neoqlick.com', 'https:')).toEqual({
       action: 'redirect',
-      to: 'https://codeqlick.com/es/blog',
+      to: 'https://neoqlick.com/es/blog',
     });
   });
 
@@ -612,7 +618,8 @@ describe('translations', () => {
     for (const namespace of ['Cruising', 'AdminCruising'] as const) {
       expect(paths(es[namespace]).toSorted(), namespace).toEqual(paths(en[namespace]).toSorted());
     }
-    expect(paths(es.Apps.cruising).toSorted()).toEqual(paths(en.Apps.cruising).toSorted());
+    // The website's apps page lists Codeqlick's apps only.
+    expect(Object.keys(en.Apps)).not.toContain('cruising');
     expect(Object.keys(es.AppSwitcher.apps.cruising)).toEqual(
       Object.keys(en.AppSwitcher.apps.cruising),
     );

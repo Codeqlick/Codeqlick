@@ -1577,10 +1577,10 @@
     "sending": "A enviar…",
     "changeEmailSubmit": "Enviar ligação",
     "yourData": "Os teus dados pessoais",
-    "yourDataBody": "Descarrega num ficheiro (JSON) tudo o que guardamos sobre ti: a tua conta, sessões, projetos, propostas e pedidos, e o teu perfil de videochat se o usares.",
+    "yourDataBody": "Descarrega num ficheiro (JSON) tudo o que guardamos sobre ti: a tua conta, sessões, projetos, propostas e pedidos.",
     "download": "Descarregar os meus dados",
     "deleteTitle": "Eliminar conta",
-    "deleteBody": "A tua conta e tudo o que dela depende (pedidos, propostas, o teu perfil de videochat…) serão eliminados. Não é possível anular. Vais receber um email de confirmação.",
+    "deleteBody": "A tua conta e tudo o que dela depende (pedidos, propostas…) serão eliminados. Não é possível anular. Vais receber um email de confirmação.",
     "deleteConfirm": "Compreendo que não é possível anular",
     "deleteConfirmNeeded": "Marca a caixa para confirmar.",
     "deleteSubmit": "Eliminar a minha conta",
@@ -1605,7 +1605,7 @@
     },
     "avatar": {
       "title": "Foto de perfil",
-      "lead": "Aparece na tua conta, no Meetings quando tens a câmara desligada e na tua página do Citas. Nunca no Videochat nem no Swipe.",
+      "lead": "Aparece na tua conta, no Meetings quando tens a câmara desligada e na tua página do Citas.",
       "pick": "Escolher uma foto",
       "change": "Alterar foto",
       "remove": "Remover foto",
@@ -1641,7 +1641,7 @@
       "apps": "{count, plural, =0 {Ainda não usas nenhuma app.} one {Usas # parte da Codeqlick.} other {Usas # partes da Codeqlick.}}"
     },
     "profile": {
-      "lead": "Como apareces na Codeqlick (nunca nas apps 18+, onde só se vê o teu nome de utilizador).",
+      "lead": "Como apareces na Codeqlick.",
       "languageTitle": "Idioma dos nossos emails",
       "languageBody": "Os emails que te enviamos são escritos neste idioma.",
       "languageLabel": "Idioma"

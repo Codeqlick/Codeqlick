@@ -34,7 +34,14 @@ import { classifyHost } from './lib/hosts';
 import { hostApp, localeRedirect, requestLocales } from './lib/locales';
 import { cspHeaders, makeNonce, type CspContext } from './lib/security-headers';
 import { SSO_COOKIE_MAX_AGE, routeSignIn, ssoClientForHost, startSso } from './lib/sso';
-import { appsOfBrand, routePortal, routeWebapp, webappForHost, webappHost } from './lib/webapps';
+import {
+  appsOfBrand,
+  legacyAppHostRedirect,
+  routePortal,
+  routeWebapp,
+  webappForHost,
+  webappHost,
+} from './lib/webapps';
 
 // Cruising speaks six languages, every other host two (decision 103): each has its own locale
 // routing, so a visitor's browser language or cookie never sends the website to /fr.
@@ -178,6 +185,10 @@ async function route(request: NextRequest): Promise<NextResponse> {
     }
     if (kind === 'site') return new NextResponse('Not found', { status: 404 });
   }
+  // The 18+ apps' old hosts (`cruising.codeqlick.com`…): Nginx redirects them (decision 130); this
+  // is the safety net for a request that reaches the website on one of them.
+  const legacy = legacyAppHostRedirect(pathname, search, host, protocol);
+  if (legacy) return NextResponse.redirect(legacy, 301);
   // A language this host doesn't speak (/fr on the website): the same page in English.
   const english = localeRedirect(pathname, hostApp(host));
   if (english) {

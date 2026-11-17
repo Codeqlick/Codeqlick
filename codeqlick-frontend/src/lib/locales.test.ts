@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SITE_LOCALES, routing } from '@/i18n/routing';
 import {
   appLocales,
@@ -11,6 +11,9 @@ import {
 import { routeWebapp } from './webapps';
 
 describe('languages per host (decision 103)', () => {
+  beforeEach(() => vi.stubEnv('NEOQLICK_URL', 'https://neoqlick.com'));
+  afterEach(() => vi.unstubAllEnvs());
+
   it('reads the locale prefix and the section after it', () => {
     expect(localeOf('/fr/map')).toEqual({ locale: 'fr', section: 'map' });
     expect(localeOf('/pt')).toEqual({ locale: 'pt', section: '' });
@@ -50,33 +53,33 @@ describe('languages per host (decision 103)', () => {
   });
 
   it("keeps the language crossing to Cruising's host and drops it leaving it", () => {
-    expect(routeWebapp('/fr/cruising/map', 'codeqlick.com', 'https:')).toEqual({
+    expect(routeWebapp('/fr/cruising/map', 'neoqlick.com', 'https:')).toEqual({
       action: 'redirect',
-      to: 'https://cruising.codeqlick.com/fr/map',
+      to: 'https://cruising.neoqlick.com/fr/map',
     });
-    expect(routeWebapp('/de/map', 'cruising.codeqlick.com', 'https:')).toEqual({
+    expect(routeWebapp('/de/map', 'cruising.neoqlick.com', 'https:')).toEqual({
       action: 'rewrite',
       to: '/de/cruising/map',
     });
-    expect(routeWebapp('/it/cruising/map', 'cruising.codeqlick.com', 'https:')).toEqual({
+    expect(routeWebapp('/it/cruising/map', 'cruising.neoqlick.com', 'https:')).toEqual({
       action: 'redirect',
       to: '/it/map',
     });
     // The website's sections and the other apps only speak English and Spanish.
-    expect(routeWebapp('/fr/about', 'cruising.codeqlick.com', 'https:')).toEqual({
+    expect(routeWebapp('/fr/about', 'cruising.neoqlick.com', 'https:')).toEqual({
       action: 'redirect',
-      to: 'https://codeqlick.com/en/about',
+      to: 'https://neoqlick.com/en/about',
     });
-    expect(routeWebapp('/pt/swipe', 'cruising.codeqlick.com', 'https:')).toEqual({
+    expect(routeWebapp('/pt/swipe', 'cruising.neoqlick.com', 'https:')).toEqual({
       action: 'redirect',
-      to: 'https://codeqlick.com/en/swipe',
+      to: 'https://neoqlick.com/en/swipe',
     });
-    expect(routeWebapp('/es/about', 'cruising.codeqlick.com', 'https:')).toEqual({
+    expect(routeWebapp('/es/about', 'cruising.neoqlick.com', 'https:')).toEqual({
       action: 'redirect',
-      to: 'https://codeqlick.com/es/about',
+      to: 'https://neoqlick.com/es/about',
     });
     // Sign-in pages are shared: served on Cruising's host in its language.
-    expect(routeWebapp('/fr/login', 'cruising.codeqlick.com', 'https:')).toEqual({
+    expect(routeWebapp('/fr/login', 'cruising.neoqlick.com', 'https:')).toEqual({
       action: 'pass',
     });
   });

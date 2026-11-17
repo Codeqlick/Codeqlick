@@ -1577,10 +1577,10 @@
     "sending": "Wird gesendet…",
     "changeEmailSubmit": "Link senden",
     "yourData": "Deine persönlichen Daten",
-    "yourDataBody": "Lade alles, was wir über dich speichern, als Datei (JSON) herunter: dein Konto, Sitzungen, Projekte, Angebote und Anfragen sowie dein Videochat-Profil, falls du es nutzt.",
+    "yourDataBody": "Lade alles, was wir über dich speichern, als Datei (JSON) herunter: dein Konto, Sitzungen, Projekte, Angebote und Anfragen.",
     "download": "Meine Daten herunterladen",
     "deleteTitle": "Konto löschen",
-    "deleteBody": "Dein Konto und alles, was daran hängt (Anfragen, Angebote, dein Videochat-Profil…), wird gelöscht. Das lässt sich nicht rückgängig machen. Du bekommst eine Bestätigung per E-Mail.",
+    "deleteBody": "Dein Konto und alles, was daran hängt (Anfragen, Angebote…), wird gelöscht. Das lässt sich nicht rückgängig machen. Du bekommst eine Bestätigung per E-Mail.",
     "deleteConfirm": "Mir ist klar, dass das nicht rückgängig gemacht werden kann",
     "deleteConfirmNeeded": "Setz das Häkchen zur Bestätigung.",
     "deleteSubmit": "Mein Konto löschen",
@@ -1605,7 +1605,7 @@
     },
     "avatar": {
       "title": "Profilfoto",
-      "lead": "Es erscheint in deinem Konto, in Meetings bei ausgeschalteter Kamera und auf deiner Citas-Seite. Nie in Videochat oder Swipe.",
+      "lead": "Es erscheint in deinem Konto, in Meetings bei ausgeschalteter Kamera und auf deiner Citas-Seite.",
       "pick": "Foto auswählen",
       "change": "Foto ändern",
       "remove": "Foto entfernen",
@@ -1641,7 +1641,7 @@
       "apps": "{count, plural, =0 {Du nutzt noch keine App.} one {Du nutzt # Teil von Codeqlick.} other {Du nutzt # Teile von Codeqlick.}}"
     },
     "profile": {
-      "lead": "So erscheinst du bei Codeqlick (nie in den Apps ab 18, wo nur dein Benutzername zu sehen ist).",
+      "lead": "So erscheinst du bei Codeqlick.",
       "languageTitle": "Sprache unserer E-Mails",
       "languageBody": "Die E-Mails, die wir dir schicken, sind in dieser Sprache geschrieben.",
       "languageLabel": "Sprache"

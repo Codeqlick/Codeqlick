@@ -8,7 +8,7 @@
  * The release publishes <name>.codeqlick.com (DNS, Nginx, certificate) by itself.
  */
 import { routing } from '@/i18n/routing';
-import { CODEQLICK_APPS, NEOQLICK_APPS, brandOfHost, type Brand } from './hosts';
+import { CODEQLICK_APPS, NEOQLICK_APPS, brandOfHost, neoqlickMainHost, type Brand } from './hosts';
 import { isCruisingOnlyLocale, localeOf } from './locales';
 
 export { CODEQLICK_APPS, NEOQLICK_APPS };
@@ -16,30 +16,58 @@ export { CODEQLICK_APPS, NEOQLICK_APPS };
 export const WEBAPPS = ['videochat', 'meetings', 'citas', 'swipe', 'cruising', 'cloud'] as const;
 export type Webapp = (typeof WEBAPPS)[number];
 
-/** The apps of a brand: Neoqlick's three, or (until PR C) every app on Codeqlick's hosts. */
+/** The apps of a brand: Neoqlick's three, or Codeqlick's three (architecture 4.18). */
 export function appsOfBrand(brand: Brand): readonly Webapp[] {
-  return brand === 'neoqlick' ? NEOQLICK_APPS : WEBAPPS;
+  return brand === 'neoqlick' ? NEOQLICK_APPS : CODEQLICK_APPS;
 }
 
-/** The 18+ apps, Neoqlick's (architecture 4.18; an alias until PR C removes it). */
-export const ADULT_WEBAPPS: readonly Webapp[] = NEOQLICK_APPS;
+/**
+ * The apps the "Apps" menu lists inside `current`: the other apps of its brand, and nothing of
+ * the other brand (the 18+ apps live on Neoqlick's hosts and Codeqlick's never list them).
+ */
+export function switcherApps(current: Webapp, brand: Brand = 'codeqlick'): { app: Webapp }[] {
+  return appsOfBrand(brand)
+    .filter((app) => app !== current)
+    .map((app) => ({ app }));
+}
 
 /**
- * The apps the "Apps" menu lists inside `current`. On a Neoqlick host the other two Neoqlick apps
- * and nothing of Codeqlick; on Codeqlick's hosts every other app from an 18+ app, only the apps
- * for everyone from the others, so a booking page never points at explicit content.
+ * Where a Neoqlick app's old address on Codeqlick's hosts goes (decision 130): the same path and
+ * query on `<app>.neoqlick.com`. `null` where there are no Neoqlick hosts (staging).
  */
-export function switcherApps(
-  current: Webapp,
-  brand: Brand = 'codeqlick',
-): { app: Webapp; adult: boolean }[] {
-  if (brand === 'neoqlick') {
-    return NEOQLICK_APPS.filter((app) => app !== current).map((app) => ({ app, adult: false }));
-  }
-  const adultContext = ADULT_WEBAPPS.includes(current);
-  return WEBAPPS.filter((app) => app !== current && (adultContext || !ADULT_WEBAPPS.includes(app)))
-    .map((app) => ({ app, adult: ADULT_WEBAPPS.includes(app) }))
-    .sort((a, b) => Number(a.adult) - Number(b.adult));
+function neoqlickAppUrl(
+  app: Webapp,
+  locale: string,
+  rest: string,
+  protocol: string,
+): string | null {
+  const main = neoqlickMainHost();
+  if (!main) return null;
+  return `${protocol}//${webappHost(app, main)}/${locale}${publicPath(app, rest)}`;
+}
+
+/**
+ * Safety net for the old app hosts (`cruising.codeqlick.com`…) while Nginx hasn't switched to its
+ * redirect blocks, and for any request that reaches the website on them: a permanent redirect to
+ * the same path and query on the Neoqlick host. `null` when `host` is not such a host.
+ */
+export function legacyAppHostRedirect(
+  pathname: string,
+  search: string,
+  host: string,
+  protocol: string,
+): string | null {
+  const first = host.split(':')[0]?.split('.')[0]?.toLowerCase();
+  const app = NEOQLICK_APPS.find((name) => name === first);
+  const main = neoqlickMainHost();
+  if (!app || !main || isIpHost(host) || brandOfHost(host) !== 'codeqlick') return null;
+  // `/{locale}/<app>/…` (the old address with the app's name) is the short one on the new host.
+  const prefix = localeOf(pathname);
+  const path =
+    prefix && prefix.section === app
+      ? `/${prefix.locale}${publicPath(app, pathname.slice(prefix.locale.length + 1))}`
+      : pathname;
+  return `${protocol}//${webappHost(app, main)}${path}${search}`;
 }
 
 /**
@@ -124,6 +152,13 @@ export function routeWebapp(
   const { locale, section } = prefix;
   const rest = pathname.slice(locale.length + 1); // '', '/', '/room', '/videochat/room'…
   const app = webappForHost(host);
+
+  // The 18+ apps left Codeqlick (4.18): their old addresses on the website go to Neoqlick's hosts.
+  const legacy = NEOQLICK_APPS.find((name) => name === section);
+  if (legacy && brandOfHost(host) === 'codeqlick' && !isIpHost(host)) {
+    const to = neoqlickAppUrl(legacy, locale, rest, protocol);
+    return to ? { action: 'redirect', to } : { action: 'pass' };
+  }
 
   if (app) {
     if (SHARED_PAGES.includes(section)) return { action: 'pass' };

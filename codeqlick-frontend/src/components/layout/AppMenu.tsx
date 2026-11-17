@@ -153,7 +153,7 @@ export async function AppMenu({ app, locale, config, user, verified, locales }: 
             {t('AppSwitcher.label')}
           </h2>
           <ul className={styles.list}>
-            {switcherApps(app, brand).map(({ app: other, adult }) => (
+            {switcherApps(app, brand).map(({ app: other }) => (
               <li key={other}>
                 <a
                   href={webappUrl(other, locale)}
@@ -164,7 +164,6 @@ export async function AppMenu({ app, locale, config, user, verified, locales }: 
                 >
                   <span className={styles.appHead}>
                     <span className={styles.appName}>{t(`AppSwitcher.apps.${other}.name`)}</span>
-                    {adult ? <span className={styles.adult}>+18</span> : null}
                   </span>
                   <span className={styles.appBody}>{t(`AppSwitcher.apps.${other}.body`)}</span>
                 </a>

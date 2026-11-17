@@ -38,6 +38,24 @@ test.describe('public site', () => {
     expect(response?.status()).toBe(404);
   });
 
+  test('the apps page lists Codeqlick’s apps only, and the sitemap no 18+ page', async ({
+    page,
+    request,
+  }) => {
+    await page.goto('/en/apps');
+    const apps = page.getByRole('region', { name: 'Codeqlick apps' });
+    await expect(apps.getByRole('heading', { level: 2 })).toHaveText([
+      'Meetings',
+      'Citas',
+      'Codeqlick Cloud',
+    ]);
+    await expect(
+      page.locator('a[href*="cruising"], a[href*="swipe"], a[href*="videochat"]'),
+    ).toHaveCount(0);
+    const sitemap = await (await request.get('/sitemap.xml')).text();
+    expect(sitemap).not.toMatch(/cruising|swipe|videochat|neoqlick/i);
+  });
+
   test('llms.txt maps the website for AI assistants', async ({ request }) => {
     const response = await request.get('/llms.txt');
     expect(response.status()).toBe(200);
