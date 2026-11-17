@@ -65,6 +65,7 @@ describe('the web app manifest', () => {
       const result = await manifest();
       expect(JSON.stringify(result), host).not.toMatch(/codeqlick/i);
       expect(result.theme_color, host).toBe('#7c3aed');
+      if (host === 'neoqlick.com') expect(result.description).toContain('Closer than you think');
       for (const icon of result.icons ?? []) {
         expect(icon.src, host).toMatch(/^\/neoqlick\//);
       }

@@ -7,7 +7,8 @@ import styles from '@/components/neoqlick/neoqlick.module.css';
 import { Button } from '@/components/ui/Button';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { siteLocale } from '@/i18n/routing';
-import { CONTACT_EMAIL_NEOQLICK } from '@/lib/brand';
+import { BRANDS, CONTACT_EMAIL_NEOQLICK } from '@/lib/brand';
+import { NEOQLICK_TAGLINE } from '@/lib/neoqlick-tagline';
 import { NEOQLICK_TRADE_NAME, neoqlickLegalOwner } from '@/lib/env';
 import { pageMetadata } from '@/lib/seo';
 import { neoqlickAccountUrl } from '@/lib/portal-links';
@@ -35,12 +36,18 @@ function Circles({ className }: { className: string }) {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Metadata' });
+  const base = await pageMetadata({
+    locale,
+    title: t('defaultTitle'),
+    description: `${t('description')} ${NEOQLICK_TAGLINE}`,
+  });
   return {
-    ...(await pageMetadata({
-      locale,
-      title: t('defaultTitle'),
-      description: t('description'),
-    })),
+    ...base,
+    openGraph: {
+      ...base.openGraph,
+      title: `Neoqlick — ${NEOQLICK_TAGLINE}`,
+      images: [{ ...BRANDS.neoqlick.ogImage, alt: `Neoqlick — ${NEOQLICK_TAGLINE}` }],
+    },
     title: { absolute: t('defaultTitle') },
     robots: { index: true, follow: true },
   };
@@ -127,6 +134,9 @@ export default async function PortalHomePage({ params }: PageProps) {
       <section className={styles.band} aria-labelledby="portal-account">
         <Circles className={`${styles.circles} ${styles.circlesLight}`} />
         <div className={styles.wrap}>
+          <p className={styles.bandTagline} lang="en">
+            {NEOQLICK_TAGLINE}
+          </p>
           <h2 id="portal-account">{t('accountTitle')}</h2>
           <p>{t('accountBody')}</p>
           <Button href={neoqlickAccountUrl(locale)} external>
