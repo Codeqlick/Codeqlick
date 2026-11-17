@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AdultModule } from '../adult/adult.module.js';
+import { AuthModule } from '../auth/auth.module.js';
 import { MulterModule } from '@nestjs/platform-express';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { CruisingAdminController } from './cruising-admin.controller.js';
@@ -53,6 +54,8 @@ import { CruisingService } from './cruising.service.js';
   imports: [
     // The shared safety of the 18+ apps (architecture 4.16).
     AdultModule,
+    // The account's username is the Cruising name by default (owner's feedback 2026-11-17).
+    AuthModule,
     // Uploads (up to 100 MB videos) are written to the private work folder as they arrive, never
     // held in memory; the service deletes each one or moves it into the transcoding queue.
     MulterModule.registerAsync({

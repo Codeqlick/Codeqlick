@@ -46,6 +46,7 @@ import {
   type CruisingConversationView,
   type CruisingFavoriteView,
   type CruisingMember,
+  type CruisingMemberActivity,
   type CruisingMessageView,
   type CruisingPresence,
 } from './cruising-social.service.js';
@@ -65,6 +66,16 @@ export class CruisingSocialController {
     @Param({ schema: nicknameParamSchema }) params: NicknameParam,
   ): Promise<CruisingMember> {
     return this.social.member(user.id, params.nickname);
+  }
+
+  /** Their reviews and LIVE spots, for the profile's tabs (architecture 4.15, profile pages). */
+  @Get('members/:nickname/activity')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  activity(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: nicknameParamSchema }) params: NicknameParam,
+  ): Promise<CruisingMemberActivity> {
+    return this.social.activity(user.id, params.nickname);
   }
 
   /** My active check-in, or JSON `null` (Nest would send an empty body for a null return). */

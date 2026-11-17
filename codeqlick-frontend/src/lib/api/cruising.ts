@@ -439,6 +439,36 @@ export async function getCruisingMember(nickname: string): Promise<CruisingMembe
   }
 }
 
+/** What a member gave the directory, for their profile's tabs (architecture 4.15, profile pages). */
+export type CruisingMemberActivity = {
+  /** Their LIVE reviews of LIVE spots, newest first (up to 20). */
+  reviews: {
+    id: string;
+    rating: number;
+    text: string | null;
+    createdAt: string;
+    helpful: number;
+    spot: { slug: string; name: string; city: string; countryCode: string };
+  }[];
+  /** The spots they proposed that are LIVE, newest first (up to 20). */
+  spots: (CruisingSpotSummary & { city: string; countryCode: string })[];
+};
+
+/** A member's reviews and LIVE spots, or null when the profile isn't there (404). */
+export async function getCruisingMemberActivity(
+  nickname: string,
+): Promise<CruisingMemberActivity | null> {
+  try {
+    return await apiFetch<CruisingMemberActivity>(
+      `/cruising/members/${encodeURIComponent(nickname)}/activity`,
+      { auth: 'required' },
+    );
+  } catch (error) {
+    if (isApiError(error) && error.status === 404) return null;
+    throw error;
+  }
+}
+
 /** My active check-in, or null. */
 export async function getMyCruisingCheckIn(): Promise<CruisingCheckIn | null> {
   return (

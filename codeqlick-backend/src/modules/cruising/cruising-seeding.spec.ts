@@ -12,6 +12,7 @@ import type { AdultSafetyService } from '../adult/adult-safety.service.js';
 import type { AdultVerificationService } from '../adult/adult-verification.service.js';
 import type { CruisingRoomsRepository } from './cruising-rooms.repository.js';
 import type { CruisingRepository } from './cruising.repository.js';
+import type { UsernameService } from '../auth/username.service.js';
 import { CruisingService } from './cruising.service.js';
 import {
   boxAround,
@@ -261,6 +262,7 @@ function build() {
     {} as unknown as AdultSafetyService,
     {} as unknown as AdultVerificationService,
     {} as unknown as AdultAdminService,
+    {} as unknown as UsernameService,
   );
   return { service, repo, activity };
 }

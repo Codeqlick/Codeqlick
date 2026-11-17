@@ -63,9 +63,18 @@ export function TourFormStep() {
  * it for good, and the chevron folds it down to its header. Each step's content is rendered on the
  * server.
  */
-export function TourSteps({ steps, finish }: { steps: TourStepContent[]; finish: FormAction }) {
+export function TourSteps({
+  steps,
+  finish,
+  start = 0,
+}: {
+  steps: TourStepContent[];
+  finish: FormAction;
+  /** The step it opens on (a member who already has a name starts after the name step). */
+  start?: number;
+}) {
   const t = useTranslations('Cruising.tour');
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(start);
   const [open, setOpen] = useState(true);
   const [pending, setPending] = useState(false);
   const moved = useRef(false);

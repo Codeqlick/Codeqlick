@@ -3888,7 +3888,7 @@
       "removed": "Contacto quitado.",
       "error": "No se ha podido quitar. Inténtalo de nuevo.",
       "since": "Contactos desde el {date}",
-      "anonymous": "Sin apodo",
+      "anonymous": "Sin nombre de usuario",
       "interests": "Intereses",
       "refresh": "Actualizar",
       "group": "Grupo"
@@ -3921,13 +3921,13 @@
     "verification": {
       "title": "Insignia de verificado",
       "status": {
-        "NONE": "Opcional: verifica tu perfil y quien hable contigo verá una insignia junto a tu apodo.",
+        "NONE": "Opcional: verifica tu perfil y quien hable contigo verá una insignia junto a tu nombre de usuario.",
         "PENDING": "Estamos revisando tu foto. Te avisaremos por email.",
-        "APPROVED": "Tu perfil está verificado en todas las apps +18 de Codeqlick: los demás ven la insignia junto a tu apodo.",
+        "APPROVED": "Tu perfil está verificado en todas las apps +18 de Codeqlick: los demás ven la insignia junto a tu nombre de usuario.",
         "REJECTED": "No hemos podido aprobar tu foto. Envía otra siguiendo las instrucciones."
       },
       "lead": "Hazte una foto sujetando un papel en el que se lea «{nickname}», «Codeqlick» y la fecha de hoy, con tu cara a la vista. Solo la ve el equipo y la guardamos en privado mientras la verificación siga vigente.",
-      "nicknameFirst": "Primero elige tu apodo arriba y guárdalo.",
+      "nicknameFirst": "Primero elige tu nombre de usuario arriba y guárdalo.",
       "pick": "Elige la foto",
       "consent": "Soy yo y la envío para verificar mi perfil.",
       "send": "Enviar para revisar",
@@ -4026,7 +4026,7 @@
       "reason": "Motivo (lo verá la persona)",
       "profile": "Perfil",
       "email": "Email",
-      "nickname": "Apodo",
+      "nickname": "Nombre de usuario",
       "gender": "Género",
       "seeking": "Quiere conocer a",
       "anyone": "Cualquiera",
@@ -4125,7 +4125,7 @@
       "back": "Volver a moderación",
       "empty": "Ahora mismo no hay ninguna cuenta sospechosa.",
       "score": "{score} puntos",
-      "noNickname": "Sin apodo",
+      "noNickname": "Sin nombre de usuario",
       "joined": "En el videochat desde {date}",
       "reasonsLabel": "Motivos",
       "reasons": {
@@ -4697,7 +4697,7 @@
       "how2Title": "Desliza",
       "how2": "Derecha o ♥ para dar like, izquierda o ✕ para pasar. En el ordenador, con las flechas.",
       "how3Title": "Comparte las tuyas, si quieres",
-      "how3": "Envía una foto de verificación con un papel con tu apodo. Cuando la aprobemos, podrás subir hasta 10 fotos. Revisamos cada una antes de publicarla.",
+      "how3": "Envía una foto de verificación con un papel con tu nombre de usuario. Cuando la aprobemos, podrás subir hasta 10 fotos. Revisamos cada una antes de publicarla.",
       "safetyTitle": "Seguridad",
       "safety1": "Revisamos cada foto antes de publicarla. Solo puede aparecer quien la sube, y tiene que ser claramente adulto.",
       "safety2": "Cualquier foto se puede denunciar. Si se denuncia por menor de edad o falta de consentimiento, se oculta al momento.",
@@ -4808,7 +4808,7 @@
       "blurPhotos": "Fotos borrosas hasta que las toque",
       "blurPhotosHint": "Útil si usas Swipe en sitios con gente alrededor.",
       "emailAlerts": "Avisarme por correo de matches, «me encanta» y mensajes",
-      "emailAlertsHint": "Los correos nunca muestran fotos, apodos ni mensajes. Los avisos del equipo (verificación, fotos) te llegan siempre.",
+      "emailAlertsHint": "Los correos nunca muestran fotos, nombres de usuario ni mensajes. Los avisos del equipo (verificación, fotos) te llegan siempre.",
       "nicknameTaken": "Ese nombre de usuario está ocupado. Prueba con otro.",
       "nicknameReserved": "Ese nombre no se puede usar. Prueba con otro."
     },
@@ -4821,7 +4821,7 @@
         "REJECTED": "No hemos aprobado tu foto de verificación. Envía otra siguiendo las instrucciones."
       },
       "lead": "Hazte una foto sujetando un papel en el que se lea «{nickname}», «Codeqlick» y la fecha de hoy. Tiene que verse bien tu cara o una marca que luego se vea en tus fotos (un tatuaje, por ejemplo). Solo la ve el equipo.",
-      "nicknameFirst": "Primero elige tu apodo en tu perfil y guárdalo.",
+      "nicknameFirst": "Primero elige tu nombre de usuario en tu perfil y guárdalo.",
       "pick": "Elige la foto",
       "consent": "Soy yo, soy mayor de 18 años y la envío para verificar mi cuenta.",
       "send": "Enviar para revisar",
@@ -4829,7 +4829,7 @@
       "shared": "Una sola verificación para todas las apps +18 de Codeqlick (Cruising, Swipe y Videochat): la insignia aparece en las tres. Guardamos la foto en privado mientras siga vigente (solo la ve el equipo) y la borramos si se retira o se pierde la verificación, si la sustituyes o si borras tu cuenta.",
       "errors": {
         "notAllowed": "No puedes enviarla ahora mismo.",
-        "conflict": "Ya tienes una foto pendiente o aprobada, o todavía no has elegido apodo."
+        "conflict": "Ya tienes una foto pendiente o aprobada, o todavía no has elegido nombre de usuario."
       }
     },
     "photos": {
@@ -4915,7 +4915,7 @@
       "rule8Title": "No copies",
       "rule8": "No hagas capturas ni compartas fotos de otras personas fuera de Swipe.",
       "privacyTitle": "Tus datos",
-      "privacy": "De tu fecha de nacimiento solo guardamos el año, para el filtro de edad. Tus fotos se guardan sin los datos de la cámara ni la ubicación, con tu apodo como marca de agua, y solo se ven dentro de Swipe. Puedes borrar cualquier foto cuando quieras, y si borras tu cuenta se borran todas.",
+      "privacy": "De tu fecha de nacimiento solo guardamos el año, para el filtro de edad. Tus fotos se guardan sin los datos de la cámara ni la ubicación, con tu nombre de usuario como marca de agua, y solo se ven dentro de Swipe. Puedes borrar cualquier foto cuando quieras, y si borras tu cuenta se borran todas.",
       "takedownTitle": "Retirada de fotos",
       "takedown": "Si encuentras una foto tuya que no has subido tú, o una foto que no debería estar aquí, cualquiera puede pedir que la retiremos, sin cuenta. Se oculta al momento si indicas su referencia, y respondemos en 24 horas.",
       "takedownLink": "Pedir la retirada de una foto",
@@ -5027,7 +5027,7 @@
     },
     "verifications": {
       "title": "Fotos de verificación",
-      "lead": "Comprueba que se lee el apodo, «Swipe» y una fecha reciente, y que la persona parece claramente adulta.",
+      "lead": "Comprueba que se lee el nombre de usuario, «Swipe» y una fecha reciente, y que la persona parece claramente adulta.",
       "alt": "Foto de verificación",
       "check": "Debe leerse «{nickname}», «Swipe» y una fecha reciente.",
       "note": "Nota para la persona (opcional)"
@@ -5432,7 +5432,7 @@
       "back": "Volver a mis lugares",
       "alertsTitle": "Correos",
       "alertsLabel": "Avisarme por correo cuando se publique un lugar mío o me esperen mensajes sin leer",
-      "alertsHint": "Las decisiones del equipo (un rechazo, una suspensión) siempre se envían por correo. Los correos nunca nombran un lugar, un apodo ni un mensaje.",
+      "alertsHint": "Las decisiones del equipo (un rechazo, una suspensión) siempre se envían por correo. Los correos nunca nombran un lugar, un nombre de usuario ni un mensaje.",
       "alertsSave": "Guardar",
       "alertsSaving": "Guardando…",
       "alertsSaved": "Guardado.",
@@ -5500,9 +5500,9 @@
     "me": {
       "title": "Mi perfil",
       "lead": "Lo que ven los demás miembros, tu registro de presencia, tus correos y las personas que has bloqueado.",
-      "leadNew": "Elige un apodo para marcar que estás en un lugar y para escribir a otros miembros. Nadie ve tu nombre ni tu correo.",
+      "leadNew": "Elige un nombre de usuario para marcar que estás en un lugar y para escribir a otros miembros. Nadie ve tu nombre ni tu correo.",
       "profileTitle": "Perfil",
-      "nickname": "Apodo",
+      "nickname": "Nombre de usuario",
       "nicknameHint": "De 3 a 20 caracteres: letras minúsculas, números y guiones bajos. Puedes cambiarlo más adelante.",
       "bio": "Sobre ti",
       "bioHint": "Hasta 160 caracteres. Solo texto: sin fotos, teléfonos, correos ni enlaces.",
@@ -5524,7 +5524,7 @@
       "ending": "Terminando…",
       "alertsTitle": "Correos",
       "alertsLabel": "Avisarme por correo cuando se publique un lugar mío o me esperen mensajes sin leer",
-      "alertsHint": "Las decisiones del equipo (un rechazo, una suspensión) siempre se envían por correo. Los correos nunca nombran un lugar, un apodo ni un mensaje.",
+      "alertsHint": "Las decisiones del equipo (un rechazo, una suspensión) siempre se envían por correo. Los correos nunca nombran un lugar, un nombre de usuario ni un mensaje.",
       "blocksTitle": "Miembros bloqueados",
       "blocksLead": "Los miembros bloqueados y tú no os veis en ninguna de las apps +18 de Codeqlick. Al desbloquear se deshace en las tres.",
       "blocksEmpty": "No has bloqueado a nadie.",
@@ -5534,8 +5534,8 @@
       "unblocked": "Desbloqueado.",
       "blockedDone": "Bloqueado. Ya no os veis y la conversación se ha borrado.",
       "nicknameInvalid": "Usa de 3 a 20 caracteres: letras minúsculas, números y guiones bajos.",
-      "nicknameTaken": "Ese apodo ya está cogido. Prueba con otro.",
-      "nicknameRefused": "Ese apodo no está permitido. Prueba con otro.",
+      "nicknameTaken": "Ese nombre de usuario ya está cogido. Prueba con otro.",
+      "nicknameRefused": "Ese nombre de usuario no está permitido. Prueba con otro.",
       "bioLong": "Usa 160 caracteres o menos.",
       "countryInvalid": "Elige un país de la lista.",
       "notAllowed": "Necesitas haber entrado en Cruising y no estar suspendido para cambiar tu perfil.",
@@ -5545,14 +5545,42 @@
       "nicknameVerifiedNote": "Si lo cambias, se retira tu insignia de Verificado hasta que te verifiques de nuevo.",
       "contributions": "Tus aportaciones",
       "tourTitle": "Primeros pasos",
-      "tourLead": "El recorrido corto que viste al entrar: tu apodo, tus sitios favoritos, las notificaciones y tus fotos.",
+      "tourLead": "El recorrido corto que viste al entrar: tu nombre de usuario, tus sitios favoritos, las notificaciones y tus fotos.",
       "tourReopen": "Ver el recorrido otra vez",
       "languageTitle": "Idioma",
       "languageLead": "El idioma de los correos de Cruising y de las notificaciones en tus dispositivos. Los correos del resto de Codeqlick llegan en inglés si no eliges español.",
       "languageLabel": "Idioma de los correos y las notificaciones",
       "languageInvalid": "Elige un idioma de la lista.",
       "blockedOnIn": "bloqueado en {app} el {date}",
-      "blockOtherApp": "Un miembro de otra app +18"
+      "blockOtherApp": "Un miembro de otra app +18",
+      "sectionsLabel": "Secciones del perfil",
+      "sections": {
+        "profile": "Perfil",
+        "photos": "Fotos y vídeos",
+        "verification": "Verificación",
+        "notifications": "Notificaciones",
+        "safety": "Seguridad",
+        "privacy": "Privacidad"
+      },
+      "previewTitle": "Cómo te ven los demás",
+      "completeTitle": "Perfil completado",
+      "completeValue": "{done} de {total} hechos",
+      "completeDone": "Tu perfil está completo.",
+      "missingLead": "Falta:",
+      "gaps": {
+        "nickname": "Un nombre de usuario",
+        "photo": "Una foto",
+        "bio": "Una descripción",
+        "lookingFor": "Qué buscas",
+        "country": "Tu país",
+        "verification": "La verificación"
+      },
+      "dataTitle": "Tus datos y tu cuenta",
+      "dataLead": "Descarga lo que Codeqlick guarda sobre ti, Cruising incluido, o cambia tu correo, tu contraseña y cómo inicias sesión.",
+      "dataExport": "Descargar mis datos",
+      "accountSettings": "Ajustes de la cuenta",
+      "yourName": "Tu nombre de usuario: @{nickname}",
+      "useOther": "Usar otro nombre en Cruising"
     },
     "presence": {
       "title": "Aquí ahora",
@@ -5561,7 +5589,7 @@
       "hours": "{count, plural, one {# hora} other {# horas}}",
       "duration": "¿Cuánto tiempo?",
       "anonymous": "Anónimo",
-      "anonymousHint": "Cuentas en el total, pero tu apodo no aparece en la lista.",
+      "anonymousHint": "Cuentas en el total, pero tu nombre de usuario no aparece en la lista.",
       "anonymousNote": "(anónimo)",
       "checkIn": "Estoy aquí",
       "renew": "Renovar mi registro",
@@ -5573,8 +5601,8 @@
       "ended": "Tu registro ha terminado.",
       "checkedIn": "Ya figuras aquí.",
       "privacy": "Un registro es solo este lugar y una hora. Tu posición nunca se pide ni se guarda.",
-      "needNickname": "Elige un apodo para marcar que estás aquí y para ver quién hay.",
-      "chooseNickname": "Elegir un apodo",
+      "needNickname": "Elige un nombre de usuario para marcar que estás aquí y para ver quién hay.",
+      "chooseNickname": "Elegir un nombre de usuario",
       "error": "No hemos podido hacerlo. Inténtalo de nuevo.",
       "gone": "Este lugar ya no está disponible.",
       "tooManyToday": "Has llegado al límite de registros de hoy. Inténtalo mañana.",
@@ -5599,7 +5627,20 @@
       "notFound": "Este miembro no está disponible.",
       "tooManyConversations": "Has llegado al límite de conversaciones nuevas de hoy. Inténtalo mañana.",
       "notAllowed": "Necesitas haber entrado en Cruising y no estar suspendido para enviar mensajes.",
-      "contributions": "Aportaciones"
+      "contributions": "Aportaciones",
+      "moreActions": "Más acciones",
+      "sectionsLabel": "Secciones del perfil",
+      "sections": {
+        "photos": "Fotos",
+        "reviews": "Reseñas",
+        "spots": "Sitios",
+        "meetups": "Quedadas"
+      },
+      "photosEmpty": "{nickname} aún no ha subido fotos.",
+      "reviewsEmpty": "Aún no hay reseñas.",
+      "spotsEmpty": "Aún no hay sitios publicados.",
+      "meetupsEmpty": "No hay quedadas próximas.",
+      "loadError": "No se ha podido cargar esta parte del perfil. Inténtalo más tarde."
     },
     "messages": {
       "title": "Mensajes",
@@ -5636,12 +5677,12 @@
     },
     "verified": {
       "label": "Verificado",
-      "help": "El equipo ha comprobado una foto de esta persona sujetando su apodo: el perfil es suyo y es mayor de edad"
+      "help": "El equipo ha comprobado una foto de esta persona sujetando su nombre de usuario: el perfil es suyo y es mayor de edad"
     },
     "verification": {
       "title": "Verificación",
       "lead": "Opcional: consigue la insignia de Verificado, para que los demás miembros sepan que tu perfil es tuyo y que eres adulto. Envías una sola foto tuya, una vez, y vale para todas las apps +18 de Codeqlick (Cruising, Swipe y Videochat).",
-      "step1": "Un papel con tu apodo, «Codeqlick» y la fecha de hoy",
+      "step1": "Un papel con tu nombre de usuario, «Codeqlick» y la fecha de hoy",
       "step2": "Tú sujetándolo, con la cara visible",
       "step3": "Con buena luz y nítida",
       "privacy": "Solo el equipo ve esta foto. Mientras la verificación siga vigente la guardamos en privado; se borra si se retira o se pierde la verificación, si la sustituyes o si borras tu cuenta. No pedimos ningún documento de identidad, y la insignia no significa que se haya comprobado uno.",
@@ -5652,13 +5693,13 @@
       "sending": "Enviando…",
       "sent": "Enviada. El equipo la revisará y te escribiremos por correo.",
       "pending": "Tu foto espera la revisión del equipo. Te escribiremos por correo cuando esté lista.",
-      "approved": "El equipo ha aprobado tu foto: tu perfil muestra la insignia de Verificado en todas las apps +18 de Codeqlick. Si el nombre de tu papel deja de ser uno de tus nombres en estas apps, por ejemplo al cambiar de apodo, se retira la insignia y tendrás que verificarte de nuevo.",
+      "approved": "El equipo ha aprobado tu foto: tu perfil muestra la insignia de Verificado en todas las apps +18 de Codeqlick. Si el nombre de tu papel deja de ser uno de tus nombres en estas apps, por ejemplo al cambiar de nombre de usuario, se retira la insignia y tendrás que verificarte de nuevo.",
       "rejected": "El equipo no ha podido aprobar tu foto.",
       "rejectedNote": "Motivo: {note}",
       "errors": {
         "invalid": "Eso no parece una foto que podamos usar. Usa una imagen JPEG, PNG o WebP.",
         "notAllowed": "Ahora mismo no puedes enviarla.",
-        "conflict": "Ya tienes una foto pendiente o aprobada, o aún no has elegido un apodo.",
+        "conflict": "Ya tienes una foto pendiente o aprobada, o aún no has elegido un nombre de usuario.",
         "tooLarge": "La foto es demasiado grande.",
         "tooManyToday": "Has enviado demasiadas fotos hoy. Inténtalo mañana.",
         "error": "Algo ha salido mal. Inténtalo de nuevo."
@@ -5815,7 +5856,7 @@
       "imGoing": "Voy",
       "notGoing": "Ya no voy",
       "anonymous": "Anónimo",
-      "anonymousHint": "Cuentas en el total, pero tu apodo no aparece.",
+      "anonymousHint": "Cuentas en el total, pero tu nombre de usuario no aparece.",
       "youAreGoing": "Vas a ir.",
       "youAreGoingAnonymous": "Vas a ir (anónimo).",
       "saving": "Guardando…",
@@ -5841,8 +5882,8 @@
       "planning": "Organizando…",
       "planned": "Tu quedada está organizada.",
       "refused": "Por tu seguridad, aquí no se pueden compartir teléfonos, correos, enlaces ni otras apps. Revisa también la hora.",
-      "needNickname": "Elige un apodo para organizar quedadas y decir que vas.",
-      "chooseNickname": "Elegir un apodo",
+      "needNickname": "Elige un nombre de usuario para organizar quedadas y decir que vas.",
+      "chooseNickname": "Elegir un nombre de usuario",
       "tooManyThisWeek": "Puedes organizar 3 quedadas a la semana. Vuelve a intentarlo en unos días.",
       "notAllowed": "Tienes que entrar en Cruising y no estar suspendido para hacerlo.",
       "spotGone": "Este lugar ya no está disponible.",
@@ -5930,7 +5971,7 @@
       "alreadyVoted": "Ya has dicho algo sobre esta alerta.",
       "ended": "Esta alerta ha terminado.",
       "postOpen": "Publicar una alerta de seguridad",
-      "postLead": "Avisa a los demás miembros de lo que pasa aquí ahora. Tu apodo nunca aparece con ella. Dura 6 horas (un lugar cerrado, 7 días); las confirmaciones la alargan.",
+      "postLead": "Avisa a los demás miembros de lo que pasa aquí ahora. Tu nombre de usuario nunca aparece con ella. Dura 6 horas (un lugar cerrado, 7 días); las confirmaciones la alargan.",
       "kind": "¿Qué pasa?",
       "kindPlaceholder": "Elige una opción",
       "note": "Nota",
@@ -6016,7 +6057,7 @@
       "revoked": "{nickname} ya no puede ver tu álbum privado.",
       "error": "Algo salió mal. Inténtalo de nuevo.",
       "gone": "Solo puedes compartirlo con un miembro con quien tengas una conversación.",
-      "needNickname": "Elige primero tu apodo en tu perfil.",
+      "needNickname": "Elige primero tu nombre de usuario en tu perfil.",
       "theirsOpen": "Álbum privado de {nickname} ({count})"
     },
     "rooms": {
@@ -6025,7 +6066,7 @@
       "cityLink": "{city}, {country}",
       "roomTitle": "Chat de {city}, {country}",
       "roomLead": "Los miembros que han entrado hablan aquí de la ciudad. Sé amable: sin datos de contacto, enlaces ni fotos, y nada sobre quien no está aquí.",
-      "chooseNickname": "Elige un apodo en tu perfil para escribir aquí.",
+      "chooseNickname": "Elige un nombre de usuario en tu perfil para escribir aquí.",
       "listLabel": "Mensajes en {city}",
       "empty": "Todavía nadie ha escrito en {city}. Saluda.",
       "you": "Tú",
@@ -6036,7 +6077,7 @@
       "rules": "Solo texto, hasta 500 caracteres. Aquí nunca se permiten teléfonos, correos, enlaces ni otras apps. Los mensajes se guardan 7 días. Puedes denunciar cualquier mensaje.",
       "gone": "Este chat ya no está disponible.",
       "refusal": {
-        "nickname": "Elige un apodo en tu perfil para escribir aquí.",
+        "nickname": "Elige un nombre de usuario en tu perfil para escribir aquí.",
         "newAccount": "Podrás escribir cuando tu cuenta tenga 24 horas. Mientras tanto puedes leer el chat.",
         "muted": "El equipo te ha silenciado en los chats de ciudad.",
         "mutedUntil": "El equipo te ha silenciado en los chats de ciudad hasta el {date}.",
@@ -6045,7 +6086,7 @@
       "errors": {
         "contact": "En los chats de ciudad no se pueden compartir teléfonos, correos, enlaces ni otras apps.",
         "refused": "Ahora no puedes escribir: tu cuenta es nueva, está silenciada o suspendida.",
-        "nickname": "Elige primero un apodo en tu perfil.",
+        "nickname": "Elige primero un nombre de usuario en tu perfil.",
         "rate": "Estás escribiendo demasiado rápido. Espera un momento.",
         "gone": "Este chat ya no está disponible.",
         "session": "Tu sesión ha caducado. Recarga la página e inicia sesión de nuevo.",
@@ -6072,8 +6113,8 @@
       "toggle": "Pasos del recorrido",
       "saving": "Un momento…",
       "error": "No ha funcionado. Inténtalo de nuevo.",
-      "nicknameTitle": "Elige un apodo",
-      "nicknameLead": "Tu apodo es cómo te ven los demás. Lo necesitas para hacer check-in, valorar sitios y enviar mensajes. No uses nunca tu nombre real.",
+      "nicknameTitle": "Elige un nombre de usuario",
+      "nicknameLead": "Tu nombre de usuario es cómo te ven los demás. Lo necesitas para hacer check-in, valorar sitios y enviar mensajes. No uses nunca tu nombre real.",
       "nicknameDone": "Eres {nickname}. Puedes cambiarlo cuando quieras.",
       "countryHint": "Te sugerimos sitios de tu país.",
       "favoritesTitle": "Guarda tus sitios favoritos",
@@ -6088,7 +6129,7 @@
       "addPhoto": "Añadir una foto",
       "verify": "Verificarme",
       "verifiedAlready": "Ya tienes la verificación.",
-      "profileNeedsNickname": "Elige primero un apodo (paso 1) para añadir fotos o verificarte."
+      "profileNeedsNickname": "Elige primero un nombre de usuario (paso 1) para añadir fotos o verificarte."
     },
     "notifications": {
       "title": "Notificaciones",
@@ -6139,7 +6180,7 @@
       "sent": "Guiño enviado.",
       "tooMany": "Has llegado al límite de 30 guiños de hoy. Vuelve a intentarlo mañana.",
       "notFound": "Este miembro no está disponible.",
-      "needNickname": "Elige antes un apodo.",
+      "needNickname": "Elige antes un nombre de usuario.",
       "notAllowed": "Para guiñar un ojo tienes que haber entrado en Cruising y no estar suspendido.",
       "error": "Algo ha fallado. Inténtalo de nuevo."
     },
@@ -6377,7 +6418,7 @@
   "CruisingSafety": {
     "contacts": {
       "title": "Contactos de confianza",
-      "lead": "Hasta 2 personas de fuera de la app que reciben un email si tu temporizador de seguridad se agota. Primero reciben una invitación de «Alertas de seguridad de Codeqlick» y tienen que aceptarla. Los emails nunca mencionan Cruising ni tu apodo: te nombran como elijas aquí.",
+      "lead": "Hasta 2 personas de fuera de la app que reciben un email si tu temporizador de seguridad se agota. Primero reciben una invitación de «Alertas de seguridad de Codeqlick» y tienen que aceptarla. Los emails nunca mencionan Cruising ni tu nombre de usuario: te nombran como elijas aquí.",
       "loadError": "No hemos podido cargar tus contactos. Inténtalo más tarde.",
       "namedAs": "Te conoce como {name}",
       "statuses": {
@@ -6393,7 +6434,7 @@
       "email": "Su email",
       "emailHint": "Recibe una invitación y, si la acepta, solo las alertas de tu temporizador.",
       "displayName": "Tu nombre para esa persona",
-      "displayNameHint": "Cómo te nombran los emails, hasta 40 caracteres: tu nombre de pila, por ejemplo. Nunca tu apodo.",
+      "displayNameHint": "Cómo te nombran los emails, hasta 40 caracteres: tu nombre de pila, por ejemplo. Nunca tu nombre de usuario.",
       "add": "Enviar la invitación",
       "adding": "Enviando…",
       "added": "Invitación enviada. Tu temporizador podrá avisarle cuando acepte.",

@@ -306,7 +306,9 @@ export class CruisingCommunityService implements OnApplicationBootstrap, OnAppli
 
   /**
    * Upcoming meetups: at a spot, in a city or a country, or, with no filter, at my favourite spots,
-   * in my country and my trips' countries, and the ones I host or go to.
+   * in my country and my trips' countries, and the ones I host or go to. With `member`, a
+   * profile's: the ones that member hosts or goes to without being anonymous (`404` for an unknown,
+   * suspended or blocked member, like their profile).
    */
   async meetups(
     userId: string,
@@ -314,8 +316,19 @@ export class CruisingCommunityService implements OnApplicationBootstrap, OnAppli
     now = new Date(),
   ): Promise<{ items: CruisingMeetupView[] }> {
     const me = await this.entered(userId);
+    const hidden = await this.repository.hiddenIds(userId);
     let scope: MeetupScope;
-    if (query.spotId) scope = { spotIds: [query.spotId] };
+    if (query.member) {
+      const target = await this.repository.findProfileByNickname(query.member);
+      if (
+        !target?.nickname ||
+        isSuspended(target, now) ||
+        (target.userId !== userId && hidden.includes(target.userId))
+      ) {
+        throw new NotFoundException('Member not found');
+      }
+      scope = { publicMemberId: target.userId };
+    } else if (query.spotId) scope = { spotIds: [query.spotId] };
     else if (query.countryCode) {
       scope = { countryCode: query.countryCode, citySlug: query.citySlug };
     } else {
@@ -329,7 +342,6 @@ export class CruisingCommunityService implements OnApplicationBootstrap, OnAppli
         memberId: userId,
       };
     }
-    const hidden = await this.repository.hiddenIds(userId);
     const rows = await this.community.upcomingMeetups(scope, now, hidden, MAX_MEETUPS_LISTED);
     const hiddenSet = new Set(hidden);
     return { items: rows.map((row) => this.meetupView(row, userId, hiddenSet, now)) };

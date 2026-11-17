@@ -23,13 +23,13 @@ Swipe contiene desnudos y contenido sexual explícito. Para entrar declaras que 
 
 ## Tu cuenta
 
-Necesitas una cuenta verificada por correo. Eres responsable de lo que hagas con ella. Antes de subir fotos nos envías una foto tuya con un papel con tu apodo, «Codeqlick» y la fecha; el equipo la revisa y solo la ve el equipo. Es una sola verificación para las tres apps +18 de Codeqlick y la foto se guarda en privado mientras siga vigente.
+Necesitas una cuenta verificada por correo. Eres responsable de lo que hagas con ella. Antes de subir fotos nos envías una foto tuya con un papel con tu nombre de usuario, «Codeqlick» y la fecha; el equipo la revisa y solo la ve el equipo. Es una sola verificación para las tres apps +18 de Codeqlick y la foto se guarda en privado mientras siga vigente.
 
 ## Lo que subes
 
 - Solo fotos **tuyas**, en las que apareces **solo tú**, tomadas por ti o con tu permiso, y solo si eres mayor de edad.
 - Nada de terceros, menores, violencia, actos no consentidos, contenido ilegal, datos de contacto ni publicidad.
-- Cada foto pasa por la revisión del equipo antes de publicarse, y la guardamos con tu apodo, su referencia y swipe.codeqlick.com como marca de agua.
+- Cada foto pasa por la revisión del equipo antes de publicarse, y la guardamos con tu nombre de usuario, su referencia y swipe.codeqlick.com como marca de agua.
 - Sigues siendo dueño de tus fotos. Nos das permiso, no exclusivo y gratuito, para guardarlas, marcarlas y mostrarlas a otros miembros dentro de Swipe mientras no las borres. Puedes borrarlas cuando quieras.
 
 ## Cómo te comportas
@@ -64,13 +64,13 @@ Swipe contains nudity and explicit sexual content. By entering you declare that 
 
 ## Your account
 
-You need an account with a verified email. You are responsible for what you do with it. Before uploading photos you send us a photo of yourself holding a paper with your nickname, "Codeqlick" and the date; the team reviews it and only the team sees it. It is one verification for all three of Codeqlick's 18+ apps and the photo is kept privately while it stands.
+You need an account with a verified email. You are responsible for what you do with it. Before uploading photos you send us a photo of yourself holding a paper with your username, "Codeqlick" and the date; the team reviews it and only the team sees it. It is one verification for all three of Codeqlick's 18+ apps and the photo is kept privately while it stands.
 
 ## What you upload
 
 - Only photos **of yourself**, where **only you** appear, taken by you or with your permission, and only if you are an adult.
 - No third parties, minors, violence, non-consensual acts, illegal content, contact details or advertising.
-- Every photo is reviewed by the team before it is published, and we store it with your nickname, its reference and swipe.codeqlick.com as a watermark.
+- Every photo is reviewed by the team before it is published, and we store it with your username, its reference and swipe.codeqlick.com as a watermark.
 - You still own your photos. You give us a free, non-exclusive permission to store, mark and show them to other members inside Swipe until you delete them. You can delete them whenever you like.
 
 ## How you behave
@@ -108,7 +108,7 @@ Las fotos íntimas y lo que indicas sobre a quién quieres ver revelan aspectos 
 
 - **Cuenta:** nombre, correo, contraseña (cifrada) e idioma, para darte acceso (artículo 6.1.b).
 - **Edad:** compruebas tu fecha de nacimiento al entrar, pero **solo guardamos el año**, para el filtro de edad.
-- **Perfil:** apodo, género, a quién quieres ver, intereses, una frase, país (opcional) y tus filtros y preferencias.
+- **Perfil:** nombre de usuario, género, a quién quieres ver, intereses, una frase, país (opcional) y tus filtros y preferencias.
 - **Foto de verificación:** solo para comprobar que eres tú y que eres adulto; solo la ve el equipo. Si se aprueba, se guarda en privado mientras la verificación siga vigente (y la usamos para comparar las fotos nuevas que subes) y se borra cuando se retira o se pierde, se sustituye o borras tu cuenta; la verificación se comparte con las otras apps +18 de Codeqlick.
 - **Fotos:** las guardamos sin metadatos (sin datos de la cámara ni ubicación), con una marca de agua, y una huella para impedir que una foto retirada se vuelva a subir.
 - **Actividad:** los «me gusta» y «me encanta», los matches, los mensajes, las denuncias y las solicitudes de retirada.
@@ -117,11 +117,11 @@ Las fotos íntimas y lo que indicas sobre a quién quieres ver revelan aspectos 
 
 ## Correos y notificaciones
 
-Te escribimos cuando el equipo revisa tu verificación o una foto, cuando tienes un match, un «me encanta» o mensajes sin leer. Los correos nunca incluyen fotos, apodos ni mensajes. Puedes desactivar los de matches, «me encanta» y mensajes en tu perfil; las decisiones del equipo te las enviamos siempre.
+Te escribimos cuando el equipo revisa tu verificación o una foto, cuando tienes un match, un «me encanta» o mensajes sin leer. Los correos nunca incluyen fotos, nombres de usuario ni mensajes. Puedes desactivar los de matches, «me encanta» y mensajes en tu perfil; las decisiones del equipo te las enviamos siempre.
 
 ## Quién ve tus datos
 
-Tus fotos publicadas las ven otros miembros adultos de Swipe, con tu apodo, género, intereses y frase; nunca tu nombre ni tu correo. Las pendientes y la verificación solo las ve el equipo. No vendemos ni cedemos datos a nadie, salvo obligación legal (por ejemplo, ante una orden judicial o para denunciar contenido de menores). El único encargado del tratamiento es **OVHcloud**, que aloja el servicio, la base de datos y el correo en servidores de la Unión Europea.
+Tus fotos publicadas las ven otros miembros adultos de Swipe, con tu nombre de usuario, género, intereses y frase; nunca tu nombre ni tu correo. Las pendientes y la verificación solo las ve el equipo. No vendemos ni cedemos datos a nadie, salvo obligación legal (por ejemplo, ante una orden judicial o para denunciar contenido de menores). El único encargado del tratamiento es **OVHcloud**, que aloja el servicio, la base de datos y el correo en servidores de la Unión Europea.
 
 ## Cuánto tiempo los guardamos
 
@@ -147,7 +147,7 @@ Intimate photos and what you say about whom you want to see reveal your **sex li
 
 - **Account:** name, email, password (hashed) and language, to give you access (article 6.1.b).
 - **Age:** you confirm your date of birth when you enter, but **we only keep the year**, for the age filter.
-- **Profile:** nickname, gender, whom you want to see, interests, a sentence, country (optional) and your filters and preferences.
+- **Profile:** username, gender, whom you want to see, interests, a sentence, country (optional) and your filters and preferences.
 - **Verification photo:** only to check that it is you and that you are an adult; only the team sees it. If approved, it is kept privately while the verification stands (and we use it to compare the new photos you upload) and deleted when it is withdrawn or lost, replaced or when you delete your account; the verification is shared with Codeqlick's other 18+ apps.
 - **Photos:** stored without metadata (no camera data or location), with a watermark, and a fingerprint so a removed photo can't be uploaded again.
 - **Activity:** likes and «me encanta», matches, messages, reports and removal requests.
@@ -156,11 +156,11 @@ Intimate photos and what you say about whom you want to see reveal your **sex li
 
 ## Emails and notifications
 
-We write when the team reviews your verification or a photo, and when you have a match, a «me encanta» or unread messages. Emails never include photos, nicknames or messages. You can turn off the match, «me encanta» and message emails in your profile; the team's decisions are always sent.
+We write when the team reviews your verification or a photo, and when you have a match, a «me encanta» or unread messages. Emails never include photos, usernames or messages. You can turn off the match, «me encanta» and message emails in your profile; the team's decisions are always sent.
 
 ## Who sees your data
 
-Your published photos are seen by other adult Swipe members, with your nickname, gender, interests and sentence; never your name or email. Pending photos and the verification are only seen by the team. We don't sell or hand over data to anyone, unless the law requires it (for example, a court order or reporting content involving minors). The only data processor is **OVHcloud**, which hosts the service, the database and the email on servers in the European Union.
+Your published photos are seen by other adult Swipe members, with your username, gender, interests and sentence; never your name or email. Pending photos and the verification are only seen by the team. We don't sell or hand over data to anyone, unless the law requires it (for example, a court order or reporting content involving minors). The only data processor is **OVHcloud**, which hosts the service, the database and the email on servers in the European Union.
 
 ## How long we keep it
 
