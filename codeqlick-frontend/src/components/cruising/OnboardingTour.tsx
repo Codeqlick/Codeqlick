@@ -7,7 +7,6 @@ import {
 import { finishTourAction } from '@/app/[locale]/cruising/onboarding-actions';
 import { ActionForm, FormInput, FormSelect } from '@/components/app/ActionForm';
 import { PushToggle } from '@/components/videochat/PushToggle';
-import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { siteLocale, type AppLocale } from '@/i18n/routing';
 import { listCruisingFavorites, type CruisingStatus } from '@/lib/api/cruising';
@@ -15,7 +14,10 @@ import { listCruisingSuggestions } from '@/lib/api/cruising-stats';
 import { CRUISING_COUNTRIES, countryName, formatRating, spotHref, type Bbox } from '@/lib/cruising';
 import styles from './CruisingTour.module.css';
 import { FavoriteStar } from './FavoriteStar';
-import { TourSteps, type TourStepContent } from './TourSteps';
+import { TourFormStep, TourSteps, type TourStepContent } from './TourSteps';
+
+/** The nickname step's form: the tour's "Save and continue" submits it. */
+const TOUR_PROFILE_FORM = 'cruising-tour-profile';
 
 /**
  * The onboarding tour (decision 102), shown on the map after entering until it is finished or
@@ -52,11 +54,16 @@ export async function OnboardingTour({
     {
       id: 'nickname',
       title: t('nicknameTitle'),
+      formId: TOUR_PROFILE_FORM,
       content: (
         <>
           <p>{profile ? t('nicknameDone', { nickname: profile.nickname }) : t('nicknameLead')}</p>
           {/* The /me profile form's action: the fields not shown here keep their values. */}
-          <ActionForm action={profileAction.bind(null, locale)} className={styles.body}>
+          <ActionForm
+            action={profileAction.bind(null, locale)}
+            id={TOUR_PROFILE_FORM}
+            className={styles.fields}
+          >
             <FormInput
               id="tour-nickname"
               name="nickname"
@@ -85,9 +92,7 @@ export async function OnboardingTour({
               <input key={value} type="hidden" name="lookingFor" value={value} />
             ))}
             {(profile?.showAge ?? true) ? <input type="hidden" name="showAge" value="on" /> : null}
-            <SubmitButton size="sm" pendingLabel={tm('saving')}>
-              {tm('save')}
-            </SubmitButton>
+            <TourFormStep />
           </ActionForm>
         </>
       ),

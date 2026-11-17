@@ -11,6 +11,7 @@ import styles from './CruisingCommunity.module.css';
 import { LocalTime } from './LocalTime';
 import { MemberName } from './MemberName';
 import { ReportDetails } from './ReportDetails';
+import card from './CruisingCard.module.css';
 
 type MeetupCardProps = {
   locale: AppLocale;
@@ -38,8 +39,8 @@ export async function MeetupCard({
   const Heading = headingLevel;
   const prefix = `meetup-${meetup.id}`;
   return (
-    <article className={styles.card} aria-labelledby={`${prefix}-title`}>
-      <Heading id={`${prefix}-title`} className={styles.cardTitle}>
+    <article className={card.card} aria-labelledby={`${prefix}-title`}>
+      <Heading id={`${prefix}-title`} className={card.title}>
         {meetup.title}
       </Heading>
       <p className={styles.meta}>

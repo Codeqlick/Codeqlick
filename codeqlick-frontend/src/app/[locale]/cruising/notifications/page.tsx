@@ -4,6 +4,7 @@ import { ActionForm } from '@/components/app/ActionForm';
 import styles from '@/components/cruising/Cruising.module.css';
 import { MemberName } from '@/components/cruising/MemberName';
 import { SubmitButton } from '@/components/ui/SubmitButton';
+import card from '@/components/cruising/CruisingCard.module.css';
 import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import type { AppLocale } from '@/i18n/routing';
@@ -126,7 +127,7 @@ async function NotificationRow({
   const href = notificationHref(item);
   return (
     <li
-      className={[styles.notificationItem, item.read ? '' : styles.notificationUnread]
+      className={[card.card, styles.notificationItem, item.read ? '' : card.unread]
         .filter(Boolean)
         .join(' ')}
     >
@@ -163,7 +164,7 @@ async function WinksView({ locale, hasNickname }: { locale: AppLocale; hasNickna
       ) : (
         <ul className={styles.notificationList}>
           {winks.map((wink) => (
-            <li key={wink.nickname} className={styles.notificationItem}>
+            <li key={wink.nickname} className={`${card.card} ${styles.notificationItem}`}>
               <span>
                 <MemberName locale={locale} member={{ ...wink, coverId: null }}>
                   <Link href={memberHref(wink.nickname)} className={vc.inlineLink}>
@@ -222,7 +223,7 @@ async function VisitorsView({ locale }: { locale: AppLocale }) {
           <p className={vc.muted}>{t('lead')}</p>
           <ul className={styles.notificationList}>
             {visits.items.map((visitor) => (
-              <li key={visitor.nickname} className={styles.notificationItem}>
+              <li key={visitor.nickname} className={`${card.card} ${styles.notificationItem}`}>
                 <MemberName locale={locale} member={{ ...visitor, coverId: null }}>
                   <Link href={memberHref(visitor.nickname)} className={vc.inlineLink}>
                     {visitor.nickname}

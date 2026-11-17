@@ -6,6 +6,7 @@ import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import styles from '@/components/cruising/Cruising.module.css';
+import card from '@/components/cruising/CruisingCard.module.css';
 import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingStatus, listMyCruisingSpots } from '@/lib/api/cruising';
@@ -56,12 +57,12 @@ export default async function CruisingMySpotsPage({ params, searchParams }: Page
       {spots.length === 0 ? (
         <p>{t('empty')}</p>
       ) : (
-        <ul className={styles.spotList}>
+        <ul className={card.grid}>
           {spots.map((spot) => {
             const editable = spot.status === 'PENDING' || spot.status === 'REJECTED';
             return (
-              <li key={spot.id} className={styles.spotCard}>
-                <h2 className={styles.subTitle}>
+              <li key={spot.id} className={card.card}>
+                <h2 className={card.title}>
                   {spot.status === 'LIVE' ? (
                     <Link href={spotHref(spot.slug)} className={vc.inlineLink}>
                       {spot.name}
@@ -71,7 +72,7 @@ export default async function CruisingMySpotsPage({ params, searchParams }: Page
                   )}{' '}
                   <Badge tone={TONES[spot.status]}>{t(`status.${spot.status}`)}</Badge>
                 </h2>
-                <p className={styles.spotMeta}>
+                <p className={card.meta}>
                   <span className={styles.typeTag}>{tt(spot.type)}</span>
                   <span>
                     {spot.city}, {countryName(spot.countryCode, locale)}

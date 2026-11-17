@@ -18,6 +18,7 @@ import {
 import { firstParam } from '@/lib/format';
 import { requestWebapp } from '@/lib/webapp-request';
 import { webappAlternates, webappPath } from '@/lib/webapp-seo';
+import styles from '@/components/cruising/Cruising.module.css';
 import vc from '../../videochat/videochat.module.css';
 
 type PageProps = {
@@ -69,14 +70,20 @@ export default async function CruisingMapPage({ params, searchParams }: PageProp
 
   return (
     <>
-      <h1 className={vc.pageTitle}>{t('title')}</h1>
-      <p className={vc.muted}>
-        {t('lead')}{' '}
-        <Link href="/cruising/rules" className={vc.inlineLink}>
-          {t('rulesLink')}
-        </Link>
-      </p>
-      {/* Phase 6 (decision 102): the tour, until it is finished or skipped. */}
+      {/* The map is the page: a one-line header, the how-to folded away under "How it works". */}
+      <div className={styles.mapHead}>
+        <h1 className={styles.mapTitle}>{t('title')}</h1>
+        <details className={styles.mapHelp}>
+          <summary>{t('help')}</summary>
+          <p>
+            {t('lead')}{' '}
+            <Link href="/cruising/rules" className={vc.inlineLink}>
+              {t('rulesLink')}
+            </Link>
+          </p>
+        </details>
+      </div>
+      {/* Phase 6 (decision 102): the tour, floating over the map, until finished or skipped. */}
       {status?.onboarded && status.onboardingDone === false ? (
         <OnboardingTour locale={locale} status={status} near={suggestionsBbox(initial)} />
       ) : null}

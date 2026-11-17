@@ -119,7 +119,7 @@ export function MapSearch({
   return (
     <search className={styles.search}>
       <form onSubmit={(event) => event.preventDefault()}>
-        <label htmlFor={inputId} className={styles.searchLabel}>
+        <label htmlFor={inputId} className={styles.srOnly}>
           {t('label')}
         </label>
         <input
@@ -136,11 +136,12 @@ export function MapSearch({
             if (event.key === 'Escape') setQuery('');
           }}
         />
-        <p id={hintId} className={styles.mapHint}>
+        <p id={hintId} className={styles.srOnly}>
           {t('hint')}
         </p>
       </form>
-      <div aria-live="polite">
+      {/* Over the map, under the box, so typing never pushes the map down. */}
+      <div aria-live="polite" className={styles.searchPopover}>
         {current?.status === 'loading' ? (
           <p className={styles.mapStatus}>{t('searching')}</p>
         ) : null}
