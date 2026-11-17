@@ -761,7 +761,9 @@
       "dataTitle": "Tes données et ton compte",
       "dataLead": "Télécharge ce que Codeqlick conserve sur toi, Cruising compris, ou modifie ton e-mail, ton mot de passe et tes options de connexion.",
       "dataExport": "Télécharger mes données",
-      "accountSettings": "Paramètres du compte"
+      "accountSettings": "Paramètres du compte",
+      "yourName": "Ton nom d’utilisateur : @{nickname}",
+      "useOther": "Utiliser un autre nom sur Cruising"
     },
     "presence": {
       "title": "Sur place",

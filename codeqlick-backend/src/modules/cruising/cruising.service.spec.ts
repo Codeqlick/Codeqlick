@@ -19,6 +19,7 @@ import type { AdultSafetyService } from '../adult/adult-safety.service.js';
 import type { AdultVerificationService } from '../adult/adult-verification.service.js';
 import type { CruisingRoomsRepository } from './cruising-rooms.repository.js';
 import type { CruisingRepository } from './cruising.repository.js';
+import type { UsernameService } from '../auth/username.service.js';
 import { CruisingService, newSpotFields, spotChanges } from './cruising.service.js';
 import type { SpotInput } from './cruising.schemas.js';
 
@@ -85,6 +86,7 @@ function build() {
   const repo = {
     findProfile: vi.fn().mockResolvedValue(profile()),
     accountLocale: vi.fn().mockResolvedValue('EN'),
+    accountName: vi.fn().mockResolvedValue({ username: null, role: 'CLIENT' }),
     saveOnboarding: vi
       .fn()
       .mockImplementation((userId, termsVersion, birthYear, now) =>
@@ -215,6 +217,10 @@ function build() {
     nameChanged: vi.fn().mockResolvedValue(undefined),
   };
   const adultAdmin = { alsoReported: vi.fn().mockResolvedValue(new Map()) };
+  const usernames = {
+    problem: vi.fn().mockResolvedValue(null),
+    claim: vi.fn().mockResolvedValue(undefined),
+  };
   const service = new CruisingService(
     repo as unknown as CruisingRepository,
     mediaRepo as unknown as CruisingMediaRepository,
@@ -227,6 +233,7 @@ function build() {
     safety as unknown as AdultSafetyService,
     verification as unknown as AdultVerificationService,
     adultAdmin as unknown as AdultAdminService,
+    usernames as unknown as UsernameService,
   );
   return {
     service,
@@ -240,6 +247,7 @@ function build() {
     rooms,
     safety,
     verification,
+    usernames,
   };
 }
 
@@ -264,6 +272,69 @@ describe('CruisingService', () => {
       expect(t.repo.saveOnboarding).toHaveBeenCalledWith(ME, VERSION, 1990, NOW);
       expect(JSON.stringify(t.repo.saveOnboarding.mock.calls)).not.toContain('06-15');
       expect(status).toMatchObject({ onboarded: true, allowed: true, suspended: false });
+    });
+
+    describe("the account's username as the Cruising name (owner's feedback 2026-11-17)", () => {
+      const enter = () => t.service.onboard(ME, { ...body, birthDate: '1990-06-15' }, NOW);
+
+      it('takes the username on entry when it is free', async () => {
+        t.repo.accountName.mockResolvedValue({ username: 'pier_fan', role: 'CLIENT' });
+        const status = await enter();
+        expect(t.repo.updateProfile).toHaveBeenCalledWith(ME, { nickname: 'pier_fan' });
+        expect(status.profile?.nickname).toBe('pier_fan');
+      });
+
+      it('asks for a name when another member has it or holds it (decision 83)', async () => {
+        t.repo.accountName.mockResolvedValue({ username: 'pier_fan', role: 'CLIENT' });
+        t.repo.findProfileByNickname.mockResolvedValueOnce(profile({ userId: OTHER }));
+        expect((await enter()).profile).toBeNull();
+        t.repo.nicknameReservedFor.mockResolvedValueOnce(OTHER);
+        expect((await enter()).profile).toBeNull();
+        expect(t.repo.updateProfile).not.toHaveBeenCalled();
+      });
+
+      it('asks for a name when the username has a dot or is reserved, unless an admin', async () => {
+        t.repo.accountName.mockResolvedValue({ username: 'pier.fan', role: 'CLIENT' });
+        expect((await enter()).profile).toBeNull();
+        t.repo.accountName.mockResolvedValue({ username: 'codeqlick', role: 'CLIENT' });
+        expect((await enter()).profile).toBeNull();
+        expect(t.repo.updateProfile).not.toHaveBeenCalled();
+        t.repo.accountName.mockResolvedValue({ username: 'codeqlick', role: 'ADMIN' });
+        expect((await enter()).profile?.nickname).toBe('codeqlick');
+      });
+
+      it('asks for a name when two people take it at the same moment', async () => {
+        t.repo.accountName.mockResolvedValue({ username: 'pier_fan', role: 'CLIENT' });
+        t.repo.updateProfile.mockRejectedValueOnce(
+          Object.assign(new Error('unique'), { code: 'P2002' }),
+        );
+        expect((await enter()).profile).toBeNull();
+      });
+
+      it('gives a member who entered before it the username when they open Cruising', async () => {
+        t.repo.accountName.mockResolvedValue({ username: 'pier_fan', role: 'CLIENT' });
+        const status = await t.service.status(ME, NOW);
+        expect(status.profile?.nickname).toBe('pier_fan');
+        t.repo.updateProfile.mockClear();
+        t.repo.findProfile.mockResolvedValue(profile({ nickname: 'other_name' }));
+        await t.service.status(ME, NOW);
+        expect(t.repo.updateProfile).not.toHaveBeenCalled();
+      });
+
+      it('writes a chosen name to the account when it has no username yet', async () => {
+        await t.service.updateProfile(ME, { nickname: 'dune_walker' }, NOW);
+        expect(t.usernames.claim).toHaveBeenCalledWith(ME, 'dune_walker');
+      });
+
+      it('leaves the account alone when it has a username or the name is not free there', async () => {
+        t.repo.accountName.mockResolvedValue({ username: 'already', role: 'CLIENT' });
+        await t.service.updateProfile(ME, { nickname: 'dune_walker' }, NOW);
+        t.repo.accountName.mockResolvedValue({ username: null, role: 'CLIENT' });
+        t.usernames.problem.mockResolvedValueOnce('taken');
+        const status = await t.service.updateProfile(ME, { nickname: 'dune_walker' }, NOW);
+        expect(t.usernames.claim).not.toHaveBeenCalled();
+        expect(status.profile?.nickname).toBe('dune_walker');
+      });
     });
 
     it('refuses under 18 and stores nothing', async () => {

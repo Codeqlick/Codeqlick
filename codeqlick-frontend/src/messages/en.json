@@ -5579,7 +5579,9 @@
       "dataTitle": "Your data and account",
       "dataLead": "Download what Codeqlick keeps about you, Cruising included, or change your email, password and sign-in options.",
       "dataExport": "Download my data",
-      "accountSettings": "Account settings"
+      "accountSettings": "Account settings",
+      "yourName": "Your username: @{nickname}",
+      "useOther": "Use another name in Cruising"
     },
     "presence": {
       "title": "Here now",

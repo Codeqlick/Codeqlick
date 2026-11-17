@@ -255,6 +255,11 @@ export class CruisingRepository implements AdultAppStore {
     return this.prisma.user.findUnique({ where: { id: userId }, select: recipientSelect });
   }
 
+  /** The account's username and role: the Cruising name by default (owner's feedback 2026-11-17). */
+  accountName(id: string) {
+    return this.prisma.user.findUnique({ where: { id }, select: { username: true, role: true } });
+  }
+
   findUser(id: string) {
     return this.prisma.user.findUnique({ where: { id }, select: personSelect });
   }

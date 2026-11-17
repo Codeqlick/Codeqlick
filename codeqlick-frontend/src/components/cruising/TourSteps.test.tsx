@@ -14,7 +14,7 @@ vi.mock('@/i18n/navigation', () => ({
 
 const finish = () => Promise.resolve({ status: 'success' as const });
 
-function render(stepCount: number, formId?: string) {
+function render(stepCount: number, formId?: string, start?: number) {
   const steps = Array.from({ length: stepCount }, (_, index) => ({
     id: `step-${index}`,
     title: `Step title ${index + 1}`,
@@ -23,7 +23,7 @@ function render(stepCount: number, formId?: string) {
   }));
   return renderToStaticMarkup(
     <NextIntlClientProvider locale="en" messages={{ Cruising: en.Cruising }}>
-      <TourSteps steps={steps} finish={finish} />
+      <TourSteps steps={steps} finish={finish} start={start} />
     </NextIntlClientProvider>,
   );
 }
@@ -57,6 +57,15 @@ describe('TourSteps (decision 102)', () => {
     const html = render(4, 'tour-form');
     expect(html).toMatch(/<button[^>]*type="submit"[^>]*form="tour-form"[^>]*>Save and continue</);
     expect(html).not.toContain('>Next<');
+  });
+
+  it('opens after the name step for a member who already has a name, with Back', () => {
+    const html = render(4, 'tour-form', 1);
+    expect(html).toContain('2/4');
+    expect(html).toContain('Content 2');
+    expect(html).not.toContain('Content 1');
+    expect(html).toContain('>Back<');
+    expect(html).not.toContain('Save and continue');
   });
 
   it('offers Done (and no Skip) when there is only one step', () => {

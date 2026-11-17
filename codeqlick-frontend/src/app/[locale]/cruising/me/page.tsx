@@ -128,6 +128,28 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
   const accountSettings = accountUrl(locale);
   const accountExport = accountUrl(locale, '/export');
 
+  const nicknameField = (
+    <FormInput
+      id="me-nickname"
+      name="nickname"
+      label={t('nickname')}
+      hint={
+        profile
+          ? status.verified
+            ? `${t('nicknameChange')} ${t('nicknameVerifiedNote')}`
+            : t('nicknameChange')
+          : t('nicknameHint')
+      }
+      defaultValue={profile?.nickname ?? ''}
+      minLength={3}
+      maxLength={20}
+      autoCapitalize="none"
+      autoComplete="off"
+      spellCheck={false}
+      required={profile === null}
+    />
+  );
+
   return (
     <div className={styles.page}>
       <div>
@@ -213,25 +235,21 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
             </h2>
             <div className={panel}>
               <ActionForm action={profileAction.bind(null, locale)} className={vc.form}>
-                <FormInput
-                  id="me-nickname"
-                  name="nickname"
-                  label={t('nickname')}
-                  hint={
-                    profile
-                      ? status.verified
-                        ? `${t('nicknameChange')} ${t('nicknameVerifiedNote')}`
-                        : t('nicknameChange')
-                      : t('nicknameHint')
-                  }
-                  defaultValue={profile?.nickname ?? ''}
-                  minLength={3}
-                  maxLength={20}
-                  autoCapitalize="none"
-                  autoComplete="off"
-                  spellCheck={false}
-                  required={profile === null}
-                />
+                {profile ? (
+                  // The name is the account's username by default (owner's feedback 2026-11-17);
+                  // another one just for Cruising stays possible (decision 83).
+                  <>
+                    <p className={styles.yourName}>
+                      {t('yourName', { nickname: profile.nickname })}
+                    </p>
+                    <details className={styles.otherName}>
+                      <summary>{t('useOther')}</summary>
+                      {nicknameField}
+                    </details>
+                  </>
+                ) : (
+                  nicknameField
+                )}
                 <FormTextarea
                   id="me-bio"
                   name="bio"

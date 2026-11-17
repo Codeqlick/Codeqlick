@@ -442,7 +442,31 @@
   margin: -0.6rem 0;
 }
 
-/* /me: the overview, the completeness meter and the side nav */
+/* /me: the name, the overview, the completeness meter and the side nav */
+
+.yourName {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.otherName > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-fuchsia-dark);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.otherName > summary:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+.otherName[open] > summary {
+  margin-bottom: var(--space-2);
+}
 
 .overviewBody,
 .previewBody {

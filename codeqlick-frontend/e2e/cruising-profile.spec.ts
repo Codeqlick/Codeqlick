@@ -196,6 +196,12 @@ test('a member profile and my profile, with their sections', async ({
     await expect(page.locator(anchor)).toHaveCount(1);
   }
 
+  // The name is shown as the username; another one just for Cruising is behind a disclosure.
+  await expect(page.getByText(`Tu nombre de usuario: @${viewer.nickname}`)).toBeVisible();
+  await expect(page.getByLabel('Nombre de usuario', { exact: true })).toBeHidden();
+  await page.getByText('Usar otro nombre en Cruising').click();
+  await expect(page.getByLabel('Nombre de usuario', { exact: true })).toHaveValue(viewer.nickname);
+
   // The profile form still saves, and the preview follows.
   await page.getByLabel('Sobre ti').fill('Here for the sunsets.');
   await page.getByRole('button', { name: 'Guardar', exact: true }).first().click();

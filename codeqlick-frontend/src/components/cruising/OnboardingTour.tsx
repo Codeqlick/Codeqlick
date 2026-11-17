@@ -175,5 +175,9 @@ export async function OnboardingTour({
     },
   ];
 
-  return <TourSteps steps={steps} finish={finishTourAction.bind(null, locale)} />;
+  // A member who already has a name (their account's username, owner's feedback 2026-11-17) opens
+  // the tour after the name step; Back still reaches it, and /me changes it.
+  return (
+    <TourSteps steps={steps} finish={finishTourAction.bind(null, locale)} start={profile ? 1 : 0} />
+  );
 }

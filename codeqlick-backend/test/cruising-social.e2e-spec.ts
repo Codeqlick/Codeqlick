@@ -135,6 +135,55 @@ describe('Cruising social (e2e)', () => {
     await app?.close();
   });
 
+  it("uses the account's username as the Cruising name, and shares a chosen one with the account", async () => {
+    const enter = (who: Person) =>
+      request(server())
+        .put('/v1/cruising/me')
+        .set(who.auth)
+        .send({
+          birthDate: '1990-01-01',
+          acceptTerms: true,
+          consentSpecialData: true,
+          termsVersion: version,
+        })
+        .expect(200);
+    const short = tag.slice(0, 6);
+
+    // An account with a username enters: Cruising takes it.
+    const named = await person('UNamed');
+    await prisma.user.update({ where: { id: named.id }, data: { username: `named_${short}` } });
+    expect((await enter(named)).body.profile).toMatchObject({ nickname: `named_${short}` });
+
+    // Taken in Cruising by another member: the person chooses one, as before.
+    const holder = await person('UHolder');
+    await prisma.cruisingProfile.create({
+      data: {
+        userId: holder.id,
+        birthYear: 1990,
+        termsVersion: version,
+        acceptedAt: new Date(),
+        nickname: `taken_${short}`,
+      },
+    });
+    const late = await person('ULate');
+    await prisma.user.update({ where: { id: late.id }, data: { username: `taken_${short}` } });
+    expect((await enter(late)).body.profile).toBeNull();
+
+    // No username yet: the Cruising name chosen becomes the account's username too.
+    const fresh = await person('UFresh');
+    await enter(fresh);
+    expect(
+      (await request(server()).get('/v1/cruising/me').set(fresh.auth)).body.profile,
+    ).toBeNull();
+    await request(server())
+      .patch('/v1/cruising/profile')
+      .set(fresh.auth)
+      .send({ nickname: `fresh_${short}` })
+      .expect(200);
+    const account = await prisma.user.findUniqueOrThrow({ where: { id: fresh.id } });
+    expect(account.username).toBe(`fresh_${short}`);
+  });
+
   it('sets a nickname once and shows profiles only to members with a nickname', async () => {
     const ana = await member('Ana');
     const bea = await member('Bea', false);
