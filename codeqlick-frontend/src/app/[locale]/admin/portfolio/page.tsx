@@ -31,7 +31,7 @@ export default async function AdminPortfolioPage({ params, searchParams }: PageP
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={`${styles.table} ${styles.listTable}`}>
+            <table className={`${styles.table} ${styles.tableCompact} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('itemTitle')}</th>
@@ -52,7 +52,7 @@ export default async function AdminPortfolioPage({ params, searchParams }: PageP
                       <span className={styles.sub}>/{item.slug}</span>
                     </th>
                     <td data-label={t('clientName')}>{item.clientName ?? tc('none')}</td>
-                    <td data-label={t('status')} data-wide>
+                    <td data-label={t('status')} data-badge>
                       <PublishStatusBadge
                         status={item.status}
                         scheduled={isScheduled(item)}

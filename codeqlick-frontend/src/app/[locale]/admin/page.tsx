@@ -3,6 +3,7 @@ import styles from '@/components/app/app.module.css';
 import { ActivityList } from '@/components/app/ActivityList';
 import { BarChart } from '@/components/app/BarChart';
 import { PageHeader } from '@/components/app/PageHeader';
+import { Stat, StatGrid } from '@/components/ui/Stat';
 import { SiteVisits, VISIT_RANGES, type VisitRange } from '@/components/app/SiteVisits';
 import { Button } from '@/components/ui/Button';
 import { Link } from '@/i18n/navigation';
@@ -86,16 +87,11 @@ export default async function AdminDashboardPage({
         }
       />
       <div className={styles.stack}>
-        <ul className={styles.stats}>
+        <StatGrid>
           {cards.map((card) => (
-            <li key={card.label}>
-              <Link href={card.href} className={`${styles.panel} ${styles.stat}`}>
-                <span className={styles.statValue}>{card.value}</span>
-                <span className={styles.statLabel}>{card.label}</span>
-              </Link>
-            </li>
+            <Stat key={card.label} value={card.value} label={card.label} href={card.href} />
           ))}
-        </ul>
+        </StatGrid>
 
         {visits ? <SiteVisits visits={visits} locale={locale} /> : null}
 

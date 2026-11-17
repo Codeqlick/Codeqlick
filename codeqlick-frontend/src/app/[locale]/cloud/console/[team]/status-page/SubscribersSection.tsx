@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server';
+import { Tabs } from '@/components/ui/Tabs';
 import { ActionForm, FormCheckbox } from '@/components/app/ActionForm';
 import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -46,18 +47,16 @@ export async function SubscribersSection({ locale, team, enabled, list, status }
         })}{' '}
         · {t('ofCap', { used, limit: list.limit })}
       </p>
-      <nav className={appUi.actions} aria-label={t('filter')}>
-        {SUBSCRIBER_FILTERS.map((filter) => (
-          <Link
-            key={filter ?? 'all'}
-            href={subscribersHref(base, filter, 1)}
-            aria-current={filter === status ? 'page' : undefined}
-            className={styles.small}
-          >
-            {filter ? t(`statuses.${filter}`) : t('all')}
-          </Link>
-        ))}
-      </nav>
+      <Tabs
+        variant="pills"
+        label={t('filter')}
+        items={SUBSCRIBER_FILTERS.map((filter) => ({
+          key: filter ?? 'all',
+          href: subscribersHref(base, filter, 1),
+          label: filter ? t(`statuses.${filter}`) : t('all'),
+          current: filter === status,
+        }))}
+      />
       {items.items.length === 0 ? (
         <p className={styles.muted}>{t('empty')}</p>
       ) : (

@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ActionForm, FormCheckbox, FormInput } from '@/components/app/ActionForm';
+import { Card, CardLink } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -56,10 +57,10 @@ export default async function CloudConsolePage({ params }: PageProps) {
         ) : (
           <ul className={styles.grid}>
             {me.teams.map((team) => (
-              <li key={team.id} className={styles.tile}>
-                <Link href={`/cloud/console/${team.slug}`} className={styles.tileLink}>
+              <Card as="li" key={team.id} interactive className={styles.tile}>
+                <CardLink href={`/cloud/console/${team.slug}`} className={styles.tileLink}>
                   {team.name}
-                </Link>
+                </CardLink>
                 <p className={styles.small}>
                   <span className={styles.mono}>{team.slug}</span>
                 </p>
@@ -73,7 +74,7 @@ export default async function CloudConsolePage({ params }: PageProps) {
                     <Badge tone="warning">{t('twoFactor.badge')}</Badge>
                   </p>
                 ) : null}
-              </li>
+              </Card>
             ))}
           </ul>
         )}

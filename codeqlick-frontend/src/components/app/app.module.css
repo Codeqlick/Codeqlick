@@ -123,7 +123,7 @@
 }
 
 /* Lists the client opens items from: the whole row is the link (its title's ::after covers the
-   row) and lights up under the pointer. On phones each row stacks, every value under its label. */
+   row) and lights up under the pointer. */
 .listTable tbody tr {
   position: relative;
   transition: background-color var(--transition-fast);
@@ -158,6 +158,22 @@
   outline-offset: -3px;
 }
 
+/* Admin tables (architecture 6.6): 14 px text and 8 × 14 px cells, rows about 52 px. */
+.tableCompact {
+  font-size: var(--text-sm);
+}
+
+.tableCompact th,
+.tableCompact td {
+  padding: 0.5rem 0.875rem;
+}
+
+.tableCompact .sub {
+  font-size: 0.8125rem;
+}
+
+/* On phones a row is two lines: the title with its status badges (`data-badge`) on the right,
+   then the other values in one line separated by "·"; long cells (`data-wide`) on their own. */
 @media (max-width: 600px) {
   .listTable thead {
     position: absolute;
@@ -168,16 +184,16 @@
   }
 
   .listTable,
-  .listTable tbody,
-  .listTable tr {
+  .listTable tbody {
     display: block;
   }
 
   .listTable tbody tr {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-3) var(--space-4);
-    padding: var(--space-4);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-2);
+    padding: var(--space-3) var(--space-4);
     border-bottom: 1px solid var(--color-line);
   }
 
@@ -187,29 +203,61 @@
 
   .listTable tbody th,
   .listTable tbody td {
-    display: block;
     padding: 0;
     border: 0;
   }
 
-  .listTable tbody th,
-  .listTable tbody td[data-wide] {
-    grid-column: 1 / -1;
-  }
-
   .listTable tbody th {
-    font-size: 1.05rem;
+    order: 0;
+    flex: 1 1 0;
+    min-width: 0;
+    font-size: 1rem;
   }
 
-  .listTable tbody td[data-label]::before {
-    content: attr(data-label);
+  .listTable tbody td[data-badge] {
+    order: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-1);
+    align-self: flex-start;
+  }
+
+  /* The line break between the two lines. */
+  .listTable tbody tr::before {
+    content: '';
+    order: 1;
+    flex-basis: 100%;
+    height: 0;
+  }
+
+  .listTable tbody td {
+    order: 2;
     display: block;
-    margin-bottom: 0.15rem;
-    font-family: var(--font-family-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: var(--text-sm);
     color: var(--color-slate);
+  }
+
+  .listTable
+    tbody
+    td:not([data-badge], [data-wide]):has(~ td:not([data-badge], [data-wide]))::after {
+    content: ' ·';
+  }
+
+  .listTable tbody td[data-wide] {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  /* The column's name stays for screen readers only. */
+  .listTable tbody td[data-label]::before {
+    content: attr(data-label) ': ';
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 }
 
@@ -223,42 +271,6 @@
   font-size: 0.85rem;
   font-weight: 400;
   color: var(--color-slate);
-}
-
-/* Dashboard */
-.stats {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  /* Six to a row on a laptop (twelve counters, two even rows), two to a row on phones. */
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr));
-  gap: var(--space-4);
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  text-decoration: none;
-  color: var(--color-ink);
-}
-
-.stat:hover {
-  color: var(--color-ink);
-  border-color: var(--color-fuchsia);
-}
-
-.statValue {
-  font-family: var(--font-family-display);
-  font-size: 2.25rem;
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-.statLabel {
-  color: var(--color-slate);
-  font-size: 0.9rem;
 }
 
 /* Forms */
@@ -298,30 +310,6 @@
   gap: var(--space-3);
 }
 
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-}
-
-.filters > div {
-  min-width: 12rem;
-}
-
-/* Fields and buttons of a filter bar share one height, 44 px (architecture 6.6). */
-.filters :is(input, select) {
-  min-height: 44px;
-  padding-block: 0.5rem;
-}
-
-/* The search box gets room for its placeholder ("Name, email or company…"). */
-.filters > div:has(input[type='search']) {
-  flex: 1 1 18rem;
-  max-width: 26rem;
-}
-
 /* Details */
 .facts {
   margin: 0;
@@ -341,6 +329,13 @@
 
 .facts dd {
   margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* An address in a fact list (staging, production): mono 13 px, wrapping anywhere. */
+.url {
+  font-family: var(--font-family-mono);
+  font-size: 0.8125rem;
   overflow-wrap: anywhere;
 }
 
@@ -685,37 +680,6 @@
   font-size: 0.9rem;
 }
 
-/* A row of links to pick one option (proposal templates); the current one is filled. */
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin: var(--space-3) 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.chips a {
-  display: inline-block;
-  padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--color-line-strong);
-  border-radius: 999px;
-  background: var(--color-white);
-  color: var(--color-ink);
-  font-size: 0.9rem;
-  text-decoration: none;
-}
-
-.chips a:hover {
-  border-color: var(--color-fuchsia);
-}
-
-.chips a[aria-current='page'] {
-  border-color: var(--color-ink);
-  background: var(--color-ink);
-  color: var(--color-white);
-}
-
 /* Name + small action rows (proposal templates in the proposals list). */
 .simpleList {
   display: grid;
@@ -764,4 +728,19 @@
   font-family: var(--font-family-mono);
   font-size: var(--text-sm);
   overflow-wrap: anywhere;
+}
+
+/* A destructive row action (Admin → Cloud's "Suspend"): a danger button that opens its
+   confirmation form. */
+.confirmAction > summary {
+  list-style: none;
+  width: fit-content;
+}
+
+.confirmAction > summary::-webkit-details-marker {
+  display: none;
+}
+
+.confirmAction[open] > summary {
+  margin-bottom: var(--space-3);
 }

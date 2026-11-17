@@ -14,6 +14,8 @@ import { requireUser } from '@/lib/auth/session';
 import { countryName, placeHref, spotHref } from '@/lib/cruising';
 import { formatTripDay } from '@/lib/cruising-community';
 import adult from '@/components/adult/adult.module.css';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { deleteTripAction } from '../community-actions';
 import { CruisingGate } from '../Gate';
 
@@ -46,7 +48,11 @@ export default async function CruisingTripsPage({ params }: PageProps) {
         </Link>
       </p>
       {trips.length === 0 ? (
-        <p>{t('empty')}</p>
+        <EmptyState
+          title={t('emptyTitle')}
+          body={t('emptyBody')}
+          action={<Button href="/cruising/places">{t('emptyAction')}</Button>}
+        />
       ) : (
         <ul className={styles.list}>
           {trips.map((trip) => (

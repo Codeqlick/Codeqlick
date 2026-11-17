@@ -11,6 +11,8 @@ import { requireUser } from '@/lib/auth/session';
 import { formatRating, spotHref } from '@/lib/cruising';
 import { formatDate } from '@/lib/format';
 import adult from '@/components/adult/adult.module.css';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { favoriteAction } from '../actions';
 import { CruisingGate } from '../Gate';
 
@@ -41,7 +43,11 @@ export default async function CruisingFavoritesPage({ params }: PageProps) {
         </Link>
       </p>
       {favorites.length === 0 ? (
-        <p>{t('empty')}</p>
+        <EmptyState
+          title={t('emptyTitle')}
+          body={t('emptyBody')}
+          action={<Button href="/cruising/map">{t('emptyAction')}</Button>}
+        />
       ) : (
         <ul className={card.grid}>
           {favorites.map(({ spot, here, savedAt }) => (

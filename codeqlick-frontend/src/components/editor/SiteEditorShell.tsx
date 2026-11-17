@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import type { SiteNewsList } from '@/lib/api/types';
 import { SiteEditor } from './SiteEditor';
 import { SiteNews } from './SiteNews';
+import { TabList } from '@/components/ui/TabList';
 import styles from './SiteEditor.module.css';
 
 /**
@@ -24,36 +25,35 @@ export function SiteEditorShell({
   return (
     <>
       {news ? (
-        <nav className={styles.sections} aria-label={t('tabsLabel')}>
-          <button
-            type="button"
-            aria-pressed={section === 'site'}
-            onClick={() => setSection('site')}
-          >
-            {t('tabSite')}
-          </button>
-          <button
-            type="button"
-            aria-pressed={section === 'news'}
-            onClick={() => setSection('news')}
-          >
-            {t('tabNews')}
-          </button>
-        </nav>
-      ) : null}
-      {news && section === 'news' ? (
-        <SiteNews
-          locale={editor.locale}
-          scope="portal"
-          projectId={editor.projectId}
-          initial={news}
-          english={
-            editor.initial.content.english === true ||
-            editor.initial.published.content.english === true
-          }
+        <TabList
+          label={t('tabsLabel')}
+          value={section}
+          onChange={setSection}
+          items={[
+            { value: 'site', label: t('tabSite'), controls: 'site-editor-site' },
+            { value: 'news', label: t('tabNews'), controls: 'site-editor-news' },
+          ]}
         />
       ) : null}
-      <div hidden={Boolean(news) && section === 'news'} className={styles.siteSection}>
+      {news && section === 'news' ? (
+        <div id="site-editor-news">
+          <SiteNews
+            locale={editor.locale}
+            scope="portal"
+            projectId={editor.projectId}
+            initial={news}
+            english={
+              editor.initial.content.english === true ||
+              editor.initial.published.content.english === true
+            }
+          />
+        </div>
+      ) : null}
+      <div
+        id="site-editor-site"
+        hidden={Boolean(news) && section === 'news'}
+        className={styles.siteSection}
+      >
         <SiteEditor {...editor} />
       </div>
     </>

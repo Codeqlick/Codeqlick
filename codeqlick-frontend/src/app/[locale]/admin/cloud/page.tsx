@@ -1,8 +1,11 @@
 import { getTranslations } from 'next-intl/server';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
+import { Tabs } from '@/components/ui/Tabs';
+import { Stat, StatGrid } from '@/components/ui/Stat';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { FilterBar } from '@/components/ui/FilterBar';
 import { Checkbox, Input } from '@/components/ui/Field';
 import { Pagination } from '@/components/ui/Pagination';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -49,14 +52,11 @@ async function Disk({ locale }: { locale: AppLocale }) {
       <h2 id="disk-title" className={styles.panelTitle}>
         {t('title')} <Badge tone={tone}>{t(`states.${disk.state}`)}</Badge>
       </h2>
-      <ul className={styles.stats}>
+      <StatGrid>
         {cards.map((card) => (
-          <li key={card.label} className={`${styles.panel} ${styles.stat}`}>
-            <span className={styles.statValue}>{card.value}</span>
-            <span className={styles.statLabel}>{card.label}</span>
-          </li>
+          <Stat key={card.label} value={card.value} label={card.label} />
         ))}
-      </ul>
+      </StatGrid>
       <p className={styles.muted}>
         {t('help', {
           low: formatBytes(disk.lowBytes, locale),
@@ -83,24 +83,18 @@ export default async function AdminCloudPage({ params, searchParams }: PageProps
     <div className={styles.stack}>
       <PageHeader title={t('title')} lead={t('lead')} />
       <Disk locale={locale} />
-      <nav className={styles.filters} aria-label={t('title')}>
-        {TABS.map((key) => (
-          <Link
-            key={key}
-            href={key === 'projects' ? '/admin/cloud' : `/admin/cloud?tab=${key}`}
-            className={buttonClassName({
-              variant: key === tab ? 'primary' : 'outline',
-              size: 'sm',
-            })}
-            aria-current={key === tab ? 'page' : undefined}
-          >
-            {t(`tabs.${key}`)}
-          </Link>
-        ))}
-      </nav>
+      <Tabs
+        variant="segmented"
+        label={t('title')}
+        items={TABS.map((key) => ({
+          href: key === 'projects' ? '/admin/cloud' : `/admin/cloud?tab=${key}`,
+          label: t(`tabs.${key}`),
+          current: key === tab,
+        }))}
+      />
 
       {tab === 'projects' || tab === 'teams' ? (
-        <form method="get" className={styles.filters}>
+        <FilterBar>
           {tab === 'teams' ? <input type="hidden" name="tab" value="teams" /> : null}
           <Input
             name="q"
@@ -117,10 +111,8 @@ export default async function AdminCloudPage({ params, searchParams }: PageProps
               defaultChecked={suspended}
             />
           ) : null}
-          <SubmitButton size="sm" variant="outline">
-            {t('search')}
-          </SubmitButton>
-        </form>
+          <SubmitButton variant="outline">{t('search')}</SubmitButton>
+        </FilterBar>
       ) : null}
 
       {tab === 'projects' ? (
@@ -151,7 +143,7 @@ async function Projects({
   return (
     <>
       <div className={styles.tableWrap}>
-        <table className={`${styles.table} ${styles.listTable}`}>
+        <table className={`${styles.table} ${styles.tableCompact} ${styles.listTable}`}>
           <thead>
             <tr>
               <th scope="col">{t('columns.project')}</th>
@@ -191,25 +183,31 @@ async function Projects({
                       </form>
                     </div>
                   ) : (
-                    <details>
-                      <summary>{t('suspend')}</summary>
-                      <form action={suspendAction} className={styles.form}>
-                        <input type="hidden" name="locale" value={locale} />
-                        <input type="hidden" name="id" value={project.id} />
-                        <label htmlFor={`reason-${project.id}`}>{t('reason')}</label>
-                        <textarea
-                          id={`reason-${project.id}`}
-                          name="reason"
-                          required
-                          minLength={5}
-                          maxLength={500}
-                          rows={3}
-                        />
-                        <SubmitButton size="sm" variant="danger">
+                    <div className={styles.stack}>
+                      <Badge tone="success">{t('active')}</Badge>
+                      {/* Destructive: a danger button that opens its confirmation (the reason). */}
+                      <details className={styles.confirmAction}>
+                        <summary className={buttonClassName({ variant: 'danger', size: 'sm' })}>
                           {t('suspend')}
-                        </SubmitButton>
-                      </form>
-                    </details>
+                        </summary>
+                        <form action={suspendAction} className={styles.form}>
+                          <input type="hidden" name="locale" value={locale} />
+                          <input type="hidden" name="id" value={project.id} />
+                          <label htmlFor={`reason-${project.id}`}>{t('reason')}</label>
+                          <textarea
+                            id={`reason-${project.id}`}
+                            name="reason"
+                            required
+                            minLength={5}
+                            maxLength={500}
+                            rows={3}
+                          />
+                          <SubmitButton size="sm" variant="danger">
+                            {t('suspend')}
+                          </SubmitButton>
+                        </form>
+                      </details>
+                    </div>
                   )}
                 </td>
               </tr>
@@ -234,7 +232,7 @@ async function Teams({ locale, q, page }: { locale: AppLocale; q?: string; page:
   return (
     <>
       <div className={styles.tableWrap}>
-        <table className={`${styles.table} ${styles.listTable}`}>
+        <table className={`${styles.table} ${styles.tableCompact} ${styles.listTable}`}>
           <thead>
             <tr>
               <th scope="col">{t('columns.team')}</th>

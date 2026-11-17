@@ -47,7 +47,7 @@ export default async function PortalProposalsPage({ params, searchParams }: Page
                         {proposal.project ? ` · ${proposal.project.name}` : ''}
                       </span>
                     </th>
-                    <td data-label={t('status')} data-wide>
+                    <td data-label={t('status')} data-badge>
                       <ProposalStatusBadge
                         status={proposal.status}
                         expired={proposal.expired}

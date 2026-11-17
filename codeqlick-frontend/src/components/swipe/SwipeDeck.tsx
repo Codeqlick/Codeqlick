@@ -7,6 +7,8 @@ import type { VoteResult } from '@/app/[locale]/swipe/actions';
 import type { SwipeCard } from '@/lib/api/swipe';
 import { dragVote, mergeCards } from './logic';
 import { ReportForm } from './ReportForm';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import styles from './Swipe.module.css';
 
@@ -174,6 +176,23 @@ export function SwipeDeck({
   const verdict = dragVote(dx);
   const blurred = blur && card !== undefined && revealed !== card.id;
 
+  // What the empty deck offers: take the last decision back, or share your own photos.
+  const actions =
+    canUndo || !canUpload ? (
+      <span className={styles.emptyActions}>
+        {canUndo ? (
+          <button type="button" className={styles.ghost} onClick={takeBack}>
+            {t('undo')}
+          </button>
+        ) : null}
+        {canUpload ? null : (
+          <Button href="/swipe/photos" variant="link">
+            {t('shareYours')}
+          </Button>
+        )}
+      </span>
+    ) : null;
+
   return (
     <div className={styles.deck}>
       {match ? (
@@ -301,16 +320,13 @@ export function SwipeDeck({
         </div>
       ) : (
         <div className={styles.empty}>
-          <p>{exhausted ? t('empty') : t('loading')}</p>
-          {canUndo ? (
-            <button type="button" className={styles.ghost} onClick={takeBack}>
-              {t('undo')}
-            </button>
-          ) : null}
-          {canUpload ? null : (
-            <Link href="/swipe/photos" className={styles.inlineLink}>
-              {t('shareYours')}
-            </Link>
+          {exhausted ? (
+            <EmptyState title={t('emptyTitle')} body={t('emptyBody')} action={actions} />
+          ) : (
+            <>
+              <p>{t('loading')}</p>
+              {actions}
+            </>
           )}
         </div>
       )}

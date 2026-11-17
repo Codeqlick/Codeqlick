@@ -2,10 +2,10 @@ import { getTranslations } from 'next-intl/server';
 import { ActionForm } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
+import { Tabs } from '@/components/ui/Tabs';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { buttonClassName } from '@/components/ui/buttonStyles';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { adminListLinks } from '@/lib/api/links';
@@ -39,21 +39,15 @@ export default async function AdminLinksPage({ params, searchParams }: PageProps
     <div className={styles.stack}>
       <PageHeader title={t('title')} lead={t('lead')} />
 
-      <nav className={styles.filters} aria-label={t('filtersLabel')}>
-        {(['broken', 'all'] as const).map((tab) => (
-          <Link
-            key={tab}
-            href={tab === 'broken' ? '/admin/links' : '/admin/links?status=all'}
-            className={buttonClassName({
-              variant: tab === filter ? 'primary' : 'outline',
-              size: 'sm',
-            })}
-            aria-current={tab === filter ? 'page' : undefined}
-          >
-            {t(`filters.${tab}`)}
-          </Link>
-        ))}
-      </nav>
+      <Tabs
+        variant="pills"
+        label={t('filtersLabel')}
+        items={(['broken', 'all'] as const).map((tab) => ({
+          href: tab === 'broken' ? '/admin/links' : '/admin/links?status=all',
+          label: t(`filters.${tab}`),
+          current: tab === filter,
+        }))}
+      />
 
       {items.length === 0 ? (
         <EmptyState
@@ -64,7 +58,7 @@ export default async function AdminLinksPage({ params, searchParams }: PageProps
         <>
           <p className={styles.sub}>{lastRun}</p>
           <div className={styles.tableWrap}>
-            <table className={`${styles.table} ${styles.listTable}`}>
+            <table className={`${styles.table} ${styles.tableCompact} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('where')}</th>

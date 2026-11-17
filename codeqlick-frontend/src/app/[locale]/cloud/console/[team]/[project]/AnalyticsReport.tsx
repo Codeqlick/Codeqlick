@@ -1,5 +1,5 @@
 import { getTranslations } from 'next-intl/server';
-import { Link } from '@/i18n/navigation';
+import { Tabs } from '@/components/ui/Tabs';
 import type { AppLocale } from '@/i18n/routing';
 import type {
   CloudAnalyticsPeriod,
@@ -103,18 +103,15 @@ export async function AnalyticsReport(props: Props) {
 
   return (
     <>
-      <nav className={styles.tabs} aria-label={t('analytics.period')}>
-        {ANALYTICS_PERIODS.map((period) => (
-          <Link
-            key={period}
-            href={props.periodHref(period)}
-            className={styles.tab}
-            aria-current={props.period === period ? 'page' : undefined}
-          >
-            {t(`analytics.periods.${period}`)}
-          </Link>
-        ))}
-      </nav>
+      <Tabs
+        variant="pills"
+        label={t('analytics.period')}
+        items={ANALYTICS_PERIODS.map((period) => ({
+          href: props.periodHref(period),
+          label: t(`analytics.periods.${period}`),
+          current: props.period === period,
+        }))}
+      />
       {props.csvHref ? (
         <p className={styles.small}>
           <a href={props.csvHref} download>

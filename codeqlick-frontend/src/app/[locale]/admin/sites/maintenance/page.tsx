@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
+import { Stat, StatGrid } from '@/components/ui/Stat';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Link } from '@/i18n/navigation';
@@ -36,19 +37,16 @@ export default async function AdminMaintenancePage({
         lead={t('admin.listLead')}
         back={{ href: '/admin/sites', label: ts('title') }}
       />
-      <ul className={styles.stats}>
+      <StatGrid>
         {cards.map((card) => (
-          <li key={card.label} className={`${styles.panel} ${styles.stat}`}>
-            <span className={styles.statValue}>{card.value}</span>
-            <span className={styles.statLabel}>{card.label}</span>
-          </li>
+          <Stat key={card.label} value={card.value} label={card.label} />
         ))}
-      </ul>
+      </StatGrid>
       {list.items.length === 0 ? (
         <EmptyState title={t('admin.emptyTitle')} body={t('admin.emptyBody')} />
       ) : (
         <div className={styles.tableWrap}>
-          <table className={`${styles.table} ${styles.listTable}`}>
+          <table className={`${styles.table} ${styles.tableCompact} ${styles.listTable}`}>
             <thead>
               <tr>
                 <th scope="col">{t('admin.project')}</th>
@@ -72,7 +70,7 @@ export default async function AdminMaintenancePage({
                       ) : null}
                     </th>
                     <td data-label={t('admin.client')}>{item.client.name}</td>
-                    <td data-label={t('admin.state')} data-wide>
+                    <td data-label={t('admin.state')} data-badge>
                       <Badge tone={MAINTENANCE_TONES[state]}>{t(`statusLabels.${state}`)}</Badge>
                     </td>
                     <td data-label={t('admin.since')}>

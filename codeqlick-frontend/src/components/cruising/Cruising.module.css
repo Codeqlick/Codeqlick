@@ -1112,30 +1112,7 @@
 }
 
 .notificationTabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
   margin: var(--space-4) 0;
-  padding: 0;
-  list-style: none;
-}
-
-.notificationTab {
-  display: inline-flex;
-  align-items: center;
-  min-height: 40px;
-  padding: 0 var(--space-4);
-  border: 1px solid var(--color-line-strong);
-  border-radius: var(--radius-pill);
-  color: var(--color-ink);
-  text-decoration: none;
-}
-
-.notificationTab[aria-current='page'] {
-  border-color: var(--color-fuchsia);
-  background: var(--color-blush);
-  color: var(--color-fuchsia-dark);
-  font-weight: 600;
 }
 
 .notificationList {

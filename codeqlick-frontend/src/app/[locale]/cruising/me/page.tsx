@@ -314,7 +314,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
                   }))}
                   defaultValue={status.locale ?? locale}
                 />
-                <SubmitButton size="sm" pendingLabel={t('saving')}>
+                <SubmitButton variant="outline" pendingLabel={t('saving')}>
                   {t('save')}
                 </SubmitButton>
               </ActionForm>
@@ -441,7 +441,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
                   hint={tf('emailsHint')}
                   defaultChecked={status.favoriteEmails}
                 />
-                <SubmitButton variant="outline" size="sm" pendingLabel={t('saving')}>
+                <SubmitButton variant="outline" pendingLabel={t('saving')}>
                   {t('save')}
                 </SubmitButton>
               </ActionForm>
@@ -459,7 +459,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
                   hint={t('alertsHint')}
                   defaultChecked={status.emailAlerts}
                 />
-                <SubmitButton variant="outline" size="sm" pendingLabel={t('saving')}>
+                <SubmitButton variant="outline" pendingLabel={t('saving')}>
                   {t('save')}
                 </SubmitButton>
               </ActionForm>
@@ -478,7 +478,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
                     hint={tvs('settingsHint')}
                     defaultChecked={visits.showVisits}
                   />
-                  <SubmitButton variant="outline" size="sm" pendingLabel={t('saving')}>
+                  <SubmitButton variant="outline" pendingLabel={t('saving')}>
                     {t('save')}
                   </SubmitButton>
                 </ActionForm>

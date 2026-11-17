@@ -1,5 +1,5 @@
 import { getTranslations } from 'next-intl/server';
-import { Link } from '@/i18n/navigation';
+import { Tabs } from '@/components/ui/Tabs';
 import type { AppLocale } from '@/i18n/routing';
 import { getCloudMe, listCloudMembers, type CloudCommentThread } from '@/lib/api/cloud';
 import { COMMENT_STATUSES, type CommentStatus } from '@/lib/cloud';
@@ -44,18 +44,15 @@ export async function CommentsTab(props: Props) {
         </h2>
         <p className={styles.muted}>{t('lead')}</p>
       </div>
-      <nav className={styles.tabs} aria-label={t('filter')}>
-        {COMMENT_STATUSES.map((status) => (
-          <Link
-            key={status}
-            href={`${props.base}?tab=comments${status === 'open' ? '' : `&status=${status}`}`}
-            className={styles.tab}
-            aria-current={props.status === status ? 'page' : undefined}
-          >
-            {t(`status.${status}`)}
-          </Link>
-        ))}
-      </nav>
+      <Tabs
+        variant="pills"
+        label={t('filter')}
+        items={COMMENT_STATUSES.map((status) => ({
+          href: `${props.base}?tab=comments${status === 'open' ? '' : `&status=${status}`}`,
+          label: t(`status.${status}`),
+          current: props.status === status,
+        }))}
+      />
       {props.threads === null ? (
         <p className={styles.muted}>{t('loadError')}</p>
       ) : props.threads.length === 0 ? (

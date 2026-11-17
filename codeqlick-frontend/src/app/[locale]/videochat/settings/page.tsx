@@ -151,9 +151,7 @@ export default async function VideochatSettingsPage({ params }: PageProps) {
             className={`${adult.fieldset} ${adult.interests}`}
           />
           <p className={adult.hint}>{t('adultInterestsHint', { max: MAX_INTERESTS })}</p>
-          <SubmitButton block pendingLabel={t('saving')}>
-            {t('save')}
-          </SubmitButton>
+          <SubmitButton pendingLabel={t('saving')}>{t('save')}</SubmitButton>
         </ActionForm>
         <section className={styles.subsection} aria-labelledby="videochat-verification">
           <h2 id="videochat-verification" className={adult.sectionTitle}>

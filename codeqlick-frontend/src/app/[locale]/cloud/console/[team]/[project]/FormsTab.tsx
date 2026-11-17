@@ -7,8 +7,8 @@ import {
 } from '@/components/app/ActionForm';
 import { CopyLink } from '@/components/app/CopyLink';
 import { Badge } from '@/components/ui/Badge';
-import { buttonClassName } from '@/components/ui/buttonStyles';
 import { Pagination } from '@/components/ui/Pagination';
+import { Tabs } from '@/components/ui/Tabs';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import type { AppLocale } from '@/i18n/routing';
@@ -221,22 +221,18 @@ async function Submissions(props: Props & { form: CloudForm }) {
         <h2 id="submissions-title" className={appUi.sectionTitle}>
           {props.form.name}
         </h2>
-        <nav className={appUi.actions} aria-label={t('forms.views')}>
-          <Link
-            href={viewHref('inbox')}
-            className={buttonClassName({ variant: spamView ? 'outline' : 'primary', size: 'sm' })}
-            aria-current={spamView ? undefined : 'page'}
-          >
-            {t('forms.inbox')}
-          </Link>
-          <Link
-            href={viewHref('spam')}
-            className={buttonClassName({ variant: spamView ? 'primary' : 'outline', size: 'sm' })}
-            aria-current={spamView ? 'page' : undefined}
-          >
-            {t('forms.spamView', { count: props.form.spam })}
-          </Link>
-        </nav>
+        <Tabs
+          variant="pills"
+          label={t('forms.views')}
+          items={[
+            { href: viewHref('inbox'), label: t('forms.inbox'), current: !spamView },
+            {
+              href: viewHref('spam'),
+              label: t('forms.spamView', { count: props.form.spam }),
+              current: spamView,
+            },
+          ]}
+        />
         {spamView ? <p className={styles.muted}>{t('forms.spamNote')}</p> : null}
         <div className={appUi.actions}>
           <form method="get" className={appUi.actions}>

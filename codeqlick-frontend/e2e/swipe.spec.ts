@@ -163,7 +163,8 @@ test('two people get approved, match on Swipe and talk', async ({ browser, reque
     await ana.goto('/es/photos');
     const week = ana.getByRole('region', { name: 'Tu semana' });
     await expect(week.getByText('Matches')).toBeVisible();
-    await expect(week.locator('dd').nth(0)).toHaveText('1');
+    // Each figure is a counter: its number first, then its label.
+    await expect(week.getByRole('listitem').first().locator('span').first()).toHaveText('1');
   } finally {
     await Promise.all(open.splice(0).map((context) => context.close()));
     for (const id of ids) {

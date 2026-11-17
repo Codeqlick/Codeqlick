@@ -2,9 +2,9 @@ import { getTranslations } from 'next-intl/server';
 import { ActionForm } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
+import { Tabs } from '@/components/ui/Tabs';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { buttonClassName } from '@/components/ui/buttonStyles';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { adminListErrors } from '@/lib/api/error-reports';
@@ -28,21 +28,15 @@ export default async function AdminErrorsPage({ params, searchParams }: PageProp
     <div className={styles.stack}>
       <PageHeader title={t('title')} lead={t('lead')} />
 
-      <nav className={styles.filters} aria-label={t('tabsLabel')}>
-        {(['open', 'resolved'] as const).map((tab) => (
-          <Link
-            key={tab}
-            href={tab === 'open' ? '/admin/errors' : '/admin/errors?status=resolved'}
-            className={buttonClassName({
-              variant: tab === status ? 'primary' : 'outline',
-              size: 'sm',
-            })}
-            aria-current={tab === status ? 'page' : undefined}
-          >
-            {t(`tabs.${tab}`)}
-          </Link>
-        ))}
-      </nav>
+      <Tabs
+        variant="pills"
+        label={t('tabsLabel')}
+        items={(['open', 'resolved'] as const).map((tab) => ({
+          href: tab === 'open' ? '/admin/errors' : '/admin/errors?status=resolved',
+          label: t(`tabs.${tab}`),
+          current: tab === status,
+        }))}
+      />
 
       {errors.length === 0 ? (
         <EmptyState
@@ -52,7 +46,7 @@ export default async function AdminErrorsPage({ params, searchParams }: PageProp
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={`${styles.table} ${styles.listTable}`}>
+            <table className={`${styles.table} ${styles.tableCompact} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('error')}</th>
