@@ -27,11 +27,11 @@ export class CruisingPushService {
 
   /** The VAPID public key browsers subscribe with; null while notifications are off. */
   get publicKey(): string | null {
-    return this.config.vapid?.publicKey ?? null;
+    return this.config.neoqlickVapid?.publicKey ?? null;
   }
 
   get enabled(): boolean {
-    return this.config.vapid !== undefined;
+    return this.config.neoqlickVapid !== undefined;
   }
 
   /**
@@ -57,7 +57,7 @@ export class CruisingPushService {
     members: { userId: string; locale: AccountLocale }[],
     { ttl, urgency = 'normal' }: { ttl: number; urgency?: 'normal' | 'high' },
   ): Promise<number> {
-    const vapid = this.config.vapid;
+    const vapid = this.config.neoqlickVapid;
     if (!vapid || members.length === 0) return 0;
     const locales = new Map(members.map((member) => [member.userId, member.locale]));
     const devices = await this.repository.pushSubscriptions([...locales.keys()]);

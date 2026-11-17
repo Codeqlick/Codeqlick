@@ -217,7 +217,8 @@ export class CloudRepository {
   /** A person who can still sign in, or null. */
   activeUser(id: string): Promise<{ id: string; name: string; email: string } | null> {
     return this.prisma.user.findFirst({
-      where: { id, isActive: true, registeredAt: { not: null } },
+      // Cloud is Codeqlick's: a NEOQLICK account is never a team member (architecture 4.18).
+      where: { id, isActive: true, registeredAt: { not: null }, realm: 'CODEQLICK' },
       select: { id: true, name: true, email: true },
     });
   }

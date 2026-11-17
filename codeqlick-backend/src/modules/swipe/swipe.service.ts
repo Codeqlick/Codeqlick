@@ -303,7 +303,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
           notice,
           note,
           this.swipeUrl,
-          this.config.siteUrl,
+          this.config.siteUrlFor('NEOQLICK'),
         ),
       );
     } catch (error) {
@@ -983,7 +983,14 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     });
     this.alert('takedown', request.id);
     this.sendMail(
-      takedownEmail(input.email, input.locale, 'received', request.id, null, this.config.siteUrl),
+      takedownEmail(
+        input.email,
+        input.locale,
+        'received',
+        request.id,
+        null,
+        this.config.siteUrlFor('NEOQLICK'),
+      ),
     );
     return { id: request.id };
   }
@@ -1282,7 +1289,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
         input.remove ? 'removed' : 'closed',
         request.id,
         input.response || null,
-        this.config.siteUrl,
+        this.config.siteUrlFor('NEOQLICK'),
       ),
     );
   }

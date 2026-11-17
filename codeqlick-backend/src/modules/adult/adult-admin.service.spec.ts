@@ -31,6 +31,10 @@ function build() {
     isTest: true,
     leadsNotifyTo: 'team@codeqlick.com',
     siteUrl: 'https://codeqlick.com',
+    siteUrlFor: (realm: string) =>
+      realm === 'NEOQLICK' ? 'https://neoqlick.com' : 'https://codeqlick.com',
+    accountUrlFor: (realm: string) =>
+      realm === 'NEOQLICK' ? 'https://account.neoqlick.com' : 'https://account.codeqlick.com',
   };
   const service = new AdultAdminService(
     repository as unknown as AdultRepository,

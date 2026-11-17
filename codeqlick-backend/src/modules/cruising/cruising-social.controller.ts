@@ -50,11 +50,13 @@ import {
   type CruisingMessageView,
   type CruisingPresence,
 } from './cruising-social.service.js';
+import { Realm } from '../../common/decorators/realm.decorator.js';
 
 /** Cruising's members' network (architecture 4.15, phase 2): any signed-in account that entered. */
 @ApiTags('cruising')
 @ApiBearerAuth()
 @Roles('CLIENT', 'ADMIN')
+@Realm('NEOQLICK')
 @Controller('cruising')
 export class CruisingSocialController {
   constructor(private readonly social: CruisingSocialService) {}

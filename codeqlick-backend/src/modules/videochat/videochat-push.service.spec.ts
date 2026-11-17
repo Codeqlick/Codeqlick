@@ -88,7 +88,7 @@ describe('VideochatPushService', () => {
     service = new VideochatPushService(
       repository as unknown as VideochatRepository,
       stats as unknown as VideochatStatsRepository,
-      { vapid } as unknown as AppConfigService,
+      { neoqlickVapid: vapid } as unknown as AppConfigService,
     );
   });
 

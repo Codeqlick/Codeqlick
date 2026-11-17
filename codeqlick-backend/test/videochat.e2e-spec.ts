@@ -16,6 +16,10 @@ import { MailService, type MailMessage } from '../src/modules/mail/mail.service.
 import { VIDEOCHAT_TERMS_VERSION } from '../src/modules/videochat/videochat.schemas.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
+/** The 18+ apps' members are NEOQLICK accounts (architecture 4.18); the admins are CODEQLICK ones. */
+const realmOf = (role: Role): 'CODEQLICK' | 'NEOQLICK' =>
+  role === Role.ADMIN ? 'CODEQLICK' : 'NEOQLICK';
+
 const tag = randomUUID().slice(0, 8);
 /** Nicknames are account usernames now: unique, lower-case, so each run gets its own. */
 const nick = (name: string) => `${name.toLowerCase()}_${tag}`;
@@ -108,9 +112,15 @@ describe('Video chat (e2e)', () => {
     ] as const) {
       const email = `e2e-videochat-${key}-${tag}@codeqlick.test`;
       const user = await prisma.user.create({
-        data: { email, name: key, role, passwordHash: 'x' },
+        data: { email, name: key, role, realm: realmOf(role), passwordHash: 'x' },
       });
-      const token = await jwt.signAsync({ sub: user.id, email, name: key, role });
+      const token = await jwt.signAsync({
+        sub: user.id,
+        email,
+        name: key,
+        role,
+        rlm: realmOf(role),
+      });
       users[key] = { id: user.id, auth: { Authorization: `Bearer ${token}` } };
     }
   });
@@ -199,7 +209,7 @@ describe('Video chat (e2e)', () => {
       .put('/v1/videochat/profile')
       .set(users.admin!.auth)
       .send(profile)
-      .expect(409);
+      .expect(403);
     await request(server())
       .put('/v1/videochat/profile')
       .set(users.ana!.auth)
@@ -671,7 +681,7 @@ describe('Video chat (e2e)', () => {
       .put('/v1/videochat/push')
       .set(users.admin!.auth)
       .send(subscription)
-      .expect(409);
+      .expect(403);
     await onboard('dan');
     await request(server())
       .put('/v1/videochat/push')
@@ -941,7 +951,7 @@ describe('Video chat (e2e)', () => {
       .put('/v1/videochat/push/peak')
       .set(users.admin!.auth)
       .send({ on: true })
-      .expect(409);
+      .expect(403);
   });
 
   it('gives the team the usage history: active people, calls and waits by day and hour', async () => {

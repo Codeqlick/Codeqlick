@@ -22,6 +22,10 @@ import {
 import { MailService, type MailMessage } from '../src/modules/mail/mail.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
+/** The 18+ apps' members are NEOQLICK accounts (architecture 4.18); the admins are CODEQLICK ones. */
+const realmOf = (role: Role): 'CODEQLICK' | 'NEOQLICK' =>
+  role === Role.ADMIN ? 'CODEQLICK' : 'NEOQLICK';
+
 const tag = randomUUID().slice(0, 8);
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -64,9 +68,18 @@ describe('Cruising phase 6: private album and city rooms (e2e)', () => {
     const email = `e2e-cruising-p6b-${name.toLowerCase()}-${tag}@codeqlick.test`;
     // Old enough to post in rooms unless a test makes it new.
     const user = await prisma.user.create({
-      data: { email, name, role, passwordHash: 'x', createdAt: new Date(Date.now() - 3 * DAY) },
+      data: {
+        email,
+        name,
+        role,
+        realm: realmOf(role),
+        passwordHash: 'x',
+        createdAt: new Date(Date.now() - 3 * DAY),
+      },
     });
-    const token = await app.get(JwtService).signAsync({ sub: user.id, email, name, role });
+    const token = await app
+      .get(JwtService)
+      .signAsync({ sub: user.id, email, name, role, rlm: realmOf(role) });
     const nick = `${name.toLowerCase().slice(0, 5)}_${tag.slice(0, 6)}_${made}`;
     return {
       id: user.id,

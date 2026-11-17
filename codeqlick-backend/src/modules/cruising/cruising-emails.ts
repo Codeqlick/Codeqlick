@@ -55,6 +55,7 @@ export function cruisingTakedownEmail(
     subject: `${copy[`${stage}Subject`]} — Cruising`,
     ...renderEmail(
       {
+        brand: 'neoqlick',
         locale,
         preheader: copy[stage],
         title: copy[`${stage}Title`],
@@ -120,6 +121,7 @@ export function cruisingNoticeEmail(
     subject: `${text.subject} — Cruising`,
     ...renderEmail(
       {
+        brand: 'neoqlick',
         locale,
         preheader: text.body,
         title: text.subject,

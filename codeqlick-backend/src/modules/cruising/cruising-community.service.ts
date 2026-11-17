@@ -465,7 +465,7 @@ export class CruisingCommunityService implements OnApplicationBootstrap, OnAppli
               'meetup-cancelled',
               null,
               this.config.webappUrl('cruising'),
-              this.config.siteUrl,
+              this.config.siteUrlFor('NEOQLICK'),
             ),
           )
           .catch((error: unknown) => {

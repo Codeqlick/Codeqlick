@@ -287,7 +287,7 @@ export class AdultSafetyService implements OnApplicationBootstrap, OnApplication
         toAccountLocale(user.locale),
         'suspended',
         input.reason,
-        this.config.siteUrl,
+        this.config.siteUrlFor('NEOQLICK'),
         until,
       ),
     );
@@ -491,7 +491,7 @@ export class AdultSafetyService implements OnApplicationBootstrap, OnApplication
         toAccountLocale(user.locale),
         'suspended',
         input.reason,
-        this.config.siteUrl,
+        this.config.siteUrlFor('NEOQLICK'),
         input.until,
       ),
     );

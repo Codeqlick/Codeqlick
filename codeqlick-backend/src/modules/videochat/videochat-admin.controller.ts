@@ -11,6 +11,7 @@ import {
   Put,
   Query,
   StreamableFile,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
@@ -52,11 +53,13 @@ import {
   type SuspensionView,
   type UserDetailView,
 } from './videochat.service.js';
+import { NeoqlickTargetGuard } from '../../common/guards/realm-target.guard.js';
 
 /** Moderation of the video chat: reports and suspensions. */
 @ApiTags('admin: videochat')
 @ApiBearerAuth()
 @Roles('ADMIN')
+@UseGuards(NeoqlickTargetGuard)
 @Controller('admin/videochat')
 export class VideochatAdminController {
   constructor(

@@ -18,7 +18,13 @@ const CONTACT = '22222222-2222-4222-8222-222222222222';
 const SPOT = '33333333-3333-4333-8333-333333333333';
 const TIMER = '44444444-4444-4444-8444-444444444444';
 const NICKNAME = 'secret_nick';
-const user = { id: ME, email: 'me@example.com', name: 'Me', role: 'CLIENT' } as AuthUser;
+const user = {
+  id: ME,
+  email: 'me@example.com',
+  name: 'Me',
+  role: 'CLIENT',
+  realm: 'CODEQLICK',
+} as AuthUser;
 const minutes = (n: number) => new Date(NOW.getTime() + n * 60_000);
 
 const profile = (over: Record<string, unknown> = {}) => ({
@@ -125,6 +131,10 @@ function build() {
     cruisingTermsVersion: VERSION,
     jwtAccessSecret: SECRET,
     siteUrl: 'https://codeqlick.com',
+    siteUrlFor: (realm: string) =>
+      realm === 'NEOQLICK' ? 'https://neoqlick.com' : 'https://codeqlick.com',
+    accountUrlFor: (realm: string) =>
+      realm === 'NEOQLICK' ? 'https://account.neoqlick.com' : 'https://account.codeqlick.com',
     webappUrl: () => 'https://cruising.codeqlick.com',
   };
   const service = new CruisingSafetyService(
@@ -163,7 +173,7 @@ describe('trusted contacts', () => {
       expect(body).not.toContain(NICKNAME);
       expect(body).not.toContain(saved.inviteTokenHash);
     }
-    expect(email!.text).toContain('https://codeqlick.com/es/safety-contact?token=');
+    expect(email!.text).toContain('https://neoqlick.com/es/safety-contact?token=');
     expect(email!.text).toContain(encodeURIComponent(makeStopToken(CONTACT, SECRET)));
   });
 

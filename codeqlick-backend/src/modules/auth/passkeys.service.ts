@@ -17,6 +17,7 @@ import {
   type RegistrationResponseJSON,
 } from '@simplewebauthn/server';
 import { toApiLocale } from '../../common/schemas/common.schemas.js';
+import type { RealmName } from '../../common/realm.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { Passkey, User } from '../../generated/prisma/client.js';
@@ -24,7 +25,13 @@ import { ActivityService } from '../activity/activity.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { passkeyAddedEmail } from './auth-emails.js';
 import { AuthRepository } from './auth.repository.js';
-import { AuthService, toAuthUser, type AuthTokens, type ClientInfo } from './auth.service.js';
+import {
+  AuthService,
+  brandOf,
+  toAuthUser,
+  type AuthTokens,
+  type ClientInfo,
+} from './auth.service.js';
 import { PasskeyRepository } from './passkeys.repository.js';
 import { PasswordService } from './password.service.js';
 
@@ -33,7 +40,8 @@ export const MAX_PASSKEYS = 10;
 /** How long a ceremony (the options until the browser's answer) may take. */
 export const PASSKEY_CHALLENGE_TTL_MS = 5 * 60_000;
 
-const RP_NAME = 'Codeqlick';
+/** The relying party's name, per realm (architecture 4.18). */
+const RP_NAME: Record<RealmName, string> = { CODEQLICK: 'Codeqlick', NEOQLICK: 'Neoqlick' };
 const DEFAULT_NAME = 'Passkey';
 
 /** A passkey as its owner sees it: never the key. */
@@ -119,8 +127,8 @@ export class PasskeyService {
       throw new ConflictException(`An account can have up to ${MAX_PASSKEYS} passkeys`);
     }
     const options = await generateRegistrationOptions({
-      rpName: RP_NAME,
-      rpID: this.config.webauthnRpId,
+      rpName: RP_NAME[user.realm],
+      rpID: this.config.webauthnRpIdFor(user.realm),
       userName: user.email,
       userDisplayName: user.name,
       userID: userHandleOf(user.id),
@@ -160,8 +168,8 @@ export class PasskeyService {
       const result = await verifyRegistrationResponse({
         response,
         expectedChallenge: challenge,
-        expectedOrigin: this.config.webauthnOrigins,
-        expectedRPID: this.config.webauthnRpId,
+        expectedOrigin: this.config.webauthnOriginsFor(user.realm),
+        expectedRPID: this.config.webauthnRpIdFor(user.realm),
         requireUserVerification: true,
       });
       if (!result.verified) throw new Error('not verified');
@@ -202,9 +210,9 @@ export class PasskeyService {
   }
 
   /** A sign-in's options: no allowed credentials, so the browser offers every passkey it has. */
-  async loginOptions(): Promise<PasskeyLoginOptions> {
+  async loginOptions(realm: RealmName): Promise<PasskeyLoginOptions> {
     const options = await generateAuthenticationOptions({
-      rpID: this.config.webauthnRpId,
+      rpID: this.config.webauthnRpIdFor(realm),
       userVerification: 'required',
       timeout: PASSKEY_CHALLENGE_TTL_MS,
     });
@@ -220,6 +228,7 @@ export class PasskeyService {
    * a password sign-in (session, new-device email, inactive accounts refused).
    */
   async login(
+    realm: RealmName,
     challengeId: string,
     response: AuthenticationResponseJSON,
     client: ClientInfo = {},
@@ -233,6 +242,8 @@ export class PasskeyService {
     if (handle && Buffer.from(handle, 'base64url').toString('utf8') !== passkey.userId) {
       throw new UnauthorizedException('Unknown passkey');
     }
+    // A passkey of the other realm's account doesn't sign in here.
+    if (passkey.user.realm !== realm) throw new UnauthorizedException('Unknown passkey');
 
     const stored = Number(passkey.counter);
     let newCounter: number;
@@ -240,8 +251,8 @@ export class PasskeyService {
       const result = await verifyAuthenticationResponse({
         response,
         expectedChallenge: challenge,
-        expectedOrigin: this.config.webauthnOrigins,
-        expectedRPID: this.config.webauthnRpId,
+        expectedOrigin: this.config.webauthnOriginsFor(realm),
+        expectedRPID: this.config.webauthnRpIdFor(realm),
         requireUserVerification: true,
         credential: {
           id: passkey.credentialId,
@@ -313,10 +324,14 @@ export class PasskeyService {
 
   private sendAddedEmail(user: User, passkey: Passkey): void {
     const locale = toApiLocale(user.locale);
-    const site = this.config.siteUrl;
-    const accountUrl = `${site}/${locale}/${user.role === 'ADMIN' ? 'admin' : 'portal'}/account`;
+    const site = this.config.siteUrlFor(user.realm);
+    // Neoqlick's people manage their passkeys on their account host (architecture 4.18).
+    const accountUrl =
+      user.realm === 'NEOQLICK'
+        ? `${this.config.accountUrlFor('NEOQLICK')}/${locale}/security`
+        : `${site}/${locale}/${user.role === 'ADMIN' ? 'admin' : 'portal'}/account`;
     this.mail
-      .send(passkeyAddedEmail(user, passkey, accountUrl, locale, site))
+      .send(passkeyAddedEmail(user, passkey, accountUrl, locale, site, brandOf(user.realm)))
       .catch((error: unknown) => {
         const reason = error instanceof Error ? error.message : String(error);
         this.logger.error(`Failed to send the passkey-added email: ${reason}`);

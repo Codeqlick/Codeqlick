@@ -38,11 +38,11 @@ export class SwipePushService {
 
   /** The VAPID public key browsers subscribe with; null while notifications are off. */
   get publicKey(): string | null {
-    return this.config.vapid?.publicKey ?? null;
+    return this.config.neoqlickVapid?.publicKey ?? null;
   }
 
   async subscribe(userId: string, input: PushSubscriptionInput): Promise<void> {
-    if (!this.config.vapid) throw new ConflictException('Notifications are not available');
+    if (!this.config.neoqlickVapid) throw new ConflictException('Notifications are not available');
     const profile = await this.repository.findProfile(userId);
     if (profile?.termsVersion !== SWIPE_TERMS_VERSION) {
       throw new ConflictException('Confirm your age and accept the rules first');
@@ -61,7 +61,7 @@ export class SwipePushService {
 
   /** Tells every browser of `userId` about `kind`; never throws. */
   async notify(userId: string, kind: SwipePushKind): Promise<void> {
-    const vapid = this.config.vapid;
+    const vapid = this.config.neoqlickVapid;
     if (!vapid) return;
     try {
       const rows = await this.repository.pushSubscriptionsOf(userId);

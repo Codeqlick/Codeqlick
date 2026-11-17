@@ -17,6 +17,12 @@ enum Role {
   CLIENT
 }
 
+/// A separate user base: Codeqlick's (website, portal, Cloud…) or Neoqlick's (the 18+ apps).
+enum Realm {
+  CODEQLICK
+  NEOQLICK
+}
+
 enum Locale {
   EN
   ES
@@ -71,11 +77,14 @@ enum ProjectPhase {
 
 model User {
   id                 String    @id @default(uuid()) @db.Uuid
-  email              String    @unique
+  /// Which user base the account belongs to. Set at creation, never changes (a trigger refuses
+  /// an update); a NEOQLICK account is never an ADMIN (check constraint users_realm_role_check).
+  realm              Realm     @default(CODEQLICK)
+  email              String
   passwordHash       String    @map("password_hash")
   name               String
   /// Optional unique username (lower-cased, shown as @name); freed when changed or deleted.
-  username           String?   @unique
+  username           String?
   /// Profile photo (file name under UPLOADS_DIR/avatars); never shown in the 18+ apps.
   avatarKey          String?   @map("avatar_key")
   role               Role      @default(CLIENT)
@@ -102,6 +111,9 @@ model User {
   /// The Codeqlick web app the person signed up from (`videochat`, `swipe`, …; see webapps.ts).
   /// Null: signed up on codeqlick.com, or an account the team created (decision 29).
   signupApp          String?   @map("signup_app")
+  /// NEOQLICK accounts: the version of the account terms accepted at sign-up, and when.
+  termsVersion       String?   @map("terms_version")
+  termsAcceptedAt    DateTime? @map("terms_accepted_at") @db.Timestamptz(3)
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -227,6 +239,8 @@ model User {
   adultSuspensionReviews     AdultSuspensionReview[]     @relation("AdultSuspensionReviewed")
   adultSuspensionReviewsMade AdultSuspensionReview[]     @relation("AdultSuspensionReviewer")
 
+  @@unique([realm, email])
+  @@unique([realm, username])
   @@map("users")
 }
 
@@ -263,6 +277,8 @@ model SsoCode {
   codeHash       String    @unique @map("code_hash")
   userId         String    @map("user_id") @db.Uuid
   client         String
+  /// The account's realm; the exchange refuses a code whose client belongs to the other one.
+  realm          Realm     @default(CODEQLICK)
   /// base64url(SHA-256(code_verifier)): PKCE S256.
   codeChallenge  String    @map("code_challenge")
   /// The account host's session family that asked for the code.
@@ -373,9 +389,13 @@ model SignupToken {
   usedAt       DateTime? @map("used_at") @db.Timestamptz(3)
   /// The web app the sign-up came from; becomes the account's `signupApp`.
   app          String?
+  /// The user base the sign-up is for: the same email can register once in each.
+  realm        Realm     @default(CODEQLICK)
+  /// NEOQLICK: the account terms version accepted in the form.
+  termsVersion String?   @map("terms_version")
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  @@index([email])
+  @@index([realm, email])
   @@map("signup_tokens")
 }
 

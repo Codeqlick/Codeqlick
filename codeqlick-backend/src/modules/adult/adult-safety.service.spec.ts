@@ -15,7 +15,13 @@ import { emailHash } from './adult.rules.js';
 const NOW = new Date('2026-11-17T12:00:00Z');
 const HOUR = 60 * 60 * 1000;
 const KEY = 'k'.repeat(40);
-const admin: AuthUser = { id: 'admin', email: 'a@codeqlick.com', name: 'Admin', role: 'ADMIN' };
+const admin: AuthUser = {
+  id: 'admin',
+  email: 'a@codeqlick.com',
+  name: 'Admin',
+  role: 'ADMIN',
+  realm: 'CODEQLICK',
+};
 
 /** One app's repository as the shared safety sees it, recording what it was asked. */
 function store(
@@ -69,7 +75,15 @@ function build() {
   };
   const activity = { record: vi.fn().mockResolvedValue(undefined) };
   const events = new AdultEvents();
-  const config = { isTest: true, adultBanHashKey: KEY, siteUrl: 'https://codeqlick.com' };
+  const config = {
+    isTest: true,
+    adultBanHashKey: KEY,
+    siteUrl: 'https://codeqlick.com',
+    siteUrlFor: (realm: string) =>
+      realm === 'NEOQLICK' ? 'https://neoqlick.com' : 'https://codeqlick.com',
+    accountUrlFor: (realm: string) =>
+      realm === 'NEOQLICK' ? 'https://account.neoqlick.com' : 'https://account.codeqlick.com',
+  };
   const service = new AdultSafetyService(
     repository as unknown as AdultRepository,
     verification as unknown as AdultVerificationService,

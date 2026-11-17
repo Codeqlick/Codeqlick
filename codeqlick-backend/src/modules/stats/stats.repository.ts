@@ -74,7 +74,9 @@ export class StatsRepository {
       this.prisma.portfolioItem.count({ where: liveWhere(now) }),
       this.prisma.clientProject.count({ where: { phase: { in: ACTIVE_PHASES } } }),
       // Clients only: people who just use our web apps aren't (decision 29).
-      this.prisma.user.count({ where: { AND: [CLIENT_WHERE, { isActive: true }] } }),
+      this.prisma.user.count({
+        where: { AND: [CLIENT_WHERE, { isActive: true }], realm: 'CODEQLICK' },
+      }),
       this.prisma.supportTicket.count({
         where: { status: { in: ['OPEN', 'IN_PROGRESS', 'WAITING_CLIENT'] } },
       }),

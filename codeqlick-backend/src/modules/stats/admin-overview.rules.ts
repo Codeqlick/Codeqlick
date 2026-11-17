@@ -34,7 +34,8 @@ export interface OverviewWeek {
 export interface AdminOverview {
   generatedAt: string;
   weeks: OverviewWeek[];
-  people: { accounts: number; apps: AppCounts };
+  /** `neoqlickAccounts`: the 18+ apps' own accounts (architecture 4.18); `accounts` are Codeqlick's. */
+  people: { accounts: number; neoqlickAccounts: number; apps: AppCounts };
   revenue: {
     currency: 'eur';
     /** Cloud PRO's and the maintenance plans', a month before VAT. */
@@ -132,6 +133,7 @@ export function buildOverview(input: {
     weeks: [...weeks.values()],
     people: {
       accounts: t.accounts,
+      neoqlickAccounts: t.neoqlickAccounts,
       apps: {
         cruising: t.cruising,
         swipe: t.swipe,

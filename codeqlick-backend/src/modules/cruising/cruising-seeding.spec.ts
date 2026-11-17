@@ -235,7 +235,13 @@ describe('distances and duplicates', () => {
 });
 
 const NOW = new Date('2026-11-16T12:00:00Z');
-const admin: AuthUser = { id: 'a0', email: 'admin@codeqlick.com', name: 'Admin', role: 'ADMIN' };
+const admin: AuthUser = {
+  id: 'a0',
+  email: 'admin@codeqlick.com',
+  name: 'Admin',
+  role: 'ADMIN',
+  realm: 'CODEQLICK',
+};
 
 function build() {
   const repo = {

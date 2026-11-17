@@ -2,7 +2,8 @@ import { createHmac } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from './env.schema.js';
-import { WEBAPPS, type Webapp } from '../common/webapps.js';
+import type { RealmName } from '../common/realm.js';
+import { isNeoqlickApp, WEBAPPS, type Webapp } from '../common/webapps.js';
 
 /** Typed, read-only accessors over the validated environment. */
 @Injectable()
@@ -43,8 +44,70 @@ export class AppConfigService {
     return this.get('DATABASE_URL');
   }
 
+  /** Allowed origins: CORS_ORIGINS plus Neoqlick's host when it is set (architecture 4.18). */
   get corsOrigins(): string[] {
-    return this.get('CORS_ORIGINS');
+    const configured = this.get('CORS_ORIGINS');
+    const neoqlick = this.neoqlickUrl;
+    return neoqlick && !configured.includes(neoqlick) ? [...configured, neoqlick] : configured;
+  }
+
+  /** Neoqlick's main host (no trailing slash); undefined where there are no Neoqlick hosts. */
+  get neoqlickUrl(): string | undefined {
+    return this.get('NEOQLICK_URL');
+  }
+
+  /**
+   * The base URL of a realm's links in emails: the website's, or Neoqlick's (the website's again
+   * while NEOQLICK_URL is unset, so staging and development keep working).
+   */
+  siteUrlFor(realm: RealmName): string {
+    return realm === 'NEOQLICK' ? (this.neoqlickUrl ?? this.siteUrl) : this.siteUrl;
+  }
+
+  /** Neoqlick's account host: NEOQLICK_ACCOUNT_URL, or NEOQLICK_URL with `account.` before it. */
+  get neoqlickAccountUrl(): string {
+    const configured = this.get('NEOQLICK_ACCOUNT_URL');
+    if (configured) return configured;
+    const base = this.neoqlickUrl;
+    return base ? base.replace('://', '://account.') : this.accountUrl;
+  }
+
+  /** The account host of a realm (links in its emails). */
+  accountUrlFor(realm: RealmName): string {
+    return realm === 'NEOQLICK' ? this.neoqlickAccountUrl : this.accountUrl;
+  }
+
+  /** The API as Neoqlick's emails name it (unsubscribe links). */
+  get neoqlickPublicApiUrl(): string {
+    return (this.get('NEOQLICK_PUBLIC_API_URL') ?? this.get('PUBLIC_API_URL')).replace(/\/+$/, '');
+  }
+
+  /** Neoqlick's sender and SMTP login; each is undefined while its mailbox isn't set up. */
+  get neoqlickMail(): {
+    from: string | undefined;
+    user: string | undefined;
+    password: string | undefined;
+  } {
+    return {
+      from: this.get('MAIL_FROM_NEOQLICK'),
+      user: this.get('SMTP_USER_NEOQLICK'),
+      password: this.get('SMTP_PASSWORD_NEOQLICK'),
+    };
+  }
+
+  /** Account terms version a NEOQLICK sign-up accepts. */
+  get neoqlickTermsVersion(): string {
+    return this.get('NEOQLICK_TERMS_VERSION');
+  }
+
+  /** Neoqlick's operator: its own variables, each falling back to the website's legal holder. */
+  get neoqlickLegal(): { tradeName: string; ownerName?: string; taxId?: string; address?: string } {
+    return {
+      tradeName: this.get('NEOQLICK_TRADE_NAME') ?? 'Neoqlick',
+      ownerName: this.get('NEOQLICK_LEGAL_OWNER_NAME') ?? this.get('LEGAL_OWNER_NAME'),
+      taxId: this.get('NEOQLICK_LEGAL_OWNER_TAX_ID') ?? this.get('LEGAL_OWNER_TAX_ID'),
+      address: this.get('NEOQLICK_LEGAL_OWNER_ADDRESS') ?? this.get('LEGAL_OWNER_ADDRESS'),
+    };
   }
 
   /** Public URL of the website, without a trailing slash. */
@@ -292,7 +355,32 @@ export class AppConfigService {
     return this.get('WEBAUTHN_RP_ID') ?? (this.isProduction ? 'codeqlick.com' : 'localhost');
   }
 
-  /** Origins a passkey ceremony may come from: the website and every web app's host. */
+  /** The relying party of a realm's passkeys (architecture 4.18). */
+  webauthnRpIdFor(realm: RealmName): string {
+    if (realm === 'CODEQLICK') return this.webauthnRpId;
+    return (
+      this.get('WEBAUTHN_RP_ID_NEOQLICK') ?? (this.isProduction ? 'neoqlick.com' : 'localhost')
+    );
+  }
+
+  /** Origins a realm's passkey ceremonies may come from. */
+  webauthnOriginsFor(realm: RealmName): string[] {
+    if (realm === 'CODEQLICK') return this.webauthnOrigins;
+    const configured = (this.get('WEBAUTHN_ORIGINS_NEOQLICK') ?? '')
+      .split(',')
+      .map((origin) => origin.trim().replace(/\/+$/, ''))
+      .filter((origin) => origin.length > 0);
+    if (configured.length > 0) return configured;
+    return [
+      ...new Set([
+        this.siteUrlFor('NEOQLICK'),
+        this.neoqlickAccountUrl,
+        ...WEBAPPS.filter(isNeoqlickApp).map((app) => this.webappUrl(app)),
+      ]),
+    ];
+  }
+
+  /** Origins a Codeqlick passkey ceremony may come from: the website and every web app's host. */
   get webauthnOrigins(): string[] {
     const configured = (this.get('WEBAUTHN_ORIGINS') ?? '')
       .split(',')
@@ -356,7 +444,9 @@ export class AppConfigService {
   webappUrl(app: Webapp): string {
     const origins =
       app === 'meetings' ? this.meetingsOrigins : app === 'videochat' ? this.videochatOrigins : [];
-    return origins[0] ?? `${this.siteUrl}`.replace('://', `://${app}.`);
+    // Neoqlick's apps live under Neoqlick's host (4.18) when it is set.
+    const base = isNeoqlickApp(app) ? this.siteUrlFor('NEOQLICK') : this.siteUrl;
+    return origins[0] ?? base.replace('://', `://${app}.`);
   }
 
   /** STUN/TURN for calls (video chat, meetings): the URLs and coturn's shared secret (TURN needs both). */
@@ -374,6 +464,19 @@ export class AppConfigService {
     const privateKey = this.get('VAPID_PRIVATE_KEY');
     if (!publicKey || !privateKey) return undefined;
     return { publicKey, privateKey, subject: this.get('VAPID_SUBJECT') };
+  }
+
+  /**
+   * Web Push key pair of the 18+ apps (architecture 4.18): Neoqlick's own when both keys are set,
+   * otherwise Codeqlick's, so push keeps working until Neoqlick's pair exists.
+   */
+  get neoqlickVapid(): { publicKey: string; privateKey: string; subject: string } | undefined {
+    const publicKey = this.get('NEOQLICK_VAPID_PUBLIC_KEY');
+    const privateKey = this.get('NEOQLICK_VAPID_PRIVATE_KEY');
+    if (publicKey && privateKey) {
+      return { publicKey, privateKey, subject: this.get('NEOQLICK_VAPID_SUBJECT') };
+    }
+    return this.vapid;
   }
 
   /** Cloudflare Turnstile's secret key (architecture 4.3); undefined: no check. */

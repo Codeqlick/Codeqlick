@@ -32,18 +32,21 @@ export class UsernameService {
   /** Why `userId` can't use a username, or null. */
   async problem(userId: string, username: string): Promise<UsernameProblem | null> {
     if (!USERNAME_PATTERN.test(username)) return 'invalid';
+    const caller = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, realm: true },
+    });
     if (RESERVED_USERNAMES.has(username.replace(/[._]/g, ''))) {
       // Reserved names keep people from posing as the team; the team's own accounts may use them.
-      const caller = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { role: true },
-      });
       if (caller?.role !== 'ADMIN') return 'reserved';
     }
-    const owner = await this.prisma.user.findUnique({
-      where: { username },
-      select: { id: true },
-    });
+    // Usernames are unique per realm: the other user base's don't count (architecture 4.18).
+    const owner = caller
+      ? await this.prisma.user.findUnique({
+          where: { realm_username: { realm: caller.realm, username } },
+          select: { id: true },
+        })
+      : null;
     return owner && owner.id !== userId ? 'taken' : null;
   }
 

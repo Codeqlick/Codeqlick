@@ -48,8 +48,13 @@ export const registerSchema = z
     email: z.email().max(254),
     /** Honeypot: humans never see this field, bots fill it in. */
     website: z.string().max(500).optional(),
-    /** Signed up from one of Codeqlick's web apps: the emailed links lead back to it. */
+    /**
+     * Signed up from one of the web apps: the emailed links lead back to it. The realm decides
+     * which: Codeqlick's apps on its account host, Neoqlick's (4.18) with `X-Realm: NEOQLICK`.
+     */
     app: z.enum(WEBAPPS).optional(),
+    /** Neoqlick's sign-up (`X-Realm: NEOQLICK`): the account terms and being 18 or older. */
+    acceptTerms: z.literal(true).optional(),
     /** Cloudflare Turnstile's token (required while TURNSTILE_SECRET_KEY is set). */
     captcha: z.string().max(4096).optional(),
   })

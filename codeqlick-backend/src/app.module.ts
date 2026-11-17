@@ -10,6 +10,7 @@ import { DomainsModule } from './modules/domains/domains.module.js';
 import { ErrorsModule } from './modules/errors/errors.module.js';
 import { LinkChecksModule } from './modules/link-checks/link-checks.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
+import { RealmGuard } from './common/guards/realm.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 import { AppConfigService } from './config/app-config.service.js';
 import { AppConfigModule } from './config/config.module.js';
@@ -101,6 +102,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     // Order matters: rate limit first, then authentication, then authorization.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RealmGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })

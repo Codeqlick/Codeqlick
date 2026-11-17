@@ -340,7 +340,13 @@ export class AdultVerificationService implements OnApplicationBootstrap, OnAppli
     const user = await this.repository.findUser(userId);
     if (!user) return;
     this.send(
-      adultNoticeEmail(user.email, toAccountLocale(user.locale), notice, note, this.config.siteUrl),
+      adultNoticeEmail(
+        user.email,
+        toAccountLocale(user.locale),
+        notice,
+        note,
+        this.config.siteUrlFor('NEOQLICK'),
+      ),
     );
   }
 

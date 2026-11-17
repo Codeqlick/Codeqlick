@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   StreamableFile,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
@@ -39,11 +40,13 @@ import {
   type VerificationDecision,
 } from './swipe.schemas.js';
 import { SwipeService } from './swipe.service.js';
+import { NeoqlickTargetGuard } from '../../common/guards/realm-target.guard.js';
 
 /** Swipe's moderation: verification photos, the photo queue, reports and removal requests. */
 @ApiTags('admin: swipe')
 @ApiBearerAuth()
 @Roles('ADMIN')
+@UseGuards(NeoqlickTargetGuard)
 @Controller('admin/swipe')
 export class SwipeAdminController {
   constructor(
