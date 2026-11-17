@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
+import { NEOQLICK_EXOCLICK_VERIFICATION } from '@/lib/neoqlick-exoclick';
 import type { ReactNode } from 'react';
 import { Analytics } from '@/components/layout/Analytics';
 import { PortalFrame } from '@/components/neoqlick/PortalFrame';
@@ -9,12 +10,11 @@ import { requestHostClass } from '@/lib/request-brand';
 
 type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
 
-// Adults only, like the apps: Google's label (architecture 4.18). Plus the ownership check of
-// Neoqlick's own ExoClick site for neoqlick.com.
+// Adults only, like the apps: Google's label (architecture 4.18). Plus Neoqlick's ExoClick check.
 export const metadata: Metadata = {
   other: {
     rating: 'adult',
-    '6a97888e-site-verification': 'f4c1803b4bcbb7d3aa7e48ad92bd5004',
+    ...NEOQLICK_EXOCLICK_VERIFICATION,
   },
 };
 
