@@ -4208,6 +4208,15 @@
     "title": "Menú",
     "home": "Inicio",
     "signIn": "Iniciar sesión",
+    "openFor": "Menú — {name}",
+    "card": {
+      "label": "Tu cuenta",
+      "profile": "Mi perfil",
+      "completeProfile": "Completa tu perfil",
+      "account": "Mi cuenta",
+      "verified": "Verificado",
+      "register": "Crear cuenta"
+    },
     "sections": {
       "discover": "Descubrir",
       "community": "Comunidad",

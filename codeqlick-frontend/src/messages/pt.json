@@ -129,6 +129,15 @@
     "title": "Menu",
     "home": "Início",
     "signIn": "Iniciar sessão",
+    "openFor": "Menu — {name}",
+    "card": {
+      "label": "A tua conta",
+      "profile": "O meu perfil",
+      "completeProfile": "Completa o teu perfil",
+      "account": "A minha conta",
+      "verified": "Verificado",
+      "register": "Criar conta"
+    },
     "sections": {
       "discover": "Descobrir",
       "community": "Comunidade",
