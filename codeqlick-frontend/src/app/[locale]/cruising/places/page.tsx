@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import styles from '@/components/cruising/Cruising.module.css';
+import card from '@/components/cruising/CruisingCard.module.css';
 import { getCruisingPlaces } from '@/lib/api/cruising';
 import { countryName, placeHref } from '@/lib/cruising';
 import { webappAlternates, webappPath } from '@/lib/webapp-seo';
@@ -36,10 +37,10 @@ export default async function CruisingPlacesPage({ params }: PageProps) {
       {countries.length === 0 ? (
         <p>{t('empty')}</p>
       ) : (
-        <ul className={styles.countries}>
+        <ul className={card.grid}>
           {countries.map((country) => (
-            <li key={country.countryCode} className={styles.countryCard}>
-              <h2 className={styles.subTitle}>
+            <li key={country.countryCode} className={card.card}>
+              <h2 className={card.title}>
                 <Link href={placeHref(country.countryCode)} className={vc.inlineLink}>
                   {countryName(country.countryCode, locale)}
                 </Link>{' '}

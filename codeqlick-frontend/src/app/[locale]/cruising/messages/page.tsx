@@ -5,6 +5,7 @@ import styles from '@/components/cruising/Cruising.module.css';
 import { MemberName } from '@/components/cruising/MemberName';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
+import card from '@/components/cruising/CruisingCard.module.css';
 import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingStatus, listCruisingConversations } from '@/lib/api/cruising';
@@ -52,7 +53,7 @@ export default async function CruisingMessagesPage({ params, searchParams }: Pag
             return (
               <li
                 key={conversation.id}
-                className={`${styles.conv} ${unread ? styles.convUnread : ''}`}
+                className={unread ? `${card.card} ${card.unread}` : card.card}
               >
                 <div className={styles.convHead}>
                   <MemberName locale={locale} member={conversation.partner}>

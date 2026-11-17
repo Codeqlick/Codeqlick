@@ -394,97 +394,104 @@ export default function LeafletMap({
 
   return (
     <div className={styles.mapWrap}>
-      <MapSearch endpoint={searchEndpoint} spotBase={spotBase} onPlace={showPlace} />
-      <div className={styles.mapControls}>
-        <div className={styles.mapFilter}>
-          <label htmlFor={filterId}>{t('filter')}</label>
-          <select
-            id={filterId}
-            value={type}
-            onChange={(event) => changeType(event.target.value)}
-            className={styles.select}
-          >
-            <option value="">{t('allTypes')}</option>
-            {SPOT_TYPES.map((value) => (
-              <option key={value} value={value}>
-                {tt(value)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className={styles.mapFilter}>
-          <label htmlFor={ratingId}>{t('minRating')}</label>
-          <select
-            id={ratingId}
-            value={minRating}
-            onChange={(event) => changeMinRating(event.target.value)}
-            className={styles.select}
-          >
-            <option value="">{t('anyRating')}</option>
-            {MIN_RATINGS.map((value) => (
-              <option key={value} value={String(value)}>
-                {t('ratingAtLeast', { rating: value })}
-              </option>
-            ))}
-          </select>
-        </div>
-        <details className={styles.tagFilter}>
-          <summary>
-            {tags.length > 0 ? t('tagsChosen', { count: tags.length }) : t('tagsFilter')}
-          </summary>
-          <fieldset className={styles.tagFilterList}>
-            <legend className={styles.srOnly}>{t('tagsLegend')}</legend>
-            {SPOT_TAGS.map((tag) => (
-              <div key={tag} className={styles.activeToggle}>
-                <input
-                  id={`${tagsId}-${tag}`}
-                  type="checkbox"
-                  checked={tags.includes(tag)}
-                  onChange={(event) => toggleTag(tag, event.target.checked)}
-                />
-                <label htmlFor={`${tagsId}-${tag}`}>{tg(tag)}</label>
-              </div>
-            ))}
-          </fieldset>
-        </details>
-        {activeEndpoint ? (
-          <div className={styles.activeToggle}>
-            <input
-              id={activeId}
-              type="checkbox"
-              checked={activeOnly}
-              onChange={(event) => setActiveOnly(event.target.checked)}
-            />
-            <label htmlFor={activeId}>{t('activeOnly')}</label>
+      {/* One compact toolbar over the map: search, filters, "locate me" and the count. */}
+      <div className={styles.mapToolbar}>
+        <MapSearch endpoint={searchEndpoint} spotBase={spotBase} onPlace={showPlace} />
+        <div className={styles.mapControls}>
+          <div className={styles.mapFilter}>
+            <label htmlFor={filterId} className={styles.srOnly}>
+              {t('filter')}
+            </label>
+            <select
+              id={filterId}
+              value={type}
+              onChange={(event) => changeType(event.target.value)}
+              className={styles.select}
+            >
+              <option value="">{t('allTypes')}</option>
+              {SPOT_TYPES.map((value) => (
+                <option key={value} value={value}>
+                  {tt(value)}
+                </option>
+              ))}
+            </select>
           </div>
-        ) : null}
-        <button
-          type="button"
-          className={styles.mapButton}
-          onClick={locateMe}
-          disabled={locate === 'busy'}
-        >
-          {locate === 'busy' ? t('locating') : t('locate')}
-        </button>
-        <output className={styles.mapStatus}>
-          {load.status === 'loading' ? t('loading') : null}
-          {load.status === 'error' ? t('loadError') : null}
-          {load.status === 'ready' && load.truncated ? t('truncated') : null}
-          {load.status === 'ready' && !load.truncated && !activeOnly
-            ? t('count', { count: spots.length })
-            : null}
-          {load.status === 'ready' && !load.truncated && activeOnly
-            ? t('activeCount', { count: shown.length })
-            : null}
-        </output>
+          <div className={styles.mapFilter}>
+            <label htmlFor={ratingId} className={styles.srOnly}>
+              {t('minRating')}
+            </label>
+            <select
+              id={ratingId}
+              value={minRating}
+              onChange={(event) => changeMinRating(event.target.value)}
+              className={styles.select}
+            >
+              <option value="">{t('anyRating')}</option>
+              {MIN_RATINGS.map((value) => (
+                <option key={value} value={String(value)}>
+                  {t('ratingAtLeast', { rating: value })}
+                </option>
+              ))}
+            </select>
+          </div>
+          <details className={styles.tagFilter}>
+            <summary>
+              {tags.length > 0 ? t('tagsChosen', { count: tags.length }) : t('tagsFilter')}
+            </summary>
+            <fieldset className={styles.tagFilterList}>
+              <legend className={styles.srOnly}>{t('tagsLegend')}</legend>
+              {SPOT_TAGS.map((tag) => (
+                <div key={tag} className={styles.activeToggle}>
+                  <input
+                    id={`${tagsId}-${tag}`}
+                    type="checkbox"
+                    checked={tags.includes(tag)}
+                    onChange={(event) => toggleTag(tag, event.target.checked)}
+                  />
+                  <label htmlFor={`${tagsId}-${tag}`}>{tg(tag)}</label>
+                </div>
+              ))}
+            </fieldset>
+          </details>
+          {activeEndpoint ? (
+            <div className={styles.activeToggle}>
+              <input
+                id={activeId}
+                type="checkbox"
+                checked={activeOnly}
+                onChange={(event) => setActiveOnly(event.target.checked)}
+              />
+              <label htmlFor={activeId}>{t('activeOnly')}</label>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            className={styles.mapButton}
+            onClick={locateMe}
+            disabled={locate === 'busy'}
+          >
+            {locate === 'busy' ? t('locating') : t('locate')}
+          </button>
+          <output className={styles.mapStatus}>
+            {load.status === 'loading' ? t('loading') : null}
+            {load.status === 'error' ? t('loadError') : null}
+            {load.status === 'ready' && load.truncated ? t('truncated') : null}
+            {load.status === 'ready' && !load.truncated && !activeOnly
+              ? t('count', { count: spots.length })
+              : null}
+            {load.status === 'ready' && !load.truncated && activeOnly
+              ? t('activeCount', { count: shown.length })
+              : null}
+          </output>
+        </div>
       </div>
       {locate === 'denied' || locate === 'unsupported' ? (
         <p className={styles.mapNotice} role="alert">
           {t(locate === 'denied' ? 'locateDenied' : 'locateUnsupported')}
         </p>
       ) : null}
-      <p className={styles.mapHint}>{t('locateNote')}</p>
       <section ref={container} className={styles.map} aria-label={t('mapLabel')} />
+      <p className={styles.mapHint}>{t('locateNote')}</p>
       <ul className={styles.legend} aria-label={t('legend')}>
         {SPOT_TYPES.map((value) => (
           <li key={value}>
