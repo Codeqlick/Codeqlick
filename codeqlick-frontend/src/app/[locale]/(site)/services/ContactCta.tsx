@@ -24,7 +24,7 @@ export async function ContactCta({ locale }: { locale: AppLocale }) {
           <p className={home.ctaBody}>{t('ctaBody')}</p>
         </div>
         <div className={home.ctaActions}>
-          <Button href="/contact" variant="ink" block>
+          <Button href="/contact" variant="ink" size="lg" block>
             {t('ctaButton')}
           </Button>
           {booking ? (

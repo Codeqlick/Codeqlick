@@ -53,7 +53,7 @@ export default async function CruisingHealthPage({ params }: PageProps) {
   return (
     <>
       <h1 className={vc.pageTitle}>{t('title')}</h1>
-      <p className={vc.muted}>{t('lead')}</p>
+      <p className={`${vc.muted} ${cruising.pageLead}`}>{t('lead')}</p>
       {failed ? (
         <p>{t('loadError')}</p>
       ) : centers.length === 0 ? (

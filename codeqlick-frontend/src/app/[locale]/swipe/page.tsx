@@ -18,7 +18,7 @@ export default async function SwipeLandingPage({ params }: PageProps) {
   return (
     <div className={vc.landing}>
       <section className={vc.hero}>
-        <p className={vc.eyebrow}>{t('eyebrow')}</p>
+        <p className={`eyebrow ${vc.eyebrow}`}>{t('eyebrow')}</p>
         <h1 className={vc.heroTitle}>{t('title')}</h1>
         <p className={vc.heroLead}>{t('lead')}</p>
         <div className={vc.warning} role="note">
