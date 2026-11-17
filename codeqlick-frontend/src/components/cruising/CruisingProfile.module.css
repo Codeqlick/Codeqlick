@@ -5,9 +5,14 @@
 
 .page {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
   max-width: 60rem;
   margin: 0 auto;
+}
+
+.page > * {
+  min-width: 0;
 }
 
 .srOnly {
@@ -123,6 +128,10 @@
   flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--space-3);
+}
+
+/* Only the avatar overlaps the cover; the name stays on the card. */
+.identity > .avatar {
   margin-top: -2.75rem;
 }
 
@@ -356,6 +365,7 @@
 /* The sticky sub-nav of a page's sections */
 
 .subnav {
+  min-width: 0;
   position: sticky;
   top: 0;
   z-index: 4;
@@ -558,6 +568,7 @@
 
 .layout {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
   min-width: 0;
 }
@@ -580,7 +591,7 @@
     padding: 0 12px 12px;
   }
 
-  .identity {
+  .identity > .avatar {
     margin-top: -2.25rem;
   }
 
