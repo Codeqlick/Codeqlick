@@ -292,6 +292,32 @@
       }
     }
   },
+  "LocalSeo": {
+    "breadcrumb": "Ruta de navegación",
+    "remoteNote": "Trabajamos en remoto con negocios de toda España: sin oficina en {city}, con videollamadas, enlaces de prueba y tu portal de cliente.",
+    "includedTitle": "Qué incluye",
+    "priceTitle": "Precio",
+    "priceFrom": "Desde {price}",
+    "priceNoteWebsite": "Pago único. Mantenimiento opcional después.",
+    "priceNoteCalculator": "Orientativo, para un proyecto pequeño. Recibes un presupuesto cerrado antes de empezar.",
+    "priceQuoted": "Presupuesto cerrado para cada proyecto",
+    "priceNoteQuoted": "Depende del alcance: recibes un briefing y un presupuesto cerrado antes de empezar.",
+    "requestWebsite": "Pedir mi web",
+    "seeOffer": "Ver la web básica",
+    "calculatorLink": "Calcúlalo con la calculadora",
+    "processTitle": "Cómo trabajamos",
+    "faqTitle": "{service} en {city}: preguntas",
+    "otherCitiesTitle": "{service} en otras ciudades",
+    "otherServicesTitle": "Otros servicios en {city}",
+    "citiesTitle": "Dónde trabajamos",
+    "citiesLead": "{service}, ciudad a ciudad: qué significa para los negocios de allí. Trabajamos en remoto con toda España.",
+    "nearYouTitle": "Cerca de ti",
+    "nearYouLead": "Nuestros servicios ciudad a ciudad: qué significa cada uno para los negocios de allí.",
+    "ogEyebrow": "Codeqlick · {city}",
+    "hubTitle": "Diseño web para negocios locales",
+    "hubDescription": "Webs de una página para negocios locales: rápidas, adaptadas al móvil y preparadas para Google, desde 200 €. Trabajamos en remoto con toda España.",
+    "hubIntro": "Una web de una página, rápida y adaptada al móvil, para que quien te busque encuentre tus servicios, tus precios, tu horario y cómo contactarte. Partimos de una base probada y la hacemos tuya, en pocos días y desde 200 €."
+  },
   "Blog": {
     "metaTitle": "Blog",
     "metaDescription": "Apuntes del estudio Codeqlick sobre cómo construir software y aplicaciones web.",

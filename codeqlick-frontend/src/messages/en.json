@@ -292,6 +292,32 @@
       }
     }
   },
+  "LocalSeo": {
+    "breadcrumb": "Breadcrumb",
+    "remoteNote": "We work remotely with businesses all over Spain: no office in {city}, just video calls, preview links and your client portal.",
+    "includedTitle": "What’s included",
+    "priceTitle": "Price",
+    "priceFrom": "From {price}",
+    "priceNoteWebsite": "Paid once. Optional maintenance afterwards.",
+    "priceNoteCalculator": "A guide for a small project. You get a fixed quote before any work starts.",
+    "priceQuoted": "Fixed quote per project",
+    "priceNoteQuoted": "It depends on the scope: you get a brief and a fixed quote before any work starts.",
+    "requestWebsite": "Request my website",
+    "seeOffer": "See the basic website",
+    "calculatorLink": "Estimate it with the calculator",
+    "processTitle": "How we work",
+    "faqTitle": "{service} in {city}: questions",
+    "otherCitiesTitle": "{service} in other cities",
+    "otherServicesTitle": "Other services in {city}",
+    "citiesTitle": "Where we work",
+    "citiesLead": "{service}, city by city: what it means for the businesses there. We work remotely with all of Spain.",
+    "nearYouTitle": "Near you",
+    "nearYouLead": "Our services city by city: what each one means for the businesses there.",
+    "ogEyebrow": "Codeqlick · {city}",
+    "hubTitle": "Web design for local businesses",
+    "hubDescription": "One-page websites for local businesses: fast, mobile-friendly and ready for Google, from €200. We work remotely with all of Spain.",
+    "hubIntro": "A one-page website, fast and mobile-friendly, so people who look for you find your services, prices, opening hours and how to reach you. We start from a proven base and make it yours, in a few days and from €200."
+  },
   "Blog": {
     "metaTitle": "Blog",
     "metaDescription": "Notes from the Codeqlick studio on building software and web applications.",
