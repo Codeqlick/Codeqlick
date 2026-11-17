@@ -135,7 +135,7 @@ export function SpotImport({ action, typeLabels, kind = 'spots' }: Props) {
       </div>
       {result && result.items.length > 0 ? (
         <div className={styles.tableWrap}>
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.tableCompact}`}>
             <caption className={admin.caption}>
               {health
                 ? state.dryRun
@@ -172,7 +172,7 @@ export function SpotImport({ action, typeLabels, kind = 'spots' }: Props) {
       ) : null}
       {result && result.skipped.length > 0 ? (
         <div className={styles.tableWrap}>
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.tableCompact}`}>
             <caption className={admin.caption}>{t('skipped')}</caption>
             <thead>
               <tr>

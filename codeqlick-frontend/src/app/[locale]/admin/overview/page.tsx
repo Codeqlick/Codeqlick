@@ -3,6 +3,7 @@ import { BarChart, type BarSeries } from '@/components/app/BarChart';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { Badge } from '@/components/ui/Badge';
+import { Stat, StatGrid } from '@/components/ui/Stat';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import {
@@ -168,23 +169,11 @@ export default async function AdminOverviewPage({ params }: PageProps) {
         <h2 id="overview-totals" className="visually-hidden">
           {t('totals')}
         </h2>
-        <ul className={styles.stats}>
+        <StatGrid>
           {cards.map((card) => (
-            <li key={card.label}>
-              {card.href ? (
-                <Link href={card.href} className={`${styles.panel} ${styles.stat}`}>
-                  <span className={styles.statValue}>{card.value}</span>
-                  <span className={styles.statLabel}>{card.label}</span>
-                </Link>
-              ) : (
-                <div className={`${styles.panel} ${styles.stat}`}>
-                  <span className={styles.statValue}>{card.value}</span>
-                  <span className={styles.statLabel}>{card.label}</span>
-                </div>
-              )}
-            </li>
+            <Stat key={card.label} value={card.value} label={card.label} href={card.href} />
           ))}
-        </ul>
+        </StatGrid>
         <p className={styles.muted}>
           {t('generated', { time: formatDateTime(overview.generatedAt, locale) })}
         </p>
@@ -205,7 +194,7 @@ export default async function AdminOverviewPage({ params }: PageProps) {
           <section className={styles.panel}>
             <h3 className={styles.panelTitle}>{t('people.appsTable')}</h3>
             <div className={styles.tableWrap}>
-              <table className={styles.table}>
+              <table className={`${styles.table} ${styles.tableCompact}`}>
                 <caption className="visually-hidden">{t('people.appsTable')}</caption>
                 <thead>
                   <tr>
@@ -239,7 +228,7 @@ export default async function AdminOverviewPage({ params }: PageProps) {
           <section className={styles.panel}>
             <h3 className={styles.panelTitle}>{t('revenue.mrrTable')}</h3>
             <div className={styles.tableWrap}>
-              <table className={styles.table}>
+              <table className={`${styles.table} ${styles.tableCompact}`}>
                 <caption className="visually-hidden">{t('revenue.mrrTable')}</caption>
                 <thead>
                   <tr>
@@ -286,7 +275,7 @@ export default async function AdminOverviewPage({ params }: PageProps) {
               <p className={styles.muted}>{t('none')}</p>
             ) : (
               <div className={styles.tableWrap}>
-                <table className={styles.table}>
+                <table className={`${styles.table} ${styles.tableCompact}`}>
                   <caption className="visually-hidden">{t('revenue.purchasesTable')}</caption>
                   <thead>
                     <tr>
@@ -388,7 +377,7 @@ export default async function AdminOverviewPage({ params }: PageProps) {
           <section className={styles.panel}>
             <h3 className={styles.panelTitle}>{t('health.moderation', { count: waiting })}</h3>
             <div className={styles.tableWrap}>
-              <table className={styles.table}>
+              <table className={`${styles.table} ${styles.tableCompact}`}>
                 <caption className="visually-hidden">
                   {t('health.moderation', { count: waiting })}
                 </caption>

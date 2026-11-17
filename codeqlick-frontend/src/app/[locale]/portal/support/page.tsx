@@ -33,7 +33,11 @@ export default async function PortalSupportPage({ params, searchParams }: PagePr
         }
       />
       {tickets.items.length === 0 ? (
-        <EmptyState title={t('emptyTitle')} body={t('emptyBody')} />
+        <EmptyState
+          title={t('emptyTitle')}
+          body={t('emptyBody')}
+          action={<Button href="/portal/support/new">{t('new')}</Button>}
+        />
       ) : (
         <>
           <div className={styles.tableWrap}>
@@ -57,7 +61,7 @@ export default async function PortalSupportPage({ params, searchParams }: PagePr
                       </span>
                     </th>
                     <td data-label={t('project')}>{ticket.project?.name ?? tc('none')}</td>
-                    <td data-label={t('status')} data-wide>
+                    <td data-label={t('status')} data-badge>
                       <TicketStatusBadge
                         status={ticket.status}
                         label={

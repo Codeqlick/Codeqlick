@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Tabs } from '@/components/ui/Tabs';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -166,20 +167,18 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
             <ProtectionLock label={t('protection.locked')} />
           ) : null}
         </div>
-        <nav className={`${styles.tabs} ${styles.spacedTabs}`} aria-label={project.name}>
-          {TABS.map((key) => (
-            <Link
-              key={key}
-              href={key === 'deployments' ? base : `${base}?tab=${key}`}
-              className={styles.tab}
-              aria-current={tab === key ? 'page' : undefined}
-            >
-              {key === 'comments' && comments && comments.open > 0
+        <Tabs
+          label={project.name}
+          className={styles.spacedTabs}
+          items={TABS.map((key) => ({
+            href: key === 'deployments' ? base : `${base}?tab=${key}`,
+            label:
+              key === 'comments' && comments && comments.open > 0
                 ? t('project.tabs.commentsCount', { count: comments.open })
-                : t(`project.tabs.${key}`)}
-            </Link>
-          ))}
-        </nav>
+                : t(`project.tabs.${key}`),
+            current: tab === key,
+          }))}
+        />
       </PageHeader>
 
       {query.moved === '1' ? (

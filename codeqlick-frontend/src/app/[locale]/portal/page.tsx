@@ -2,8 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { Card, CardLink } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { resolveLocale } from '@/i18n/locale';
@@ -36,11 +35,13 @@ export default async function PortalPage({ params }: { params: Promise<{ locale:
             const next = nextMilestone(project.milestones ?? []);
             const waiting = waitingOn(project.id);
             return (
-              <Card as="li" bordered key={project.id}>
+              <Card as="li" interactive key={project.id}>
                 <div>
                   <Badge tone="brand">{tp(project.phase)}</Badge>
                 </div>
-                <h2 className={styles.cardTitle}>{project.name}</h2>
+                <h2 className={styles.cardTitle}>
+                  <CardLink href={`/portal/projects/${project.id}`}>{project.name}</CardLink>
+                </h2>
                 <ProgressBar
                   value={project.progress}
                   ariaLabel={`${t('progress')}: ${project.name}`}
@@ -61,12 +62,6 @@ export default async function PortalPage({ params }: { params: Promise<{ locale:
                     <Badge tone="warning">{t('cardWaiting', { count: waiting })}</Badge>
                   </p>
                 ) : null}
-                <div>
-                  <Button href={`/portal/projects/${project.id}`} variant="outline" size="sm">
-                    {t('open')}
-                    <span className="visually-hidden"> — {project.name}</span>
-                  </Button>
-                </div>
               </Card>
             );
           })}

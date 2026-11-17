@@ -28,6 +28,9 @@ import {
 } from '@/lib/cruising-notifications';
 import { firstParam, formatDateTime } from '@/lib/format';
 import adult from '@/components/adult/adult.module.css';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Tabs } from '@/components/ui/Tabs';
 import { startConversationAction } from '../actions';
 import { CruisingGate } from '../Gate';
 import { markAllReadAction, winkAction } from '../notifications-actions';
@@ -68,21 +71,17 @@ export default async function CruisingNotificationsPage({ params, searchParams }
     <>
       <h1 className={adult.pageTitle}>{t('title')}</h1>
       <p className={adult.muted}>{t('lead')}</p>
-      <nav aria-label={t('viewsLabel')}>
-        <ul className={styles.notificationTabs}>
-          {tabs.map((tab) => (
-            <li key={tab.key}>
-              <Link
-                href={tab.href}
-                className={styles.notificationTab}
-                aria-current={tab.key === view ? 'page' : undefined}
-              >
-                {tab.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <Tabs
+        variant="pills"
+        label={t('viewsLabel')}
+        className={styles.notificationTabs}
+        items={tabs.map((tab) => ({
+          key: tab.key,
+          href: tab.href,
+          label: tab.label,
+          current: tab.key === view,
+        }))}
+      />
       {view === 'winks' ? (
         <WinksView locale={locale} hasNickname={!!status.profile?.nickname} />
       ) : view === 'visitors' ? (
@@ -97,7 +96,11 @@ export default async function CruisingNotificationsPage({ params, searchParams }
             </ActionForm>
           ) : null}
           {centre.items.length === 0 ? (
-            <p>{t('empty')}</p>
+            <EmptyState
+              title={t('emptyTitle')}
+              body={t('emptyBody')}
+              action={<Button href="/cruising/map">{t('emptyAction')}</Button>}
+            />
           ) : (
             <ul className={styles.notificationList}>
               {centre.items.map((item) => (

@@ -1,11 +1,12 @@
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Tabs } from '@/components/ui/Tabs';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ActionForm, FormInput } from '@/components/app/ActionForm';
+import { Card, CardLink } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import {
   getCloudTeam,
@@ -59,26 +60,18 @@ export default async function CloudTeamPage({ params }: PageProps) {
           {t('team.role', { role: t(`common.roles.${team.role}`) })} ·{' '}
           {t('team.plan', { plan: team.plan })}
         </p>
-        <div className={`${styles.tabs} ${styles.spacedTabs}`}>
-          <Link href={`/cloud/console/${team.slug}`} className={styles.tab} aria-current="page">
-            {t('team.projects')}
-          </Link>
-          <Link href={`/cloud/console/${team.slug}/members`} className={styles.tab}>
-            {t('team.membersLink')}
-          </Link>
-          <Link href={`/cloud/console/${team.slug}/monitors`} className={styles.tab}>
-            {t('team.monitorsLink')}
-          </Link>
-          <Link href={`/cloud/console/${team.slug}/audits`} className={styles.tab}>
-            {t('team.auditsLink')}
-          </Link>
-          <Link href={`/cloud/console/${team.slug}/events`} className={styles.tab}>
-            {t('team.eventsLink')}
-          </Link>
-          <Link href={`/cloud/console/${team.slug}/plan`} className={styles.tab}>
-            {t('team.planLink')}
-          </Link>
-        </div>
+        <Tabs
+          label={team.name}
+          className={styles.spacedTabs}
+          items={[
+            { href: `/cloud/console/${team.slug}`, label: t('team.projects'), current: true },
+            { href: `/cloud/console/${team.slug}/members`, label: t('team.membersLink') },
+            { href: `/cloud/console/${team.slug}/monitors`, label: t('team.monitorsLink') },
+            { href: `/cloud/console/${team.slug}/audits`, label: t('team.auditsLink') },
+            { href: `/cloud/console/${team.slug}/events`, label: t('team.eventsLink') },
+            { href: `/cloud/console/${team.slug}/plan`, label: t('team.planLink') },
+          ]}
+        />
       </PageHeader>
 
       <section aria-labelledby="projects-title">
@@ -90,13 +83,13 @@ export default async function CloudTeamPage({ params }: PageProps) {
         ) : (
           <ul className={styles.grid}>
             {projects.map((project) => (
-              <li key={project.id} className={styles.tile}>
-                <Link
+              <Card as="li" key={project.id} interactive className={styles.tile}>
+                <CardLink
                   href={`/cloud/console/${team.slug}/${project.slug}`}
                   className={styles.tileLink}
                 >
                   {project.name}
-                </Link>
+                </CardLink>
                 <p className={`${styles.small} ${styles.mono} ${styles.address}`}>
                   {project.url.replace('https://', '')}
                   {isProtected(project.protection, 'production') ? (
@@ -112,7 +105,7 @@ export default async function CloudTeamPage({ params }: PageProps) {
                     t('team.noProduction')
                   )}
                 </p>
-              </li>
+              </Card>
             ))}
           </ul>
         )}

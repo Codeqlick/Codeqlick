@@ -3,6 +3,7 @@ import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { TicketPriorityBadge, TicketStatusBadge } from '@/components/app/StatusBadges';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { FilterBar } from '@/components/ui/FilterBar';
 import { Select } from '@/components/ui/Field';
 import { Pagination } from '@/components/ui/Pagination';
 import { buttonClassName } from '@/components/ui/buttonStyles';
@@ -35,7 +36,7 @@ export default async function AdminSupportPage({ params, searchParams }: PagePro
     <>
       <PageHeader title={t('title')} lead={t('adminLead')} />
 
-      <form method="get" className={styles.filters}>
+      <FilterBar>
         <Select
           name="status"
           label={t('status')}
@@ -49,14 +50,14 @@ export default async function AdminSupportPage({ params, searchParams }: PagePro
         <button type="submit" className={buttonClassName({ variant: 'outline' })}>
           {tc('filter')}
         </button>
-      </form>
+      </FilterBar>
 
       {tickets.items.length === 0 ? (
         <EmptyState title={t('adminEmptyTitle')} body={t('adminEmptyBody')} />
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={`${styles.table} ${styles.listTable}`}>
+            <table className={`${styles.table} ${styles.tableCompact} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('request')}</th>
@@ -77,7 +78,7 @@ export default async function AdminSupportPage({ params, searchParams }: PagePro
                       </span>
                     </th>
                     <td data-label={t('client')}>{ticket.client.name}</td>
-                    <td data-label={t('status')} data-wide>
+                    <td data-label={t('status')} data-badge>
                       <TicketStatusBadge
                         status={ticket.status}
                         label={t(`statuses.${ticket.status}`)}

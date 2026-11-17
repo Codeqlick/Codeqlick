@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormCheckbox, FormInput, FormSelect } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
+import { FilterBar } from '@/components/ui/FilterBar';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
 import { resolveLocale } from '@/i18n/locale';
@@ -155,21 +156,17 @@ export default async function AdminCruisingHealthPage({ params, searchParams }: 
         <h2 id="centers-list" className={styles.panelTitle}>
           {t('listTitle', { count: centers.length })}
         </h2>
-        <search>
-          <form method="get" className={admin.filters}>
-            <FormInput
-              id="centers-q"
-              name="q"
-              type="search"
-              label={t('search')}
-              defaultValue={q}
-              maxLength={100}
-            />
-            <SubmitButton size="sm" variant="outline">
-              {t('searchButton')}
-            </SubmitButton>
-          </form>
-        </search>
+        <FilterBar>
+          <FormInput
+            id="centers-q"
+            name="q"
+            type="search"
+            label={t('search')}
+            defaultValue={q}
+            maxLength={100}
+          />
+          <SubmitButton variant="outline">{t('searchButton')}</SubmitButton>
+        </FilterBar>
         {centers.length === 0 ? (
           <p className={styles.muted}>{t('empty')}</p>
         ) : (

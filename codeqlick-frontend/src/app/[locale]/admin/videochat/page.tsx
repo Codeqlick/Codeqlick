@@ -1,4 +1,3 @@
-import { buttonClassName } from '@/components/ui/buttonStyles';
 import { getTranslations } from 'next-intl/server';
 import { AdultVerificationQueue } from '@/components/adult/AdultVerificationQueue';
 import { AlsoReported } from '@/components/adult/AlsoReported';
@@ -6,6 +5,8 @@ import { ReviewSuspensions } from '@/components/adult/ReviewSuspensions';
 import { ActionForm, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
+import { Tabs } from '@/components/ui/Tabs';
+import { Stat, StatGrid } from '@/components/ui/Stat';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -81,30 +82,21 @@ export default async function AdminVideochatPage({ params, searchParams }: PageP
         }
       />
 
-      <ul className={styles.stats}>
+      <StatGrid>
         {cards.map((card) => (
-          <li key={card.label} className={`${styles.panel} ${styles.stat}`}>
-            <span className={styles.statValue}>{card.value}</span>
-            <span className={styles.statLabel}>{card.label}</span>
-          </li>
+          <Stat key={card.label} value={card.value} label={card.label} />
         ))}
-      </ul>
+      </StatGrid>
 
-      <nav className={styles.actions} aria-label={t('title')}>
-        {STATUSES.map((value) => (
-          <Link
-            key={value}
-            href={`/admin/videochat?status=${value}`}
-            className={buttonClassName({
-              variant: value === status ? 'primary' : 'outline',
-              size: 'sm',
-            })}
-            aria-current={value === status ? 'page' : undefined}
-          >
-            {t(`tabs.${value}`)}
-          </Link>
-        ))}
-      </nav>
+      <Tabs
+        variant="pills"
+        label={t('title')}
+        items={STATUSES.map((value) => ({
+          href: `/admin/videochat?status=${value}`,
+          label: t(`tabs.${value}`),
+          current: value === status,
+        }))}
+      />
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t(`tabs.${status}`)}</h2>

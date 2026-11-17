@@ -9,6 +9,8 @@ import { listCruisingMeetups } from '@/lib/api/cruising-community';
 import { requireUser } from '@/lib/auth/session';
 import { TRIPS_HREF } from '@/lib/cruising-community';
 import adult from '@/components/adult/adult.module.css';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { CruisingGate } from '../Gate';
 
 /** Behind the account: kept out of search results. */
@@ -44,7 +46,11 @@ export default async function CruisingMeetupsPage({ params }: PageProps) {
         </Link>
       </p>
       {meetups.length === 0 ? (
-        <p>{t('empty')}</p>
+        <EmptyState
+          title={t('emptyTitle')}
+          body={t('emptyBody')}
+          action={<Button href="/cruising/map">{t('emptyAction')}</Button>}
+        />
       ) : (
         <ul className={styles.list}>
           {meetups.map((meetup) => (

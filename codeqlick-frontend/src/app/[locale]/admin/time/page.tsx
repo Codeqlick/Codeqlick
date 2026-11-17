@@ -67,7 +67,7 @@ export default async function AdminTimePage({
             <EmptyState title={t('monthEmptyTitle')} body={t('monthEmptyBody')} />
           ) : (
             <div className={styles.tableWrap}>
-              <table className={styles.table}>
+              <table className={`${styles.table} ${styles.tableCompact}`}>
                 <thead>
                   <tr>
                     <th scope="col">{t('project')}</th>
@@ -95,7 +95,7 @@ export default async function AdminTimePage({
           <section className={styles.panel}>
             <h2 className={styles.panelTitle}>{tpl('overviewTitle')}</h2>
             <div className={styles.tableWrap}>
-              <table className={styles.table}>
+              <table className={`${styles.table} ${styles.tableCompact}`}>
                 <thead>
                   <tr>
                     <th scope="col">{t('project')}</th>
@@ -129,7 +129,7 @@ export default async function AdminTimePage({
           <section className={styles.panel}>
             <h2 className={styles.panelTitle}>{t('entries')}</h2>
             <div className={styles.tableWrap}>
-              <table className={styles.table}>
+              <table className={`${styles.table} ${styles.tableCompact}`}>
                 <thead>
                   <tr>
                     <th scope="col">{t('date')}</th>

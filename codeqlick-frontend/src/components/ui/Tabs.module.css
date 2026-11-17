@@ -1,0 +1,102 @@
+/* Tabs (architecture 6.6): `segmented` switches between views of a page, `pills` filters a list.
+   Both are 36 px to the eye and 44 px on touch screens. */
+.tabs {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-width: 100%;
+}
+
+.tabs > li {
+  display: flex;
+  flex: none;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-slate);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.tab:hover {
+  color: var(--color-ink);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-fuchsia);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .tab {
+    min-height: 44px;
+  }
+}
+
+/* Segmented: one track, the current view white on it. Too many views for the width scroll
+   sideways instead of wrapping. */
+.segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-app);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.segmented::-webkit-scrollbar {
+  display: none;
+}
+
+.segmented .tab:is([aria-current='page'], [aria-selected='true']) {
+  border-color: var(--color-line-strong);
+  background: var(--color-white);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.segmented .tab:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Pills: separate filters that wrap, the current one ink. */
+.pills {
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.pills .tab {
+  border-color: var(--color-line-strong);
+  background: var(--color-white);
+  font-weight: 500;
+}
+
+.pills .tab:hover {
+  border-color: var(--color-ink);
+}
+
+.pills .tab:is([aria-current='page'], [aria-selected='true']) {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-white);
+}

@@ -2,8 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { PageHeader } from '@/components/app/PageHeader';
 import styles from '@/components/app/app.module.css';
 import { Avatar } from '@/components/ui/Avatar';
-import { Card } from '@/components/ui/Card';
-import { Link } from '@/i18n/navigation';
+import { Card, CardLink } from '@/components/ui/Card';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { accountPath } from '@/lib/account-links';
 import { accountApps, getTwoFactorStatus, listPasskeys, listSessions } from '@/lib/api/auth';
@@ -51,15 +50,15 @@ export default async function AccountOverviewPage({
             ? `@${user.username} · ${ta('signedInAs', { email: user.email })}`
             : ta('signedInAs', { email: user.email })
         }
-        actions={<Avatar file={user.avatar} name={user.name} size="lg" />}
+        actions={<Avatar file={user.avatar} name={user.name} size="header" />}
       />
       <p className={styles.muted}>{t('overview.lead')}</p>
       <ul className={styles.cards}>
         {cards.map((card) => (
           <li key={card.href}>
-            <Card bordered>
+            <Card interactive>
               <h2 className={styles.cardTitle}>
-                <Link href={accountPath(card.href)}>{card.title}</Link>
+                <CardLink href={accountPath(card.href)}>{card.title}</CardLink>
               </h2>
               <p className={styles.muted}>{card.body}</p>
             </Card>
