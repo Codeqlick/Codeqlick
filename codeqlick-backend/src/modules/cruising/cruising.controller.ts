@@ -143,7 +143,7 @@ export class CruisingController {
     @CurrentUser() user: AuthUser,
     @Body({ schema: profileSchema }) body: ProfileInput,
   ) {
-    return this.cruising.updateProfile(user.id, body);
+    return this.cruising.updateProfile(user.id, body, new Date(), user.role);
   }
 
   @Get('me/spots')
