@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { ActionForm } from '@/components/app/ActionForm';
 import styles from '@/components/cruising/Cruising.module.css';
 import { SubmitButton } from '@/components/ui/SubmitButton';
+import card from '@/components/cruising/CruisingCard.module.css';
 import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingStatus, listCruisingFavorites } from '@/lib/api/cruising';
@@ -42,15 +43,15 @@ export default async function CruisingFavoritesPage({ params }: PageProps) {
       {favorites.length === 0 ? (
         <p>{t('empty')}</p>
       ) : (
-        <ul className={styles.spotList}>
+        <ul className={card.grid}>
           {favorites.map(({ spot, here, savedAt }) => (
-            <li key={spot.id} className={styles.spotCard}>
-              <h2 className={styles.subTitle}>
+            <li key={spot.id} className={card.card}>
+              <h2 className={card.title}>
                 <Link href={spotHref(spot.slug)} className={vc.inlineLink}>
                   {spot.name}
                 </Link>
               </h2>
-              <p className={styles.spotMeta}>
+              <p className={card.meta}>
                 <span className={styles.typeTag}>{tt(spot.type)}</span>
                 <span>
                   {spot.ratingCount > 0

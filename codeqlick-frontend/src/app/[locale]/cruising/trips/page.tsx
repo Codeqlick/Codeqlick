@@ -5,6 +5,7 @@ import styles from '@/components/cruising/CruisingCommunity.module.css';
 import cruising from '@/components/cruising/Cruising.module.css';
 import { MeetupCard } from '@/components/cruising/MeetupCard';
 import { SubmitButton } from '@/components/ui/SubmitButton';
+import card from '@/components/cruising/CruisingCard.module.css';
 import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingStatus } from '@/lib/api/cruising';
@@ -50,8 +51,8 @@ export default async function CruisingTripsPage({ params }: PageProps) {
         <ul className={styles.list}>
           {trips.map((trip) => (
             <li key={trip.id}>
-              <article className={styles.card} aria-labelledby={`trip-${trip.id}`}>
-                <h2 id={`trip-${trip.id}`} className={styles.cardTitle}>
+              <article className={card.card} aria-labelledby={`trip-${trip.id}`}>
+                <h2 id={`trip-${trip.id}`} className={card.title}>
                   <Link href={placeHref(trip.countryCode, trip.citySlug)} className={vc.inlineLink}>
                     {trip.city}, {countryName(trip.countryCode, locale)}
                   </Link>

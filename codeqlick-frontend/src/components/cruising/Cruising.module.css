@@ -32,28 +32,105 @@
   margin: 0 0 var(--space-2);
 }
 
-/* The map */
+/* The map: the page's hero. A one-line header, one toolbar row, then the map down to the fold. */
+
+.mapHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-4);
+  margin: calc(-1 * var(--space-2)) 0 var(--space-3);
+}
+
+.mapTitle {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.mapHelp {
+  font-size: 0.9rem;
+}
+
+.mapHelp > summary {
+  color: var(--color-fuchsia-dark);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mapHelp > summary:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+.mapHelp > p {
+  max-width: 48rem;
+  margin: var(--space-2) 0 0;
+  color: var(--color-slate);
+}
 
 .mapWrap {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
+}
+
+/* The tag filter's and the search's lists open over the map, placed against the toolbar. */
+.mapToolbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.mapToolbar > .search {
+  flex: 1 1 16rem;
+  max-width: 24rem;
 }
 
 .mapControls {
   display: flex;
   flex-wrap: wrap;
-  align-items: end;
-  gap: var(--space-4);
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  min-width: 0;
+}
+
+.mapControls .mapButton {
+  font-size: 0.9rem;
+}
+
+/* Phones: the filters scroll sideways in one row instead of stacking above the map. */
+@media (max-width: 40rem) {
+  .mapToolbar > .search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .mapControls {
+    flex-wrap: nowrap;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .mapControls > * {
+    flex: none;
+  }
+}
+
+.mapControls .activeToggle,
+.mapControls .mapButton,
+.mapControls .mapStatus {
+  white-space: nowrap;
 }
 
 .mapFilter {
   display: grid;
-  gap: var(--space-1);
   font-size: 0.9rem;
-}
-
-.mapFilter label {
-  font-weight: 600;
 }
 
 .select {
@@ -129,9 +206,17 @@
   background: var(--color-blush);
 }
 
+/* Down to the fold under the header, the title row and the toolbar. */
 .map {
-  height: min(70dvh, 40rem);
-  min-height: 22rem;
+  height: calc(100dvh - 14rem);
+  min-height: 20rem;
+  max-height: 56rem;
+}
+
+@media (max-width: 40rem) {
+  .map {
+    height: calc(100dvh - 14.5rem);
+  }
 }
 
 .miniMap {
@@ -262,31 +347,13 @@
   align-items: start;
 }
 
-.spotList,
-.countries,
+/* The places' cards and lists are CruisingCard.module.css's. */
 .cities {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-1);
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.spotList,
-.countries {
-  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
-}
-
-.cities {
-  gap: var(--space-2);
-}
-
-.spotCard,
-.countryCard {
-  padding: var(--space-4);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  background: var(--color-white);
 }
 
 .rowActions {
@@ -416,19 +483,6 @@
   margin: var(--space-4) 0 0;
   padding: 0;
   list-style: none;
-}
-
-.conv {
-  display: grid;
-  gap: var(--space-1);
-  padding: var(--space-4);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  background: var(--color-white);
-}
-
-.convUnread {
-  border-color: var(--color-fuchsia);
 }
 
 .convHead {
@@ -602,21 +656,33 @@
 /* Search, the rating filter and "active now" (phase 3, decision 86) */
 
 .search {
+  position: relative;
   display: grid;
-  gap: var(--space-2);
   max-width: 36rem;
 }
 
-.searchLabel {
-  display: block;
-  margin-bottom: var(--space-1);
-  font-size: 0.9rem;
-  font-weight: 600;
+.searchPopover {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.searchPopover > * {
+  box-shadow: var(--shadow-md);
+}
+
+.searchPopover > .mapStatus,
+.searchPopover > .searchEmpty {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
 }
 
 .searchInput {
   width: 100%;
-  min-height: 2.75rem;
+  min-height: 2.5rem;
   padding: 0 var(--space-3);
   border: 1px solid var(--color-line-strong);
   border-radius: var(--radius-md);
@@ -820,8 +886,31 @@
   display: flex;
   align-items: center;
   min-height: 2.5rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
+}
+
+/* On the map's toolbar the tags open as a panel over the map (placed against the toolbar, so the
+   phones' sideways-scrolling row doesn't clip it). */
+.mapControls .tagFilterList {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  right: 0;
+  z-index: 2;
+  max-width: 40rem;
+  max-height: 50dvh;
+  overflow-y: auto;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  box-shadow: var(--shadow-md);
 }
 
 .tagFilter > summary:focus-visible {
@@ -1019,19 +1108,11 @@
   list-style: none;
 }
 
-.notificationItem {
+/* A shared card (CruisingCard.module.css) laid out in one row: the text, then the date. */
+.notificationList > .notificationItem {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-line-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-white);
-}
-
-.notificationUnread {
-  border-color: var(--color-fuchsia);
-  background: var(--color-blush);
+  padding-block: var(--space-3);
 }

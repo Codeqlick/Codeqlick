@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import styles from '@/components/cruising/CruisingRooms.module.css';
+import card from '@/components/cruising/CruisingCard.module.css';
 import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingStatus } from '@/lib/api/cruising';
@@ -42,16 +42,16 @@ export default async function CruisingRoomsPage({ params }: PageProps) {
       {rooms.length === 0 ? (
         <p>{t('none')}</p>
       ) : (
-        <ul className={styles.roomList} aria-label={t('listTitle')}>
+        <ul className={card.stack} aria-label={t('listTitle')}>
           {rooms.map((room) => (
-            <li key={`${room.countryCode}-${room.citySlug}`} className={styles.roomCard}>
-              <h2 className={styles.roomName}>
+            <li key={`${room.countryCode}-${room.citySlug}`} className={card.card}>
+              <h2 className={card.title}>
                 <Link href={roomHref(room.countryCode, room.citySlug)} className={vc.inlineLink}>
                   {room.city}
                 </Link>{' '}
                 <span className={vc.muted}>{countryName(room.countryCode, locale)}</span>
               </h2>
-              <p className={styles.roomMeta}>
+              <p className={card.meta}>
                 <span>{t('count24h', { count: room.count24h })}</span>
                 <span>
                   {room.lastAt

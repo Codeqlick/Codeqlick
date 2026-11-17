@@ -6,6 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { CityCommunity } from '@/components/cruising/CityCommunity';
 import styles from '@/components/cruising/Cruising.module.css';
+import card from '@/components/cruising/CruisingCard.module.css';
 import {
   getCruisingCity,
   getCruisingStatus,
@@ -155,15 +156,15 @@ export default async function CruisingCityPage({ params }: PageProps) {
         />
       ) : null}
       <h2 className={vc.sectionTitle}>{t('spotsTitle')}</h2>
-      <ul className={styles.spotList}>
+      <ul className={card.grid}>
         {city.items.map((spot) => (
-          <li key={spot.id} className={styles.spotCard}>
-            <h2 className={styles.subTitle}>
+          <li key={spot.id} className={card.card}>
+            <h2 className={card.title}>
               <Link href={spotHref(spot.slug)} className={vc.inlineLink}>
                 {spot.name}
               </Link>
             </h2>
-            <p className={styles.spotMeta}>
+            <p className={card.meta}>
               <span className={styles.typeTag}>{tt(spot.type)}</span>
               <span>
                 {spot.ratingCount > 0
