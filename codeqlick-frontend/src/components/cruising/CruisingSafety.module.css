@@ -5,7 +5,7 @@
   font-family: var(--font-family-display);
   font-size: 1.75rem;
   font-weight: 700;
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   font-variant-numeric: tabular-nums;
 }
 
@@ -13,7 +13,7 @@
   display: grid;
   gap: var(--space-3);
   padding: var(--space-4);
-  border: 2px solid var(--color-fuchsia);
+  border: 2px solid var(--color-brand);
   border-radius: var(--radius-md);
   background: var(--color-blush);
 }
@@ -108,7 +108,7 @@
   border-radius: 50%;
   border: 2px solid var(--color-white);
   box-shadow: var(--shadow-md);
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
   color: var(--color-white);
   font-family: var(--font-family-mono);
   font-size: 0.9rem;

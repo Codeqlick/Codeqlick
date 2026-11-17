@@ -15,6 +15,8 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Public } from '../../common/decorators/public.decorator.js';
+import { Realm, RequestRealm } from '../../common/decorators/realm.decorator.js';
+import type { RealmName } from '../../common/realm.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { AppRequest } from '../../common/types/request.js';
@@ -66,7 +68,12 @@ function clientInfo(request: AppRequest): ClientInfo {
   return { userAgent: typeof userAgent === 'string' ? userAgent : null, ip: request.ip ?? null };
 }
 
+/**
+ * Account routes serve both realms (architecture 4.18): the signed-in ones read the realm from the
+ * session, the public ones from the `X-Realm` header.
+ */
 @ApiTags('auth')
+@Realm('ANY')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -80,11 +87,12 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(
     @Body({ schema: loginSchema }) body: LoginInput,
+    @RequestRealm() realm: RealmName,
     @Req() request: AppRequest,
   ): Promise<LoginResult> {
     const client = clientInfo(request);
-    await this.captcha.verify(body.captcha, client.ip);
-    return this.auth.login(body.email, body.password, client);
+    await this.captcha.verify(body.captcha, client.ip, realm);
+    return this.auth.login(realm, body.email, body.password, client);
   }
 
   @Public()
@@ -105,10 +113,11 @@ export class AuthController {
   @HttpCode(HttpStatus.ACCEPTED)
   async register(
     @Body({ schema: registerSchema }) body: RegisterInput,
+    @RequestRealm() realm: RealmName,
     @Req() request: AppRequest,
   ): Promise<void> {
-    await this.captcha.verify(body.captcha, clientInfo(request).ip);
-    await this.auth.register(body);
+    await this.captcha.verify(body.captcha, clientInfo(request).ip, realm);
+    await this.auth.register(realm, body);
   }
 
   /** The link of the confirmation email: creates the account and signs in. */
@@ -118,9 +127,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   confirmSignup(
     @Body({ schema: confirmSignupSchema }) body: ConfirmSignupInput,
+    @RequestRealm() realm: RealmName,
     @Req() request: AppRequest,
   ): Promise<AuthTokens> {
-    return this.auth.confirmSignup(body.token, clientInfo(request));
+    return this.auth.confirmSignup(realm, body.token, clientInfo(request));
   }
 
   /** Who the team's invitation is for, to fill in the sign-up form. */
@@ -129,8 +139,9 @@ export class AuthController {
   @Get('register/invitation')
   invitation(
     @Query({ schema: confirmSignupSchema }) query: ConfirmSignupInput,
+    @RequestRealm() realm: RealmName,
   ): Promise<{ email: string; name: string }> {
-    return this.auth.invitation(query.token);
+    return this.auth.invitation(realm, query.token);
   }
 
   /** Accepts the team's invitation: the account is theirs and they are signed in. */
@@ -140,9 +151,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   acceptInvitation(
     @Body({ schema: acceptInvitationSchema }) body: AcceptInvitationInput,
+    @RequestRealm() realm: RealmName,
     @Req() request: AppRequest,
   ): Promise<AuthTokens> {
-    return this.auth.acceptInvitation(body, clientInfo(request));
+    return this.auth.acceptInvitation(realm, body, clientInfo(request));
   }
 
   /** Always 202, whether or not the email belongs to an account. */
@@ -152,8 +164,9 @@ export class AuthController {
   @HttpCode(HttpStatus.ACCEPTED)
   async requestPasswordReset(
     @Body({ schema: requestPasswordResetSchema }) body: RequestPasswordResetInput,
+    @RequestRealm() realm: RealmName,
   ): Promise<void> {
-    await this.auth.requestPasswordReset(body.email, body.locale);
+    await this.auth.requestPasswordReset(realm, body.email, body.locale);
   }
 
   @Public()
@@ -162,8 +175,9 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async confirmPasswordReset(
     @Body({ schema: confirmPasswordResetSchema }) body: ConfirmPasswordResetInput,
+    @RequestRealm() realm: RealmName,
   ): Promise<void> {
-    await this.auth.confirmPasswordReset(body.token, body.newPassword);
+    await this.auth.confirmPasswordReset(realm, body.token, body.newPassword);
   }
 
   /** Second step of a login when `POST /auth/login` answered `{ twoFactorRequired: true }`. */
@@ -173,9 +187,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   verifyTwoFactor(
     @Body({ schema: verifyTwoFactorSchema }) body: VerifyTwoFactorInput,
+    @RequestRealm() realm: RealmName,
     @Req() request: AppRequest,
   ): Promise<AuthTokens> {
-    return this.auth.verifyTwoFactor(body.challengeToken, body.code, clientInfo(request));
+    return this.auth.verifyTwoFactor(realm, body.challengeToken, body.code, clientInfo(request));
   }
 
   @ApiBearerAuth()

@@ -4,28 +4,50 @@ import { AppNotFound, isNotFoundApp } from '@/components/layout/AppNotFound';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { ClientMessages } from '@/i18n/ClientMessages';
-import { localeOrDefault } from '@/i18n/locale';
+import { cruisingLocaleOrDefault, localeOrDefault } from '@/i18n/locale';
+import { NeoqlickNotFound } from '@/components/neoqlick/NeoqlickNotFound';
+import { requestBrand, requestHostClass } from '@/lib/request-brand';
 import { requestWebapp } from '@/lib/webapp-request';
 import { NotFoundContent } from './[locale]/(site)/NotFoundContent';
-import { fontVariables } from './fonts';
+import { fontVariablesFor } from './fonts';
 
 // Every URL that matches no route, rendered on the server. The root layout is a passthrough, so
 // this renders the whole document; the locale comes from the proxy (next-intl), or the default for
 // paths it skips (e.g. unknown files).
 export default async function RootNotFound() {
-  const locale = localeOrDefault(await getLocale());
+  const brand = await requestBrand();
+  // Neoqlick's hosts speak six languages (the portal, the account host and Cruising).
+  const locale =
+    brand === 'neoqlick'
+      ? cruisingLocaleOrDefault(await getLocale())
+      : localeOrDefault(await getLocale());
   const t = await getTranslations({ locale, namespace: 'Common' });
   // On the host of Cloud, Citas or Meetings the 404 keeps the app's frame (architecture 6.6).
   const app = await requestWebapp();
 
   return (
-    <html lang={locale} className={fontVariables}>
+    <html lang={locale} className={await fontVariablesFor(brand)} data-brand={brand}>
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link
+          rel="icon"
+          href={brand === 'neoqlick' ? '/neoqlick/favicon.ico' : '/favicon.ico'}
+          sizes="any"
+        />
+        <link
+          rel="icon"
+          href={brand === 'neoqlick' ? '/neoqlick/svg/favicon.svg' : '/favicon.svg'}
+          type="image/svg+xml"
+        />
       </head>
       <body>
-        {isNotFoundApp(app) ? (
+        {brand === 'neoqlick' ? (
+          <ClientMessages locale={locale}>
+            <NeoqlickNotFound
+              locale={locale}
+              account={(await requestHostClass()).kind !== 'account'}
+            />
+          </ClientMessages>
+        ) : isNotFoundApp(app) ? (
           <AppNotFound app={app} locale={locale} />
         ) : (
           <ClientMessages locale={locale}>

@@ -1,0 +1,56 @@
+{
+  "Metadata": {
+    "siteName": "Neoqlick",
+    "defaultTitle": "Neoqlick — Aplicações para adultos (18+)",
+    "description": "A Neoqlick cria e gere o Cruising, o Swipe e o Videochat: aplicações para adultos (18+), com uma única conta Neoqlick para todas.",
+    "ogTitle": "Neoqlick — Aplicações para adultos (18+)"
+  },
+  "Common": {
+    "homeLabel": "Início da Neoqlick"
+  },
+  "Login": {
+    "metaDescription": "Inicia sessão na tua conta Neoqlick para usar o Cruising, o Swipe e o Videochat.",
+    "subtitle": "Usa a tua conta Neoqlick no Cruising, no Swipe e no Videochat.",
+    "backToSite": "Voltar à Neoqlick"
+  },
+  "Register": {
+    "metaDescription": "Cria a tua conta Neoqlick, para adultos (18+), e usa o Cruising, o Swipe e o Videochat com um único início de sessão.",
+    "subtitle": "Uma só conta para o Cruising, o Swipe e o Videochat. Tens de ter 18 anos ou mais.",
+    "backToSite": "Voltar à Neoqlick"
+  },
+  "ResetPassword": {
+    "welcomeTitle": "Bem-vindo à Neoqlick"
+  },
+  "Account": {
+    "deleteHasProjects": "A tua conta tem projetos connosco, com os respetivos contratos e faturas, por isso somos nós que a encerramos: abre um pedido de suporte ou escreve para hello@neoqlick.com e tratamos disso.",
+    "yourDataBody": "Descarrega num ficheiro (JSON) tudo o que guardamos sobre ti: a tua conta, as sessões e os teus dados no Cruising, no Swipe e no Videochat.",
+    "deleteBody": "A tua conta e o que depende dela (os teus perfis, mensagens e fotos no Cruising, no Swipe e no Videochat…) serão eliminados. Não se pode desfazer. Vais receber um e-mail de confirmação."
+  },
+  "AccountSite": {
+    "overview": {
+      "lead": "Uma só conta Neoqlick para todas as aplicações. Inicia sessão aqui uma vez e todas te reconhecem.",
+      "apps": "{count, plural, =0 {Ainda não usas nenhuma aplicação.} one {Usas # aplicação da Neoqlick.} other {Usas # aplicações da Neoqlick.}}"
+    },
+    "profile": {
+      "lead": "Como apareces na Neoqlick: nas aplicações só se vê o teu nome de utilizador."
+    },
+    "clients": {
+      "account": "Conta Neoqlick",
+      "site": "neoqlick.com"
+    }
+  },
+  "Passkeys": {
+    "lead": "Inicia sessão com a impressão digital, o rosto ou o bloqueio de ecrã em vez da palavra-passe e do código. Uma chave de acesso fica no teu dispositivo ou no teu gestor de palavras-passe e só funciona na Neoqlick."
+  },
+  "Error": {
+    "body": "Tenta novamente. Se o problema continuar, escreve para hello@neoqlick.com."
+  },
+  "AppSwitcher": {
+    "label": "Outras apps da Neoqlick"
+  },
+  "AppMenu": {
+    "footer": {
+      "copyright": "© {year} Neoqlick"
+    }
+  }
+}

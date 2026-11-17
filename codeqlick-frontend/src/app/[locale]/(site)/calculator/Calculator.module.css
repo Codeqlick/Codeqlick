@@ -35,7 +35,7 @@
   height: 2rem;
   border-radius: var(--radius-pill);
   background: var(--color-blush);
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   font-family: var(--font-family-mono);
   font-size: 0.9rem;
 }
@@ -62,22 +62,22 @@
 }
 
 .option:hover {
-  border-color: var(--color-fuchsia);
+  border-color: var(--color-brand);
 }
 
 .option:has(input:checked) {
-  border-color: var(--color-fuchsia);
+  border-color: var(--color-brand);
   background: var(--color-blush);
 }
 
 .option:has(input:focus-visible) {
-  outline: 3px solid var(--color-fuchsia);
+  outline: 3px solid var(--color-brand);
   outline-offset: 2px;
 }
 
 .option input {
   margin-top: 0.2rem;
-  accent-color: var(--color-fuchsia);
+  accent-color: var(--color-brand);
 }
 
 .option span {
@@ -120,7 +120,7 @@
 
 .resultLabel {
   margin: 0;
-  color: var(--color-fuchsia-light);
+  color: var(--color-brand-light);
   font-family: var(--font-family-mono);
   font-size: 0.8rem;
   letter-spacing: 0.08em;

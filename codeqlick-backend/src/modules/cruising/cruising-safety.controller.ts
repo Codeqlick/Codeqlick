@@ -12,6 +12,7 @@ import {
   Put,
   Query,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -51,10 +52,13 @@ import {
   type TimerView,
   type TrustedContactView,
 } from './cruising-safety.service.js';
+import { Realm } from '../../common/decorators/realm.decorator.js';
+import { NeoqlickTargetGuard } from '../../common/guards/realm-target.guard.js';
 
 /** What anyone can do: answer a trusted contact's invitation, and find a testing centre. */
 @ApiTags('cruising')
 @Public()
+@Realm('NEOQLICK')
 @Controller('cruising')
 export class CruisingSafetyPublicController {
   constructor(private readonly safety: CruisingSafetyService) {}
@@ -87,6 +91,7 @@ export class CruisingSafetyPublicController {
 @ApiTags('cruising')
 @ApiBearerAuth()
 @Roles('CLIENT', 'ADMIN')
+@Realm('NEOQLICK')
 @Controller('cruising')
 export class CruisingSafetyController {
   constructor(private readonly safety: CruisingSafetyService) {}
@@ -164,6 +169,7 @@ export class CruisingSafetyController {
 @ApiTags('admin: cruising')
 @ApiBearerAuth()
 @Roles('ADMIN')
+@UseGuards(NeoqlickTargetGuard)
 @Controller('admin/cruising/health-centers')
 export class CruisingSafetyAdminController {
   constructor(private readonly safety: CruisingSafetyService) {}

@@ -8,7 +8,7 @@
 }
 
 .report:focus {
-  outline: 2px solid var(--color-fuchsia-dark);
+  outline: 2px solid var(--color-brand-dark);
 }
 
 @media (min-width: 900px) {
@@ -35,7 +35,7 @@
 .selectAll input {
   width: 1.1rem;
   height: 1.1rem;
-  accent-color: var(--color-fuchsia-dark);
+  accent-color: var(--color-brand-dark);
 }
 
 .history {

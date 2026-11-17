@@ -41,7 +41,7 @@
 }
 
 .mine .author {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 .text {
@@ -74,7 +74,7 @@
 }
 
 .counterOver {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   font-weight: 700;
 }
 

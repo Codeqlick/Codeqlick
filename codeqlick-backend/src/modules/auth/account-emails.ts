@@ -1,5 +1,5 @@
 import type { ApiLocale } from '../../common/schemas/common.schemas.js';
-import { renderEmail } from '../mail/email-layout.js';
+import { renderEmail, type MailBrand } from '../mail/email-layout.js';
 import type { MailMessage } from '../mail/mail.service.js';
 
 /** To the new address: the link that confirms it as the account's email. */
@@ -10,6 +10,8 @@ export function emailChangeConfirmEmail(
   locale: ApiLocale,
   ttlHours: number,
   siteUrl: string,
+  /** Neoqlick's accounts get Neoqlick's email (architecture 4.18). */
+  brand?: MailBrand,
 ): MailMessage {
   const es = locale === 'es';
   return {
@@ -17,6 +19,7 @@ export function emailChangeConfirmEmail(
     subject: es ? 'Confirma tu nuevo correo — Codeqlick' : 'Confirm your new email — Codeqlick',
     ...renderEmail(
       {
+        brand,
         locale,
         preheader: es
           ? 'Abre el enlace para usar este correo en tu cuenta de Codeqlick.'
@@ -45,6 +48,8 @@ export function emailChangedNoticeEmail(
   newEmail: string,
   locale: ApiLocale,
   siteUrl: string,
+  /** Neoqlick's accounts get Neoqlick's email (architecture 4.18). */
+  brand?: MailBrand,
 ): MailMessage {
   const es = locale === 'es';
   return {
@@ -54,6 +59,7 @@ export function emailChangedNoticeEmail(
       : 'Your account email has changed — Codeqlick',
     ...renderEmail(
       {
+        brand,
         locale,
         preheader: es
           ? `Tu cuenta de Codeqlick ahora usa ${newEmail}.`
@@ -79,6 +85,8 @@ export function accountDeletedEmail(
   user: { name: string; email: string },
   locale: ApiLocale,
   siteUrl: string,
+  /** Neoqlick's accounts get Neoqlick's email (architecture 4.18). */
+  brand?: MailBrand,
 ): MailMessage {
   const es = locale === 'es';
   return {
@@ -88,6 +96,7 @@ export function accountDeletedEmail(
       : 'Your account has been deleted — Codeqlick',
     ...renderEmail(
       {
+        brand,
         locale,
         preheader: es
           ? 'Hemos borrado tu cuenta de Codeqlick y sus datos.'

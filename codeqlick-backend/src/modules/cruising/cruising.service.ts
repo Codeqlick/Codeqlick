@@ -447,7 +447,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
           notice,
           note,
           this.cruisingUrl,
-          this.config.siteUrl,
+          this.config.siteUrlFor('NEOQLICK'),
           until,
         ),
       );
@@ -551,7 +551,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       verification: verificationState(verification),
       favoriteAlerts: profile?.favoriteAlerts ?? true,
       favoriteEmails: profile?.favoriteEmails ?? false,
-      pushPublicKey: this.config.vapid?.publicKey ?? null,
+      pushPublicKey: this.config.neoqlickVapid?.publicKey ?? null,
       onboardingDone: !!profile?.onboardingDoneAt,
       profile: profile?.nickname
         ? {
@@ -1207,7 +1207,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
         'received',
         request.id,
         null,
-        this.config.siteUrl,
+        this.config.siteUrlFor('NEOQLICK'),
       ),
     );
     return { id: request.id };
@@ -1797,7 +1797,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
         input.remove ? 'removed' : 'closed',
         request.id,
         input.response || null,
-        this.config.siteUrl,
+        this.config.siteUrlFor('NEOQLICK'),
       ),
     );
   }

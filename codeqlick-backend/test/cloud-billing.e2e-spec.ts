@@ -129,7 +129,9 @@ describe('Codeqlick Cloud PRO plan (e2e)', () => {
     expect(before.body.limits.PRO.projectsPerTeam).toBe(50);
 
     // Members can't pay; the owner gets Stripe's page.
-    const memberRow = await prisma.user.findUniqueOrThrow({ where: { email: member.email } });
+    const memberRow = await prisma.user.findUniqueOrThrow({
+      where: { realm_email: { realm: 'CODEQLICK', email: member.email } },
+    });
     await prisma.cloudMember.create({
       data: {
         teamId: team.id,

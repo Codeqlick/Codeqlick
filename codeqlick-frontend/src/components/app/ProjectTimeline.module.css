@@ -34,7 +34,7 @@
 }
 
 .done:not(:last-child)::before {
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
 }
 
 .marker {
@@ -51,12 +51,12 @@
 }
 
 .done .marker {
-  border-color: var(--color-fuchsia);
-  background: var(--color-fuchsia);
+  border-color: var(--color-brand);
+  background: var(--color-brand);
 }
 
 .current .marker {
-  border: 5px solid var(--color-fuchsia);
+  border: 5px solid var(--color-brand);
   box-shadow: 0 0 0 4px var(--color-blush);
 }
 
@@ -86,7 +86,7 @@
 }
 
 .current .state {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 .overdue {

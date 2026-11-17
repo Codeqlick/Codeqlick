@@ -5,14 +5,13 @@ import { Markdown } from '@/components/markdown/Markdown';
 import { type LegalOwner } from '@/content/legal';
 import { swipeLegalDocument, type SwipeLegalPage } from '@/content/legal/swipe';
 import { resolveLocale } from '@/i18n/locale';
-import { legalOwner } from '@/lib/env';
-import { SITE_NAME } from '@/lib/site';
+import { neoqlickLegalOwner } from '@/lib/env';
 
 type PageProps = { params: Promise<{ locale: string }> };
 
-/** Until LEGAL_OWNER_NAME is set the texts name the studio; they're never indexed (adult app). */
+/** Until a legal holder is set (NEOQLICK_LEGAL_OWNER_NAME or LEGAL_OWNER_NAME) the texts name Neoqlick; they're never indexed (adult app). */
 function owner(): LegalOwner {
-  return legalOwner ?? { name: SITE_NAME };
+  return neoqlickLegalOwner ?? { name: 'Neoqlick' };
 }
 
 export function legalMetadata(page: SwipeLegalPage) {

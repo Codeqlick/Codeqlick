@@ -58,7 +58,7 @@
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   font-weight: 600;
   cursor: pointer;
 }
@@ -182,10 +182,10 @@
 .mapButton {
   min-height: 44px;
   padding: 0 var(--space-4);
-  border: 1.5px solid var(--color-fuchsia);
+  border: 1.5px solid var(--color-brand);
   border-radius: var(--radius-pill);
   background: var(--color-white);
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -325,11 +325,11 @@
 }
 
 .markerSAUNA {
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
 }
 
 .markerBAR_CLUB {
-  background: var(--color-fuchsia-dark);
+  background: var(--color-brand-dark);
 }
 
 .markerCINEMA {
@@ -353,7 +353,7 @@
 }
 
 .popupLink {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   font-weight: 600;
 }
 
@@ -372,7 +372,7 @@
   padding: 0.1rem 0.55rem;
   border-radius: var(--radius-pill);
   background: var(--color-blush);
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   font-family: var(--font-family-mono);
   font-size: 0.8rem;
   font-weight: 600;
@@ -438,7 +438,7 @@
 }
 
 .stars {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   letter-spacing: 0.1em;
 }
 
@@ -471,7 +471,7 @@
   padding: 0.15rem 0.6rem;
   border-radius: var(--radius-pill);
   background: var(--color-blush);
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -540,11 +540,11 @@
 }
 
 .convName:hover {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 .convName:focus-visible {
-  outline: 2px solid var(--color-fuchsia);
+  outline: 2px solid var(--color-brand);
   outline-offset: 2px;
 }
 
@@ -598,7 +598,7 @@
 }
 
 .mine .bubble {
-  background: var(--color-fuchsia-dark);
+  background: var(--color-brand-dark);
   color: var(--color-white);
 }
 
@@ -628,7 +628,7 @@
 
 .compose input:focus-visible,
 .sendButton:focus-visible {
-  outline: 2px solid var(--color-fuchsia);
+  outline: 2px solid var(--color-brand);
   outline-offset: 2px;
 }
 
@@ -637,7 +637,7 @@
   padding: 0 var(--space-5);
   border: 0;
   border-radius: var(--radius-pill);
-  background: var(--color-fuchsia-dark);
+  background: var(--color-brand-dark);
   color: var(--color-white);
   font: inherit;
   font-weight: 600;
@@ -773,7 +773,7 @@
   border: 0;
   border-radius: var(--radius-md);
   background: transparent;
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   font: inherit;
   font-weight: 600;
   text-align: left;
@@ -808,7 +808,7 @@
 .activeToggle input {
   width: 1.15rem;
   height: 1.15rem;
-  accent-color: var(--color-fuchsia);
+  accent-color: var(--color-brand);
 }
 
 /* An active spot's marker: a ring around it and the count of people there now. */
@@ -819,7 +819,7 @@
 
 .markerActive::after,
 .legendActive {
-  border: 3px solid var(--color-fuchsia);
+  border: 3px solid var(--color-brand);
   border-radius: 50%;
 }
 
@@ -843,7 +843,7 @@
   padding: 0 0.25rem;
   border: 2px solid var(--color-white);
   border-radius: var(--radius-pill);
-  background: var(--color-fuchsia-dark);
+  background: var(--color-brand-dark);
   color: var(--color-white);
   font-size: 0.7rem;
   line-height: 1.05rem;
@@ -869,7 +869,7 @@
 }
 
 .popupActive {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   font-weight: 600;
 }
 
@@ -888,7 +888,7 @@
 .hereBadge {
   padding: 0.1rem 0.55rem;
   border-radius: var(--radius-pill);
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
   color: var(--color-white);
   font-family: var(--font-family-mono);
   font-size: 0.8rem;
@@ -911,7 +911,7 @@
 }
 
 .favoriteHereActive {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 /* Phase 5: tags, busiest hours, helpful reviews and contributor badges (decisions 89, 92, 93) */
@@ -998,9 +998,9 @@
 
 .contributorBadge {
   padding: 0.1rem 0.55rem;
-  border: 1px solid var(--color-fuchsia);
+  border: 1px solid var(--color-brand);
   border-radius: var(--radius-pill);
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   font-family: var(--font-family-mono);
   font-size: 0.8rem;
   font-weight: 600;
@@ -1054,7 +1054,7 @@
 .hoursBar {
   display: block;
   border-radius: 2px 2px 0 0;
-  background: var(--color-fuchsia-light);
+  background: var(--color-brand-light);
 }
 
 .hoursBarEmpty {
@@ -1062,7 +1062,7 @@
 }
 
 .hoursBarTop {
-  background: var(--color-fuchsia-dark);
+  background: var(--color-brand-dark);
 }
 
 .hoursScale {
@@ -1087,7 +1087,7 @@
 }
 
 .bell:hover {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 .bell:focus-visible {
@@ -1103,7 +1103,7 @@
   height: 18px;
   padding: 0 4px;
   border-radius: var(--radius-pill);
-  background: var(--color-fuchsia-dark);
+  background: var(--color-brand-dark);
   color: var(--color-white);
   font-size: 0.7rem;
   font-weight: 700;

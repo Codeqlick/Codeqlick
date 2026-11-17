@@ -1,7 +1,8 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import type { ReactNode } from 'react';
-import { BASE_CLIENT_NAMESPACES } from './client-namespaces';
+import { requestBrand } from '@/lib/request-brand';
+import { BASE_CLIENT_NAMESPACES, NEOQLICK_CLIENT_NAMESPACES } from './client-namespaces';
 import type { AppLocale } from './routing';
 
 export { APP_NAMESPACES } from './client-namespaces';
@@ -18,8 +19,11 @@ export async function ClientMessages({
   children: ReactNode;
 }) {
   const all = await getMessages(locale ? { locale } : undefined);
+  // Neoqlick's hosts carry none of the website's namespaces (Contact, Book…): they speak Codeqlick.
+  const base =
+    (await requestBrand()) === 'neoqlick' ? NEOQLICK_CLIENT_NAMESPACES : BASE_CLIENT_NAMESPACES;
   const messages = Object.fromEntries(
-    [...BASE_CLIENT_NAMESPACES, ...extra]
+    [...base, ...extra]
       .filter((namespace) => namespace in all)
       .map((namespace) => [namespace, all[namespace as keyof typeof all]]),
   );

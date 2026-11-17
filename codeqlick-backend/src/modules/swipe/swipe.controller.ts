@@ -60,6 +60,7 @@ import {
   type PhotoFile,
   type SwipeStatus,
 } from './swipe.service.js';
+import { Realm } from '../../common/decorators/realm.decorator.js';
 
 const fileBody = {
   schema: {
@@ -77,6 +78,7 @@ export function privateImage(file: PhotoFile): StreamableFile {
 @ApiTags('swipe')
 @ApiBearerAuth()
 @Roles('CLIENT', 'ADMIN')
+@Realm('NEOQLICK')
 @Controller('swipe')
 export class SwipeController {
   constructor(
@@ -194,6 +196,8 @@ export class SwipeController {
   }
 
   /** The image of a photo: its owner, the team, or a member it is shown to as a card. */
+  // The admin panel shows moderators the same images through this route (architecture 4.18).
+  @Realm('NEOQLICK', 'ADMIN')
   @Get('photos/:id/file')
   @Throttle({ default: { limit: 600, ttl: 60_000 } })
   @Header('Cache-Control', 'private, max-age=300')
@@ -300,6 +304,7 @@ export class SwipeController {
 /** What anyone can do: ask for a photo to be removed (EU Digital Services Act). */
 @ApiTags('swipe')
 @Public()
+@Realm('NEOQLICK')
 @Controller('swipe')
 export class SwipePublicController {
   constructor(private readonly swipe: SwipeService) {}

@@ -39,7 +39,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1;
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   background: var(--color-blush);
   border-radius: var(--radius-pill);
   padding: 0.25rem 0.5rem 0.25rem 0.3rem;
@@ -50,7 +50,7 @@
   width: 14px;
   height: 14px;
   flex: none;
-  fill: var(--color-fuchsia);
+  fill: var(--color-brand);
 }
 
 /* Gallery */
@@ -170,7 +170,7 @@
 
 .progress {
   width: 100%;
-  accent-color: var(--color-fuchsia);
+  accent-color: var(--color-brand);
 }
 
 .ok {
@@ -182,7 +182,7 @@
 }
 
 .error {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   font-weight: 600;
   margin: 0;
 }
@@ -258,8 +258,8 @@
 
 .statusLive {
   background: var(--color-blush);
-  color: var(--color-fuchsia-dark);
-  border-color: var(--color-fuchsia-light);
+  color: var(--color-brand-dark);
+  border-color: var(--color-brand-light);
 }
 
 .row {
@@ -281,8 +281,8 @@
 }
 
 .small:hover:not(:disabled) {
-  border-color: var(--color-fuchsia-dark);
-  color: var(--color-fuchsia-dark);
+  border-color: var(--color-brand-dark);
+  color: var(--color-brand-dark);
 }
 
 .small:focus-visible,
@@ -306,7 +306,7 @@
   padding: 0 var(--space-5);
   border: 2px solid transparent;
   border-radius: var(--radius-pill);
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
   color: var(--color-white);
   font: inherit;
   font-weight: 600;
@@ -314,7 +314,7 @@
 }
 
 .send:hover:not(:disabled) {
-  background: var(--color-fuchsia-dark);
+  background: var(--color-brand-dark);
 }
 
 /* Phase 6: the private album (decision 99) */

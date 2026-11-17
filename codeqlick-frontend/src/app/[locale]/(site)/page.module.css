@@ -23,7 +23,7 @@
   font-size: 0.85rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-fuchsia);
+  color: var(--color-brand);
 }
 
 .heroTitle {
@@ -81,7 +81,7 @@
 }
 
 .keyword {
-  color: var(--color-fuchsia-light);
+  color: var(--color-brand-light);
 }
 
 .literal {
@@ -101,7 +101,7 @@
 .caret {
   width: 9px;
   height: 1.2rem;
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
 }
 
 .badge {
@@ -111,7 +111,7 @@
   width: 6.5rem;
   height: 6.5rem;
   border-radius: 26px;
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -170,7 +170,7 @@ h1.title {
 }
 
 .eyebrowOnDark {
-  color: var(--color-fuchsia-light);
+  color: var(--color-brand-light);
 }
 
 .leadOnDark {
@@ -226,14 +226,14 @@ h1.title {
   padding: 0.7rem;
   border-radius: var(--radius-md);
   background: var(--color-blush);
-  color: var(--color-fuchsia);
+  color: var(--color-brand);
   transition:
     background-color var(--transition-base),
     color var(--transition-base);
 }
 
 .service:hover .icon {
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
   color: var(--color-white);
 }
 
@@ -270,7 +270,7 @@ h1.title {
 .stepNumber {
   font-family: var(--font-family-mono);
   font-size: 0.85rem;
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 .stepTitle {
@@ -323,7 +323,7 @@ h1.title {
   width: 2.25rem;
   height: 4px;
   border-radius: 2px;
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
 }
 
 .valueTitle {
@@ -390,7 +390,7 @@ h1.title {
   padding-top: var(--space-2);
   font-weight: 600;
   text-decoration: none;
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 .more::before {
@@ -417,7 +417,7 @@ h1.title {
 }
 
 .service:has(.more:focus-visible) {
-  outline: 3px solid var(--color-fuchsia);
+  outline: 3px solid var(--color-brand);
   outline-offset: 3px;
 }
 
@@ -455,7 +455,7 @@ h1.title {
 .cta {
   max-width: calc(var(--wrap) - 2 * var(--gutter));
   margin: 0 auto;
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
   color: var(--color-white);
   border-radius: var(--radius-lg);
   /* 48/40 px on desktop, 32/24 px on phones. */

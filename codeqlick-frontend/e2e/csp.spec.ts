@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { neoqlickUrl } from './helpers';
 
 /*
  * The Content Security Policy (architecture 6.4) on the main pages of every host: no violation,
@@ -19,6 +20,8 @@ const PAGES: Record<string, string[]> = {
 const AD_NETWORK = /\b(magsrv|exoclick|exosrv|exdynsrv|realsrv|bkcdn)\.(com|net)\b/;
 
 function hostUrl(baseURL: string | undefined, app: string): string {
+  // The 18+ apps live on Neoqlick's hosts (architecture 4.18).
+  if (['videochat', 'swipe', 'cruising'].includes(app)) return neoqlickUrl(app, baseURL);
   const url = new URL(baseURL ?? 'http://localhost:3001');
   if (app) url.hostname = `${app}.${url.hostname}`;
   return url.origin;

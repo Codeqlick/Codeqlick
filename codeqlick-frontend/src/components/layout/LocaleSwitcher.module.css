@@ -24,7 +24,7 @@
 }
 
 .option:hover {
-  color: var(--color-fuchsia);
+  color: var(--color-brand);
 }
 
 .active,
@@ -67,7 +67,7 @@
 }
 
 .summary:hover {
-  color: var(--color-fuchsia);
+  color: var(--color-brand);
 }
 
 .list {
@@ -95,7 +95,7 @@
 
 .item:hover {
   background: var(--color-blush);
-  color: var(--color-fuchsia);
+  color: var(--color-brand);
 }
 
 .current,
@@ -124,8 +124,8 @@
 }
 
 .chip:hover {
-  color: var(--color-fuchsia-dark);
-  border-color: var(--color-fuchsia-light);
+  color: var(--color-brand-dark);
+  border-color: var(--color-brand-light);
 }
 
 .chip.active,

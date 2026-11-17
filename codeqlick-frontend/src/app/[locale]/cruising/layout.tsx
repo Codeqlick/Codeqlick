@@ -16,6 +16,7 @@ import { getCruisingStatus } from '@/lib/api/cruising';
 import { listCruisingNotifications } from '@/lib/api/cruising-notifications';
 import { notificationsEndpoint } from '@/lib/cruising-notifications';
 import { getCurrentUser } from '@/lib/auth/session';
+import { BRANDS } from '@/lib/brand';
 import { requestWebapp } from '@/lib/webapp-request';
 import { webappAlternates, webappOrigin, webappPath } from '@/lib/webapp-seo';
 
@@ -49,19 +50,12 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
       images: [image],
     },
     twitter: { card: 'summary_large_image', title, description, images: [image] },
-    // Indexed like every Codeqlick app; the account-only pages (new, my-spots) opt out.
+    // Indexed; the account-only pages (new, my-spots) opt out.
     robots: { index: true, follow: true, 'max-image-preview': 'large' },
     // Content for adults: Google's label, so SafeSearch filters it as it must.
     other: { rating: 'adult' },
-    // The site's Codeqlick favicons, like Swipe and the video chat; the home screen icon is the
-    // installed app's own (decision 96), like its manifest's.
-    icons: {
-      icon: [
-        { url: '/favicon.ico', sizes: 'any' },
-        { url: '/favicon.svg', type: 'image/svg+xml' },
-      ],
-      apple: '/cruising-apple-touch-icon.png',
-    },
+    // Neoqlick's favicons and home screen icon (architecture 4.18).
+    icons: BRANDS.neoqlick.icons,
     applicationName: 'Cruising',
     appleWebApp: { capable: true, title: 'Cruising', statusBarStyle: 'default' },
   };
@@ -69,7 +63,7 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
 
 export const viewport: Viewport = { themeColor: '#ffffff' };
 
-/** Cruising's own frame (cruising.codeqlick.com): light colours and the Codeqlick logo. */
+/** Cruising's own frame (cruising.neoqlick.com): light colours and the Neoqlick logo. */
 export default async function CruisingLayout({ children, params }: LayoutProps) {
   const locale = resolveCruisingLocale((await params).locale);
   setRequestLocale(locale);

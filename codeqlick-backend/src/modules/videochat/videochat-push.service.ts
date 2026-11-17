@@ -110,11 +110,11 @@ export class VideochatPushService {
 
   /** The VAPID public key browsers subscribe with; null while notifications are off. */
   get publicKey(): string | null {
-    return this.config.vapid?.publicKey ?? null;
+    return this.config.neoqlickVapid?.publicKey ?? null;
   }
 
   get enabled(): boolean {
-    return this.config.vapid !== undefined;
+    return this.config.neoqlickVapid !== undefined;
   }
 
   async subscribe(userId: string, input: PushSubscriptionInput): Promise<void> {
@@ -156,7 +156,7 @@ export class VideochatPushService {
    * at most once every 20 hours each. Returns how many accounts were alerted.
    */
   async peakTime(online: number, onlineUserIds: string[], now: Date = new Date()): Promise<number> {
-    const vapid = this.config.vapid;
+    const vapid = this.config.neoqlickVapid;
     if (!vapid || !(await this.isPeak(online, now))) return 0;
     const rows = await this.repository.peakCandidates({
       termsVersion: VIDEOCHAT_TERMS_VERSION,
@@ -213,7 +213,7 @@ export class VideochatPushService {
     onlineUserIds: Iterable<string>,
     now: Date = new Date(),
   ): Promise<number> {
-    const vapid = this.config.vapid;
+    const vapid = this.config.neoqlickVapid;
     if (!vapid) return 0;
     if (now.getTime() - this.lastRound < PUSH_ROUND_MS) return 0;
     this.lastRound = now.getTime();

@@ -97,7 +97,10 @@ describe('web apps on subdomains', () => {
     ]
       .filter((entry) => entry.isDirectory() && !entry.name.startsWith('('))
       .map((entry) => entry.name)
-      .filter((name) => !WEBAPPS.some((app) => app === name) && !SHARED.includes(name));
+      .filter(
+        (name) =>
+          !WEBAPPS.some((app) => app === name) && name !== 'neoqlick' && !SHARED.includes(name),
+      );
     expect(folders.toSorted()).toEqual([...SITE_SECTIONS].toSorted());
   });
 

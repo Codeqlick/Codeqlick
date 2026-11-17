@@ -11,6 +11,8 @@ import { resolveLocale } from '@/i18n/locale';
 import { getVideochatStatus } from '@/lib/api/videochat';
 import { getCurrentUser } from '@/lib/auth/session';
 import { requestWebapp } from '@/lib/webapp-request';
+import { BRANDS } from '@/lib/brand';
+import { requestBrand } from '@/lib/request-brand';
 import { webappAlternates, webappOrigin, webappPath } from '@/lib/webapp-seo';
 
 type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
@@ -26,6 +28,7 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
     height: 630,
     alt: title,
   };
+  const old = (await requestBrand()) === 'codeqlick';
   return {
     // Relative URLs (canonical, images) resolve on the video chat's own host.
     metadataBase: new URL(webappOrigin('videochat')),
@@ -47,11 +50,16 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
     other: {
       // Sexual content between adults: Google's label, so SafeSearch filters it as it must.
       rating: 'adult',
-      // `other` replaces the root layout's: ExoClick's ownership check stays (architecture 4.7).
-      '6a97888e-site-verification': '5e55aa28a6c9210038f92e69880e6449',
-      // Google Search Console's ownership check (property https://videochat.codeqlick.com).
-      'google-site-verification': '_A3wQZIogBMzJQNEVq_--g1xi9eYTwtYVMRBFwH5kZU',
+      // The old host's ExoClick and Search Console checks (`other` replaces the root layout's);
+      // Neoqlick's come with its own sites, when the owner registers them (architecture 4.18).
+      ...(old
+        ? {
+            '6a97888e-site-verification': '5e55aa28a6c9210038f92e69880e6449',
+            'google-site-verification': '_A3wQZIogBMzJQNEVq_--g1xi9eYTwtYVMRBFwH5kZU',
+          }
+        : {}),
     },
+    icons: BRANDS.neoqlick.icons,
     // Installed on a phone it opens as its own app (manifest: app/manifest.ts on this host).
     appleWebApp: { capable: true, title: 'Videochat', statusBarStyle: 'default' },
   };
@@ -59,7 +67,7 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
 
 export const viewport: Viewport = { themeColor: '#ffffff' };
 
-/** The video chat's own frame (videochat.codeqlick.com): Codeqlick's light colours, no site header or footer. */
+/** The video chat's own frame (videochat.neoqlick.com): Neoqlick's light colours, no site header or footer. */
 export default async function VideochatLayout({ children, params }: LayoutProps) {
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);

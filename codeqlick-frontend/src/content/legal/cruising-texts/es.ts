@@ -16,7 +16,7 @@ export const es: CruisingLegalTexts = {
       'Quién puede usar Cruising, qué se puede aportar, cómo moderamos y cómo darte de baja.',
     markdown: (c) => `## Quién presta el servicio
 
-Cruising (cruising.codeqlick.com) es un servicio de:
+Cruising (cruising.neoqlick.com) es un servicio de:
 
 ${c.ownerLines}
 
@@ -45,7 +45,7 @@ Necesitas una cuenta verificada por correo y entrar en Cruising con tu fecha de 
 - Los miembros que han entrado y están **verificados** pueden subir a su perfil fotos y vídeos **de sí mismos**. Se permite el contenido sexual propio entre personas adultas, que solo ven los miembros que han entrado.
 - **Nadie menor de 18 años** puede aparecer, y nada que sea ilegal. No puede aparecer nadie que no haya dado su consentimiento ni imágenes que no sean tuyas. Marcas una casilla de consentimiento en cada subida.
 - Las fotos y los vídeos se **publican antes de que el equipo los revise**; el equipo los revisa después y retira lo que incumpla estas condiciones, bloqueando la imagen para que no vuelva a subirse. Podemos suspender la cuenta.
-- La **verificación** es una foto tuya con tu nombre de usuario, «Codeqlick» y la fecha, que revisa el equipo y se guarda en privado mientras la verificación siga vigente (véase «Seguridad entre las apps +18 de Codeqlick»). La insignia «Verificado» solo significa que el equipo comprobó esa foto: no que se haya comprobado un documento de identidad.
+- La **verificación** es una foto tuya con tu nombre de usuario, «Neoqlick» y la fecha, que revisa el equipo y se guarda en privado mientras la verificación siga vigente (véase «Seguridad entre las apps +18 de Neoqlick»). La insignia «Verificado» solo significa que el equipo comprobó esa foto: no que se haya comprobado un documento de identidad.
 - Sigues siendo autor de lo que subes y nos das permiso, no exclusivo y gratuito, para guardarlo y mostrarlo en Cruising mientras no lo borres.
 
 ## Cómo te comportas
@@ -54,7 +54,7 @@ Respeta a los demás, el lugar y la ley del sitio donde estás. Nada de venta de
 
 ## Moderación, denuncias y retirada
 
-Puedes denunciar cualquier lugar, opinión, perfil, foto o vídeo. Una denuncia por un menor, por falta de consentimiento, por imágenes robadas o por contenido ilegal oculta el contenido al momento hasta que lo revisemos. Cualquiera, aunque no tenga cuenta, puede pedir que retiremos un lugar en [cruising.codeqlick.com/${c.locale}/takedown](/${c.locale}/cruising/takedown); si se trata de un menor o de algo ilegal y da el enlace, lo ocultamos al momento, y siempre respondemos en 24 horas. Un lugar retirado por moderación no se puede volver a enviar. Si retiramos algo tuyo o suspendemos tu cuenta, te decimos el motivo por correo y puedes contestarnos para pedir que lo revisemos (Reglamento de Servicios Digitales).
+Puedes denunciar cualquier lugar, opinión, perfil, foto o vídeo. Una denuncia por un menor, por falta de consentimiento, por imágenes robadas o por contenido ilegal oculta el contenido al momento hasta que lo revisemos. Cualquiera, aunque no tenga cuenta, puede pedir que retiremos un lugar en [cruising.neoqlick.com/${c.locale}/takedown](/${c.locale}/cruising/takedown); si se trata de un menor o de algo ilegal y da el enlace, lo ocultamos al momento, y siempre respondemos en 24 horas. Un lugar retirado por moderación no se puede volver a enviar. Si retiramos algo tuyo o suspendemos tu cuenta, te decimos el motivo por correo y puedes contestarnos para pedir que lo revisemos (Reglamento de Servicios Digitales).
 
 ## Lo que no garantizamos
 
@@ -88,7 +88,7 @@ Usar Cruising puede revelar aspectos de tu **vida sexual u orientación sexual**
 - **Lugares:** los que propones (nombre, tipo, ubicación, descripción, horas) con tu cuenta, para que puedas verlos y editarlos y para moderarlos.
 - **Opiniones y denuncias:** las que escribes y las que haces.
 - **Fotos y vídeos (datos de categoría especial):** los que subes a tu perfil, con tu **consentimiento explícito** en cada subida (artículo 9.2.a). Les quitamos los metadatos (ubicación, cámara). Se guardan en servidores de la Unión Europea (OVHcloud), **fuera de las copias de seguridad**, y los ven solo los miembros que han entrado, nunca los buscadores.
-- **Foto de verificación:** la que nos envías con tu nombre de usuario, «Codeqlick» y la fecha; solo la ve el equipo. Si se aprueba, se **guarda en privado mientras la verificación siga vigente** y se borra cuando se retira o se pierde, se sustituye o borras tu cuenta; una rechazada se borra al momento. La verificación se comparte con las otras apps +18 de Codeqlick (véase la última sección).
+- **Foto de verificación:** la que nos envías con tu nombre de usuario, «Neoqlick» y la fecha; solo la ve el equipo. Si se aprueba, se **guarda en privado mientras la verificación siga vigente** y se borra cuando se retira o se pierde, se sustituye o borras tu cuenta; una rechazada se borra al momento. La verificación se comparte con las otras apps +18 de Neoqlick (véase la última sección).
 - **Salud sexual (datos de salud, categoría especial):** solo si la activas, con su **propio consentimiento explícito** (artículo 9.2.a), distinto del de la entrada: si tomas PrEP, el mes de tu última prueba y cada cuánto quieres que te recordemos la revisión. Por defecto solo los ves tú; si eliges mostrarlos, los ven los miembros que han entrado en tu perfil. Al desactivarla se **borran** en el momento. Los recordatorios solo dicen «Es hora de tu revisión».
 - **Contactos de confianza y temporizador de seguridad:** el correo y el nombre con el que te presentas a hasta 2 personas que eliges, y si han aceptado (interés legítimo en tu seguridad, artículo 6.1.f; cada contacto da su propio consentimiento al aceptar por correo y puede dejarlo cuando quiera). Del temporizador guardamos la hora de fin, tu mensaje y, solo si eliges compartirlo, el lugar. Si no lo terminas a tiempo, enviamos a tus contactos que aceptaron un único correo con ese nombre, tu mensaje, la hora y el lugar compartido; nunca tu nombre de usuario ni qué es Cruising.
 - **Seguridad:** la dirección IP y el navegador de cada sesión (interés legítimo, artículo 6.1.f).

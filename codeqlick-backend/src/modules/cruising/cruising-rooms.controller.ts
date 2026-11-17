@@ -9,6 +9,7 @@ import {
   Post,
   Put,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -37,6 +38,8 @@ import {
   type RoomMuteInput,
   type UserIdParam,
 } from './cruising.schemas.js';
+import { Realm } from '../../common/decorators/realm.decorator.js';
+import { NeoqlickTargetGuard } from '../../common/guards/realm-target.guard.js';
 
 /**
  * Cruising's phase 6 (architecture 4.15): the private album shared per person (decision 99) and
@@ -46,6 +49,7 @@ import {
 @ApiTags('cruising')
 @ApiBearerAuth()
 @Roles('CLIENT', 'ADMIN')
+@Realm('NEOQLICK')
 @Controller('cruising')
 export class CruisingRoomsController {
   constructor(
@@ -115,6 +119,7 @@ export class CruisingRoomsController {
 @ApiTags('admin: cruising')
 @ApiBearerAuth()
 @Roles('ADMIN')
+@UseGuards(NeoqlickTargetGuard)
 @Controller('admin/cruising')
 export class CruisingRoomsAdminController {
   constructor(private readonly rooms: CruisingRoomsService) {}

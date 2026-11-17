@@ -34,7 +34,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const locale = resolveLocale((await params).locale);
   const searching = searchText((await searchParams).q) !== undefined;
   const t = await getTranslations({ locale, namespace: 'Blog' });
-  const metadata = pageMetadata({
+  const metadata = await pageMetadata({
     locale,
     path: '/blog',
     title: t('metaTitle'),

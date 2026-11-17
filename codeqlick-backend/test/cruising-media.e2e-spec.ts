@@ -19,6 +19,10 @@ import { CruisingMediaStorage } from '../src/modules/cruising/cruising-media.sto
 import { MailService, type MailMessage } from '../src/modules/mail/mail.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
+/** The 18+ apps' members are NEOQLICK accounts (architecture 4.18); the admins are CODEQLICK ones. */
+const realmOf = (role: Role): 'CODEQLICK' | 'NEOQLICK' =>
+  role === Role.ADMIN ? 'CODEQLICK' : 'NEOQLICK';
+
 const tag = randomUUID().slice(0, 8);
 const hasFfmpeg =
   spawnSync('ffmpeg', ['-version']).status === 0 && spawnSync('ffprobe', ['-version']).status === 0;
@@ -55,8 +59,12 @@ describe('Cruising media (e2e)', () => {
   async function person(name: string, role: Role = Role.CLIENT): Promise<Person> {
     made += 1;
     const email = `e2e-cruising-media-${name.toLowerCase()}-${tag}@codeqlick.test`;
-    const user = await prisma.user.create({ data: { email, name, role, passwordHash: 'x' } });
-    const token = await app.get(JwtService).signAsync({ sub: user.id, email, name, role });
+    const user = await prisma.user.create({
+      data: { email, name, role, realm: realmOf(role), passwordHash: 'x' },
+    });
+    const token = await app
+      .get(JwtService)
+      .signAsync({ sub: user.id, email, name, role, rlm: realmOf(role) });
     const nick = `${name.toLowerCase().slice(0, 5)}_${tag.slice(0, 6)}_${made}`;
     // Each person comes from their own address, so the rate limits don't mix them up.
     return {

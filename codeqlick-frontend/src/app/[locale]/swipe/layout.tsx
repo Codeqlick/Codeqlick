@@ -11,6 +11,8 @@ import { resolveLocale } from '@/i18n/locale';
 import { getSwipeStatus } from '@/lib/api/swipe';
 import { getCurrentUser } from '@/lib/auth/session';
 import { requestWebapp } from '@/lib/webapp-request';
+import { BRANDS } from '@/lib/brand';
+import { requestBrand } from '@/lib/request-brand';
 import { webappAlternates, webappOrigin, webappPath } from '@/lib/webapp-seo';
 
 type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
@@ -21,6 +23,7 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
   const title = t('metaTitle');
   const description = t('metaDescription');
   const image = { url: webappPath('swipe', locale, '/og'), width: 1200, height: 630, alt: title };
+  const old = (await requestBrand()) === 'codeqlick';
   return {
     // Relative URLs (canonical, images) resolve on Swipe's own host.
     metadataBase: new URL(webappOrigin('swipe')),
@@ -37,24 +40,22 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
       images: [image],
     },
     twitter: { card: 'summary_large_image', title, description, images: [image] },
-    // Indexed like every Codeqlick app (owner's choice, 2026-11-09); the account-only pages
-    // (deck, photos, matches) opt out.
+    // Indexed (owner's choice, 2026-11-09); the account-only pages (deck, photos, matches) opt out.
     robots: { index: true, follow: true, 'max-image-preview': 'large' },
     // Sexual content between adults: Google's label, so SafeSearch filters it as it must.
     other: {
       rating: 'adult',
-      // Google Search Console's ownership check for swipe.codeqlick.com.
-      'google-site-verification': '_A3wQZIogBMzJQNEVq_--g1xi9eYTwtYVMRBFwH5kZU',
+      // Search Console's ownership check of the old host; Neoqlick's own comes with its property.
+      ...(old ? { 'google-site-verification': '_A3wQZIogBMzJQNEVq_--g1xi9eYTwtYVMRBFwH5kZU' } : {}),
     },
-    // No `icons`: the site's Codeqlick favicons, like the video chat (Google shows them in
-    // results). The installed app keeps its own icon through the manifest.
+    icons: BRANDS.neoqlick.icons,
     appleWebApp: { capable: true, title: 'Swipe', statusBarStyle: 'default' },
   };
 }
 
 export const viewport: Viewport = { themeColor: '#ffffff' };
 
-/** Swipe's own frame (swipe.codeqlick.com): light colours and the Codeqlick logo, no site header. */
+/** Swipe's own frame (swipe.neoqlick.com): light colours and the Neoqlick logo, no site header. */
 export default async function SwipeLayout({ children, params }: LayoutProps) {
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);

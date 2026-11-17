@@ -58,7 +58,7 @@
 .fill {
   height: 100%;
   border-radius: var(--radius-pill);
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
 }
 
 .invoices {

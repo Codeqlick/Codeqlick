@@ -11,6 +11,7 @@ export type TokenOwnerRow = CloudToken & {
     role: 'ADMIN' | 'CLIENT';
     isActive: boolean;
     registeredAt: Date | null;
+    realm: 'CODEQLICK' | 'NEOQLICK';
   };
 };
 
@@ -76,6 +77,7 @@ export class CloudTokensRepository {
             role: true,
             isActive: true,
             registeredAt: true,
+            realm: true,
           },
         },
       },

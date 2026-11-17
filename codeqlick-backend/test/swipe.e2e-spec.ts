@@ -14,6 +14,10 @@ import { SWIPE_TERMS_VERSION } from '../src/modules/swipe/swipe.schemas.js';
 import { SwipeService } from '../src/modules/swipe/swipe.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
+/** The 18+ apps' members are NEOQLICK accounts (architecture 4.18); the admins are CODEQLICK ones. */
+const realmOf = (role: Role): 'CODEQLICK' | 'NEOQLICK' =>
+  role === Role.ADMIN ? 'CODEQLICK' : 'NEOQLICK';
+
 const tag = randomUUID().slice(0, 8);
 /** Nicknames are account usernames now: unique, lower-case, so each run gets its own. */
 const nick = (name: string) => `${name.toLowerCase()}_${tag}`;
@@ -53,8 +57,12 @@ describe('Swipe (e2e)', () => {
 
   async function person(name: string, role: Role = Role.CLIENT): Promise<Person> {
     const email = `e2e-swipe-${name.toLowerCase()}-${tag}@codeqlick.test`;
-    const user = await prisma.user.create({ data: { email, name, role, passwordHash: 'x' } });
-    const token = await app.get(JwtService).signAsync({ sub: user.id, email, name, role });
+    const user = await prisma.user.create({
+      data: { email, name, role, realm: realmOf(role), passwordHash: 'x' },
+    });
+    const token = await app
+      .get(JwtService)
+      .signAsync({ sub: user.id, email, name, role, rlm: realmOf(role) });
     return { id: user.id, auth: { Authorization: `Bearer ${token}` } };
   }
 

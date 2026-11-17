@@ -13,17 +13,17 @@
 
 .picker:hover,
 .dragging {
-  border-color: var(--color-fuchsia);
+  border-color: var(--color-brand);
   background: var(--color-blush);
 }
 
 .chosen {
   border-style: solid;
-  border-color: var(--color-fuchsia);
+  border-color: var(--color-brand);
 }
 
 .picker:focus-within {
-  outline: 3px solid var(--color-fuchsia);
+  outline: 3px solid var(--color-brand);
   outline-offset: 2px;
 }
 
@@ -67,7 +67,7 @@
   height: 2.5rem;
   border-radius: var(--radius-pill);
   background: var(--color-blush);
-  color: var(--color-fuchsia);
+  color: var(--color-brand);
 }
 
 .dragging .icon,

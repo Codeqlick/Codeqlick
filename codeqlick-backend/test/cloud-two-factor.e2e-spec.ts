@@ -181,7 +181,10 @@ describe('Codeqlick Cloud teams requiring two-step verification (e2e)', () => {
     await request(server).patch(`/v1/cloud/teams/${teamSlug}`).set(ownerAuth).send({}).expect(400);
 
     // A member who loses it is blocked again, and can still leave.
-    await prisma.user.update({ where: { email: mate.email }, data: { totpEnabledAt: null } });
+    await prisma.user.update({
+      where: { realm_email: { realm: 'CODEQLICK', email: mate.email } },
+      data: { totpEnabledAt: null },
+    });
     await request(server).get(`/v1/cloud/teams/${teamSlug}/usage`).set(mateAuth).expect(403);
     await request(server)
       .delete(`/v1/cloud/teams/${teamSlug}/members/${mateId}`)

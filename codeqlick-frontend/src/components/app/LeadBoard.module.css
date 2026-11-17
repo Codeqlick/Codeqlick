@@ -48,7 +48,7 @@
 }
 
 .over {
-  border-color: var(--color-fuchsia);
+  border-color: var(--color-brand);
   background: var(--color-blush);
 }
 
@@ -107,7 +107,7 @@
 }
 
 .name:hover {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 .meta {

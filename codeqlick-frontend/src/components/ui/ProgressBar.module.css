@@ -22,13 +22,13 @@
 
 .track::-webkit-progress-value {
   border-radius: var(--radius-pill);
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
   transition: width 0.3s ease;
 }
 
 .track::-moz-progress-bar {
   border-radius: var(--radius-pill);
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
 }
 
 .label {

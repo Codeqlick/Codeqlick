@@ -4,7 +4,7 @@
  */
 
 .inlineLink:hover {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 /* Landing */
@@ -14,7 +14,7 @@
 }
 
 .warning {
-  border: 1.5px solid var(--color-fuchsia);
+  border: 1.5px solid var(--color-brand);
   background: var(--color-blush);
   border-radius: var(--radius-md);
   padding: var(--space-4);
@@ -118,7 +118,7 @@
 }
 
 .inlineLink {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 .fieldset {
@@ -166,7 +166,7 @@
 
 .answer {
   padding: var(--space-3) var(--space-4);
-  border-left: 3px solid var(--color-fuchsia);
+  border-left: 3px solid var(--color-brand);
   background: var(--color-blush);
   white-space: pre-wrap;
 }

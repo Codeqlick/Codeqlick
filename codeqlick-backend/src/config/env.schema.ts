@@ -11,6 +11,14 @@ const booleanString = z
   .default('false')
   .transform((value) => value === 'true' || value === '1');
 
+const optionalUrl = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z
+    .url()
+    .optional()
+    .transform((value) => value?.replace(/\/+$/, '')),
+);
+
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65_535).default(4000),
@@ -37,6 +45,16 @@ export const envSchema = z.object({
     .url()
     .optional()
     .transform((value) => value?.replace(/\/+$/, '')),
+  /**
+   * Neoqlick's main host (architecture 4.18), for links in emails and the origin CORS allows. Unset
+   * where there are no Neoqlick hosts (staging, development without them): NEOQLICK accounts then
+   * fall back to the website's hosts. The realms work without it.
+   */
+  NEOQLICK_URL: optionalUrl,
+  /** Neoqlick's account host. Unset: NEOQLICK_URL with `account.` before its host. */
+  NEOQLICK_ACCOUNT_URL: optionalUrl,
+  /** The API as Neoqlick's emails point to it (`https://api.neoqlick.com/v1`). Unset: PUBLIC_API_URL. */
+  NEOQLICK_PUBLIC_API_URL: optionalUrl,
   JWT_ACCESS_SECRET: z.string().min(32),
   /** Encrypts the access clients share (project credentials). Unset: derived from JWT_ACCESS_SECRET. */
   CREDENTIALS_SECRET: z.string().min(32).optional(),
@@ -59,6 +77,14 @@ export const envSchema = z.object({
   /** Tests only (NODE_ENV=test): each email is also written there as JSON, for browser tests. */
   MAIL_OUTBOX_DIR: optionalString,
   MAIL_FROM: z.string().min(1).default('Codeqlick <hello@codeqlick.com>'),
+  /**
+   * Neoqlick's sender and its mailbox's SMTP login (architecture 4.18, Emails): `Neoqlick
+   * <hello@neoqlick.com>`. Unset (the mailbox doesn't exist yet): Neoqlick's emails go out under
+   * the display name Neoqlick with MAIL_FROM's address and SMTP login, and a warning says so.
+   */
+  MAIL_FROM_NEOQLICK: optionalString,
+  SMTP_USER_NEOQLICK: optionalString,
+  SMTP_PASSWORD_NEOQLICK: optionalString,
   LEADS_NOTIFY_TO: z.string().min(1).default('hello@codeqlick.com'),
   /** Folder for uploaded images; relative paths resolve against the working directory. */
   UPLOADS_DIR: z.string().min(1).default('./uploads'),
@@ -83,6 +109,10 @@ export const envSchema = z.object({
    * host (ACCOUNT_URL) and the hosts of Codeqlick's web apps (see `AppConfigService.webauthnOrigins`).
    */
   WEBAUTHN_ORIGINS: optionalString,
+  /** Neoqlick's passkey relying party (4.18). Unset: `neoqlick.com` in production, `localhost` elsewhere. */
+  WEBAUTHN_RP_ID_NEOQLICK: optionalString,
+  /** Pages passkeys may be used from on Neoqlick, comma-separated. Unset: its account host and apps. */
+  WEBAUTHN_ORIGINS_NEOQLICK: optionalString,
   /** New passwords are refused when Have I Been Pwned lists them (production: true). */
   PASSWORD_BREACH_CHECK: booleanString,
   /** Umami (analytics) for the admin dashboard's visit numbers; unset: no visit numbers. */
@@ -176,7 +206,9 @@ export const envSchema = z.object({
   /** Pages allowed to open the video chat's WebSocket (its Origin header), comma-separated. */
   VIDEOCHAT_ORIGINS: z
     .string()
-    .default('http://videochat.localhost:3000,http://localhost:3000')
+    .default(
+      'http://videochat.localhost:3000,http://videochat.neoqlick.localhost:3000,http://localhost:3000',
+    )
     .transform((value) =>
       value
         .split(',')
@@ -204,8 +236,29 @@ export const envSchema = z.object({
   VAPID_PRIVATE_KEY: optionalString,
   /** Contact the push services may use (mailto: or https:). */
   VAPID_SUBJECT: z.string().default('mailto:hello@codeqlick.com'),
+  /** Neoqlick's own VAPID pair and contact (4.18). Unset: the pair above is used for its pushes. */
+  NEOQLICK_VAPID_PUBLIC_KEY: optionalString,
+  NEOQLICK_VAPID_PRIVATE_KEY: optionalString,
+  NEOQLICK_VAPID_SUBJECT: z.string().default('mailto:hello@neoqlick.com'),
+  /** Version of the account terms a NEOQLICK sign-up accepts (4.18, Legal). */
+  NEOQLICK_TERMS_VERSION: z.string().min(1).max(40).default('2026-11-17.1'),
+  /**
+   * Neoqlick's operator for its emails' footer (4.18, Legal): the trade name and the owner's data;
+   * each falls back to `LEGAL_OWNER_*` (the website's legal holder) while unset.
+   */
+  NEOQLICK_TRADE_NAME: optionalString,
+  NEOQLICK_LEGAL_OWNER_NAME: optionalString,
+  NEOQLICK_LEGAL_OWNER_TAX_ID: optionalString,
+  NEOQLICK_LEGAL_OWNER_ADDRESS: optionalString,
+  LEGAL_OWNER_NAME: optionalString,
+  LEGAL_OWNER_TAX_ID: optionalString,
+  LEGAL_OWNER_ADDRESS: optionalString,
+  /** Neoqlick's website id in the same Umami (read by the website; listed here for the template). */
+  NEOQLICK_UMAMI_WEBSITE_ID: optionalString,
   /** Cloudflare Turnstile's secret key: sign-up and sign-in need a valid token; unset: off. */
   TURNSTILE_SECRET_KEY: optionalString,
+  /** Neoqlick's own Turnstile secret (its own Cloudflare account); unset: off for NEOQLICK. */
+  TURNSTILE_SECRET_KEY_NEOQLICK: optionalString,
   PAGESPEED_API_KEY: optionalString,
   /** Tells search engines about changed posts and case studies (architecture 4.1, IndexNow). */
   INDEXNOW_ENABLED: booleanString,

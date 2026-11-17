@@ -71,6 +71,7 @@ export function appealResolvedEmail(
     subject: `${outcome.subject} — Codeqlick`,
     ...renderEmail(
       {
+        brand: 'neoqlick',
         locale: person.locale,
         preheader: outcome.intro,
         title: outcome.title,

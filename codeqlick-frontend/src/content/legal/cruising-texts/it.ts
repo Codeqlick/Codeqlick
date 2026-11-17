@@ -15,7 +15,7 @@ export const it: CruisingLegalTexts = {
     description: 'Chi può usare Cruising, cosa si può pubblicare, come moderiamo e come andarsene.',
     markdown: (c) => `## Chi fornisce il servizio
 
-Cruising (cruising.codeqlick.com) è un servizio di:
+Cruising (cruising.neoqlick.com) è un servizio di:
 
 ${c.ownerLines}
 
@@ -44,7 +44,7 @@ Ti serve un account con un’e-mail verificata e, per entrare in Cruising, indic
 - I membri che sono entrati e sono **verificati** possono caricare sul proprio profilo foto e video **di se stessi**. Sono ammessi contenuti sessuali di se stessi tra adulti, e possono vederli solo i membri che sono entrati.
 - **Nessun minore di 18 anni** può comparire, e nulla può essere illegale. Non può comparire nessuno che non abbia dato il consenso, e le immagini devono essere tue. A ogni caricamento spunti una casella di consenso.
 - Foto e video vengono **pubblicati prima che il team li esamini**; il team li esamina in seguito e rimuove ciò che viola queste condizioni, bloccando l’immagine in modo che non possa essere caricata di nuovo. Possiamo sospendere l’account.
-- La **verifica** è una tua foto con il tuo nome utente, «Codeqlick» e la data, esaminata dal team e conservata in privato finché la verifica è valida (vedi «Sicurezza tra le app 18+ di Codeqlick»). Il badge «Verificato» significa soltanto che il team ha controllato quella foto: non che sia stato controllato un documento d’identità.
+- La **verifica** è una tua foto con il tuo nome utente, «Neoqlick» e la data, esaminata dal team e conservata in privato finché la verifica è valida (vedi «Sicurezza tra le app 18+ di Neoqlick»). Il badge «Verificato» significa soltanto che il team ha controllato quella foto: non che sia stato controllato un documento d’identità.
 - Ciò che carichi resta tuo e ci concedi un permesso gratuito e non esclusivo di conservarlo e mostrarlo in Cruising finché non lo elimini.
 
 ## Come ti comporti
@@ -53,7 +53,7 @@ Rispetta gli altri, il luogo e la legge del posto in cui ti trovi. Niente vendit
 
 ## Moderazione, segnalazioni e rimozione
 
-Puoi segnalare qualsiasi luogo, recensione, profilo, foto o video. Una segnalazione per un minore, la mancanza di consenso, immagini rubate o contenuti illegali lo nasconde subito finché non lo esaminiamo. Chiunque, anche senza account, può chiederci di rimuovere un luogo su [cruising.codeqlick.com/${c.locale}/takedown](/${c.locale}/cruising/takedown); quando riguarda un minore o qualcosa di illegale e viene indicato il link, lo nascondiamo subito, e rispondiamo sempre entro 24 ore. Un luogo rimosso dalla moderazione non può essere inviato di nuovo. Se rimuoviamo qualcosa di tuo o sospendiamo il tuo account, ti inviamo per e-mail il motivo e puoi rispondere per chiederci di riesaminarlo (regolamento sui servizi digitali, DSA).
+Puoi segnalare qualsiasi luogo, recensione, profilo, foto o video. Una segnalazione per un minore, la mancanza di consenso, immagini rubate o contenuti illegali lo nasconde subito finché non lo esaminiamo. Chiunque, anche senza account, può chiederci di rimuovere un luogo su [cruising.neoqlick.com/${c.locale}/takedown](/${c.locale}/cruising/takedown); quando riguarda un minore o qualcosa di illegale e viene indicato il link, lo nascondiamo subito, e rispondiamo sempre entro 24 ore. Un luogo rimosso dalla moderazione non può essere inviato di nuovo. Se rimuoviamo qualcosa di tuo o sospendiamo il tuo account, ti inviamo per e-mail il motivo e puoi rispondere per chiederci di riesaminarlo (regolamento sui servizi digitali, DSA).
 
 ## Cosa non garantiamo
 
@@ -87,7 +87,7 @@ L’uso di Cruising può rivelare aspetti della tua **vita sessuale o del tuo or
 - **Luoghi:** quelli che proponi (nome, tipo, posizione, descrizione, orari) con il tuo account, affinché tu possa vederli e modificarli e noi possiamo moderarli.
 - **Recensioni e segnalazioni:** quelle che scrivi e che fai.
 - **Foto e video (categorie particolari di dati):** quelli che carichi sul tuo profilo, con il tuo **consenso esplicito** a ogni caricamento (articolo 9.2.a). Ne rimuoviamo i metadati (posizione, fotocamera). Sono conservati su server nell’Unione europea (OVHcloud), **esclusi dai backup**, e possono vederli solo i membri che sono entrati, mai i motori di ricerca.
-- **Foto di verifica:** quella che ci invii con il tuo nome utente, «Codeqlick» e la data; la vede solo il team. Se approvata, viene **conservata in privato finché la verifica è valida** ed eliminata quando è ritirata o persa, sostituita o quando elimini il tuo account; una rifiutata viene eliminata subito. La verifica è condivisa con le altre app 18+ di Codeqlick (vedi l'ultima sezione).
+- **Foto di verifica:** quella che ci invii con il tuo nome utente, «Neoqlick» e la data; la vede solo il team. Se approvata, viene **conservata in privato finché la verifica è valida** ed eliminata quando è ritirata o persa, sostituita o quando elimini il tuo account; una rifiutata viene eliminata subito. La verifica è condivisa con le altre app 18+ di Neoqlick (vedi l'ultima sezione).
 - **Salute sessuale (dati relativi alla salute, categoria particolare):** solo se la attivi, con un **consenso esplicito proprio** (articolo 9.2.a), separato da quello dell’ingresso: se assumi la PrEP, il mese del tuo ultimo test e ogni quanto ricordarti il controllo. Per impostazione predefinita li vedi solo tu; se scegli di mostrarli, li vedono sul tuo profilo i membri che sono entrati. Disattivarla li **elimina** subito. I promemoria dicono soltanto «È ora del tuo controllo».
 - **Contatti di fiducia e timer di sicurezza:** l’e-mail di un massimo di 2 persone che scegli, il nome con cui ti presenti a loro, e se hanno accettato (legittimo interesse alla tua sicurezza, articolo 6.1.f; ogni contatto dà il proprio consenso accettando via e-mail e può smettere in qualsiasi momento). Di un timer conserviamo l’ora di fine, il tuo messaggio e, solo se scegli di condividerlo, il luogo. Se non lo termini in tempo, i tuoi contatti che hanno accettato ricevono un’unica e-mail con quel nome, il tuo messaggio, l’ora e il luogo condiviso; mai il tuo nome utente né che cos’è Cruising.
 - **Sicurezza:** l’indirizzo IP e il browser di ogni sessione (legittimo interesse, articolo 6.1.f).

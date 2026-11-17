@@ -1,5 +1,5 @@
 /*
- * Service worker of videochat.codeqlick.com (architecture 4.7): it only shows the "someone is
+ * Service worker of videochat.neoqlick.com (architecture 4.7, 4.18): it only shows the "someone is
  * waiting" notifications and opens the video chat when one is tapped. No caching: the video chat
  * needs the network anyway.
  */
@@ -13,13 +13,13 @@ self.addEventListener('push', (event) => {
   } catch {
     data = {};
   }
-  const title = typeof data.title === 'string' ? data.title : 'Codeqlick Videochat';
+  const title = typeof data.title === 'string' ? data.title : 'Neoqlick Videochat';
   const url = typeof data.url === 'string' && data.url.startsWith('/') ? data.url : '/';
   event.waitUntil(
     self.registration.showNotification(title, {
       body: typeof data.body === 'string' ? data.body : '',
-      icon: '/favicon-192.png',
-      badge: '/favicon-192.png',
+      icon: '/neoqlick/png/favicon-192.png',
+      badge: '/neoqlick/png/favicon-192.png',
       tag: 'videochat-waiting',
       data: { url },
     }),

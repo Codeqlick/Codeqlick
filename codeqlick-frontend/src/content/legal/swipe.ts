@@ -1,7 +1,8 @@
 import type { SiteLocale } from '@/i18n/routing';
-import { CONTACT_EMAIL } from '@/lib/site';
+import { CONTACT_EMAIL_NEOQLICK as CONTACT_EMAIL } from '@/lib/brand';
 import { adultSafetySection } from './adult-safety';
-import { type LegalDocument, type LegalOwner, ownerLines } from './index';
+import { type LegalDocument, type LegalOwner } from './index';
+import { neoqlickOwnerLines } from './neoqlick';
 
 /** Swipe's own terms of use and privacy policy (architecture 4.10). */
 export type SwipeLegalPage = 'swipe-terms' | 'swipe-privacy';
@@ -13,9 +14,9 @@ function terms(owner: LegalOwner, locale: SiteLocale): string {
   if (locale === 'es') {
     return `## Quién presta el servicio
 
-Swipe (swipe.codeqlick.com) es un servicio de:
+Swipe (swipe.neoqlick.com) es un servicio de:
 
-${ownerLines(owner, locale)}
+${neoqlickOwnerLines(owner, locale)}
 
 ## Solo para mayores de 18 años
 
@@ -23,13 +24,13 @@ Swipe contiene desnudos y contenido sexual explícito. Para entrar declaras que 
 
 ## Tu cuenta
 
-Necesitas una cuenta verificada por correo. Eres responsable de lo que hagas con ella. Antes de subir fotos nos envías una foto tuya con un papel con tu nombre de usuario, «Codeqlick» y la fecha; el equipo la revisa y solo la ve el equipo. Es una sola verificación para las tres apps +18 de Codeqlick y la foto se guarda en privado mientras siga vigente.
+Necesitas una cuenta verificada por correo. Eres responsable de lo que hagas con ella. Antes de subir fotos nos envías una foto tuya con un papel con tu nombre de usuario, «Neoqlick» y la fecha; el equipo la revisa y solo la ve el equipo. Es una sola verificación para las tres apps +18 de Neoqlick y la foto se guarda en privado mientras siga vigente.
 
 ## Lo que subes
 
 - Solo fotos **tuyas**, en las que apareces **solo tú**, tomadas por ti o con tu permiso, y solo si eres mayor de edad.
 - Nada de terceros, menores, violencia, actos no consentidos, contenido ilegal, datos de contacto ni publicidad.
-- Cada foto pasa por la revisión del equipo antes de publicarse, y la guardamos con tu nombre de usuario, su referencia y swipe.codeqlick.com como marca de agua.
+- Cada foto pasa por la revisión del equipo antes de publicarse, y la guardamos con tu nombre de usuario, su referencia y swipe.neoqlick.com como marca de agua.
 - Sigues siendo dueño de tus fotos. Nos das permiso, no exclusivo y gratuito, para guardarlas, marcarlas y mostrarlas a otros miembros dentro de Swipe mientras no las borres. Puedes borrarlas cuando quieras.
 
 ## Cómo te comportas
@@ -38,7 +39,7 @@ Respeta a los demás: nada de acoso, amenazas, insistencia tras un «no», chant
 
 ## Moderación, denuncias y retirada
 
-Puedes denunciar cualquier foto o chat. Cualquiera, aunque no tenga cuenta, puede pedir que retiremos una foto en [swipe.codeqlick.com/${locale}/takedown](/${locale}/swipe/takedown); la ocultamos al momento si da su referencia y respondemos en 24 horas. Si retiramos algo tuyo o suspendemos tu cuenta, te decimos el motivo por correo y puedes contestarnos para pedir que lo revisemos (Reglamento de Servicios Digitales).
+Puedes denunciar cualquier foto o chat. Cualquiera, aunque no tenga cuenta, puede pedir que retiremos una foto en [swipe.neoqlick.com/${locale}/takedown](/${locale}/swipe/takedown); la ocultamos al momento si da su referencia y respondemos en 24 horas. Si retiramos algo tuyo o suspendemos tu cuenta, te decimos el motivo por correo y puedes contestarnos para pedir que lo revisemos (Reglamento de Servicios Digitales).
 
 ## Lo que no garantizamos
 
@@ -54,9 +55,9 @@ Estas condiciones se rigen por la legislación española. Para cualquier duda o 
   }
   return `## Who provides the service
 
-Swipe (swipe.codeqlick.com) is a service of:
+Swipe (swipe.neoqlick.com) is a service of:
 
-${ownerLines(owner, locale)}
+${neoqlickOwnerLines(owner, locale)}
 
 ## Adults only (18+)
 
@@ -64,13 +65,13 @@ Swipe contains nudity and explicit sexual content. By entering you declare that 
 
 ## Your account
 
-You need an account with a verified email. You are responsible for what you do with it. Before uploading photos you send us a photo of yourself holding a paper with your username, "Codeqlick" and the date; the team reviews it and only the team sees it. It is one verification for all three of Codeqlick's 18+ apps and the photo is kept privately while it stands.
+You need an account with a verified email. You are responsible for what you do with it. Before uploading photos you send us a photo of yourself holding a paper with your username, "Neoqlick" and the date; the team reviews it and only the team sees it. It is one verification for all three of Neoqlick's 18+ apps and the photo is kept privately while it stands.
 
 ## What you upload
 
 - Only photos **of yourself**, where **only you** appear, taken by you or with your permission, and only if you are an adult.
 - No third parties, minors, violence, non-consensual acts, illegal content, contact details or advertising.
-- Every photo is reviewed by the team before it is published, and we store it with your username, its reference and swipe.codeqlick.com as a watermark.
+- Every photo is reviewed by the team before it is published, and we store it with your username, its reference and swipe.neoqlick.com as a watermark.
 - You still own your photos. You give us a free, non-exclusive permission to store, mark and show them to other members inside Swipe until you delete them. You can delete them whenever you like.
 
 ## How you behave
@@ -79,7 +80,7 @@ Respect others: no harassment, threats, pushing after a "no", blackmail or askin
 
 ## Moderation, reports and removal
 
-You can report any photo or chat. Anyone, even without an account, can ask us to remove a photo at [swipe.codeqlick.com/${locale}/takedown](/${locale}/swipe/takedown); we hide it at once when they give its reference and answer within 24 hours. If we remove something of yours or suspend your account, we email you the reason and you can reply to ask us to review it (Digital Services Act).
+You can report any photo or chat. Anyone, even without an account, can ask us to remove a photo at [swipe.neoqlick.com/${locale}/takedown](/${locale}/swipe/takedown); we hide it at once when they give its reference and answer within 24 hours. If we remove something of yours or suspend your account, we email you the reason and you can reply to ask us to review it (Digital Services Act).
 
 ## What we don't guarantee
 
@@ -98,7 +99,7 @@ function privacy(owner: LegalOwner, locale: SiteLocale): string {
   if (locale === 'es') {
     return `## Responsable del tratamiento
 
-${ownerLines(owner, locale)}
+${neoqlickOwnerLines(owner, locale)}
 
 ## Datos especialmente protegidos
 
@@ -109,7 +110,7 @@ Las fotos íntimas y lo que indicas sobre a quién quieres ver revelan aspectos 
 - **Cuenta:** nombre, correo, contraseña (cifrada) e idioma, para darte acceso (artículo 6.1.b).
 - **Edad:** compruebas tu fecha de nacimiento al entrar, pero **solo guardamos el año**, para el filtro de edad.
 - **Perfil:** nombre de usuario, género, a quién quieres ver, intereses, una frase, país (opcional) y tus filtros y preferencias.
-- **Foto de verificación:** solo para comprobar que eres tú y que eres adulto; solo la ve el equipo. Si se aprueba, se guarda en privado mientras la verificación siga vigente (y la usamos para comparar las fotos nuevas que subes) y se borra cuando se retira o se pierde, se sustituye o borras tu cuenta; la verificación se comparte con las otras apps +18 de Codeqlick.
+- **Foto de verificación:** solo para comprobar que eres tú y que eres adulto; solo la ve el equipo. Si se aprueba, se guarda en privado mientras la verificación siga vigente (y la usamos para comparar las fotos nuevas que subes) y se borra cuando se retira o se pierde, se sustituye o borras tu cuenta; la verificación se comparte con las otras apps +18 de Neoqlick.
 - **Fotos:** las guardamos sin metadatos (sin datos de la cámara ni ubicación), con una marca de agua, y una huella para impedir que una foto retirada se vuelva a subir.
 - **Actividad:** los «me gusta» y «me encanta», los matches, los mensajes, las denuncias y las solicitudes de retirada.
 - **Avisos:** si los activas, la suscripción de tu dispositivo para las notificaciones.
@@ -137,7 +138,7 @@ Solo cookies técnicas: \`NEXT_LOCALE\` (idioma) y \`cq_at\` / \`cq_rt\` (sesió
   }
   return `## Data controller
 
-${ownerLines(owner, locale)}
+${neoqlickOwnerLines(owner, locale)}
 
 ## Specially protected data
 
@@ -148,7 +149,7 @@ Intimate photos and what you say about whom you want to see reveal your **sex li
 - **Account:** name, email, password (hashed) and language, to give you access (article 6.1.b).
 - **Age:** you confirm your date of birth when you enter, but **we only keep the year**, for the age filter.
 - **Profile:** username, gender, whom you want to see, interests, a sentence, country (optional) and your filters and preferences.
-- **Verification photo:** only to check that it is you and that you are an adult; only the team sees it. If approved, it is kept privately while the verification stands (and we use it to compare the new photos you upload) and deleted when it is withdrawn or lost, replaced or when you delete your account; the verification is shared with Codeqlick's other 18+ apps.
+- **Verification photo:** only to check that it is you and that you are an adult; only the team sees it. If approved, it is kept privately while the verification stands (and we use it to compare the new photos you upload) and deleted when it is withdrawn or lost, replaced or when you delete your account; the verification is shared with Neoqlick's other 18+ apps.
 - **Photos:** stored without metadata (no camera data or location), with a watermark, and a fingerprint so a removed photo can't be uploaded again.
 - **Activity:** likes and «me encanta», matches, messages, reports and removal requests.
 - **Notifications:** if you turn them on, your device's subscription.

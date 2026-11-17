@@ -15,7 +15,7 @@
   justify-content: space-between;
   gap: var(--space-5);
   padding-bottom: var(--space-5);
-  border-bottom: 3px solid var(--color-fuchsia);
+  border-bottom: 3px solid var(--color-brand);
 }
 
 .meta {
@@ -53,7 +53,7 @@
 
 .sectionTitle {
   margin: 0;
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   font-family: var(--font-family-mono);
   font-size: 0.8rem;
   font-weight: 600;

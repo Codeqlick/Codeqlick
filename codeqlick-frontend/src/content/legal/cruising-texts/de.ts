@@ -16,7 +16,7 @@ export const de: CruisingLegalTexts = {
       'Wer Cruising nutzen darf, was beigetragen werden darf, wie wir moderieren und wie du gehst.',
     markdown: (c) => `## Wer den Dienst anbietet
 
-Cruising (cruising.codeqlick.com) ist ein Dienst von:
+Cruising (cruising.neoqlick.com) ist ein Dienst von:
 
 ${c.ownerLines}
 
@@ -45,7 +45,7 @@ Du brauchst ein Konto mit einer bestätigten E-Mail-Adresse und musst Cruising m
 - Mitglieder, die Cruising betreten haben und **verifiziert** sind, können Fotos und Videos **von sich selbst** in ihr Profil hochladen. Sexuelle Inhalte von sich selbst unter Erwachsenen sind erlaubt, und nur Mitglieder, die Cruising betreten haben, können sie sehen.
 - **Niemand unter 18** darf darauf zu sehen sein, und nichts darf illegal sein. Niemand darf darauf zu sehen sein, der nicht eingewilligt hat, und die Bilder müssen deine eigenen sein. Bei jedem Hochladen setzt du ein Häkchen zur Einwilligung.
 - Fotos und Videos werden **veröffentlicht, bevor das Team sie prüft**; das Team prüft sie danach und entfernt, was gegen diese Bedingungen verstößt, wobei es das Bild sperrt, damit es nicht erneut hochgeladen werden kann. Wir können das Konto sperren.
-- Die **Verifizierung** ist ein Foto von dir mit deinem Benutzernamen, „Codeqlick“ und dem Datum, das vom Team geprüft und privat aufbewahrt wird, solange die Verifizierung besteht (siehe „Sicherheit über die 18+-Apps von Codeqlick hinweg“). Das Abzeichen „Verifiziert“ bedeutet nur, dass das Team dieses Foto geprüft hat: nicht, dass ein Ausweisdokument geprüft wurde.
+- Die **Verifizierung** ist ein Foto von dir mit deinem Benutzernamen, „Neoqlick“ und dem Datum, das vom Team geprüft und privat aufbewahrt wird, solange die Verifizierung besteht (siehe „Sicherheit über die 18+-Apps von Neoqlick hinweg“). Das Abzeichen „Verifiziert“ bedeutet nur, dass das Team dieses Foto geprüft hat: nicht, dass ein Ausweisdokument geprüft wurde.
 - Was du hochlädst, gehört weiterhin dir, und du erteilst uns eine unentgeltliche, nicht ausschließliche Erlaubnis, es zu speichern und in Cruising anzuzeigen, bis du es löschst.
 
 ## Wie du dich verhältst
@@ -54,7 +54,7 @@ Respektiere die anderen, den Ort und das Gesetz dort, wo du bist. Kein Verkauf v
 
 ## Moderation, Meldungen und Entfernung
 
-Du kannst jeden Ort, jede Bewertung, jedes Profil, jedes Foto und jedes Video melden. Eine Meldung wegen einer minderjährigen Person, einer fehlenden Einwilligung, gestohlener Bilder oder illegaler Inhalte blendet den Inhalt sofort aus, bis wir ihn geprüft haben. Jede Person, auch ohne Konto, kann uns unter [cruising.codeqlick.com/${c.locale}/takedown](/${c.locale}/cruising/takedown) bitten, einen Ort zu entfernen; wenn es um eine minderjährige Person oder etwas Illegales geht und der Link angegeben wird, blenden wir ihn sofort aus, und wir antworten immer innerhalb von 24 Stunden. Ein durch die Moderation entfernter Ort kann nicht erneut eingereicht werden. Wenn wir etwas von dir entfernen oder dein Konto sperren, schicken wir dir den Grund per E-Mail, und du kannst antworten, um eine erneute Prüfung zu verlangen (Gesetz über digitale Dienste (DSA)).
+Du kannst jeden Ort, jede Bewertung, jedes Profil, jedes Foto und jedes Video melden. Eine Meldung wegen einer minderjährigen Person, einer fehlenden Einwilligung, gestohlener Bilder oder illegaler Inhalte blendet den Inhalt sofort aus, bis wir ihn geprüft haben. Jede Person, auch ohne Konto, kann uns unter [cruising.neoqlick.com/${c.locale}/takedown](/${c.locale}/cruising/takedown) bitten, einen Ort zu entfernen; wenn es um eine minderjährige Person oder etwas Illegales geht und der Link angegeben wird, blenden wir ihn sofort aus, und wir antworten immer innerhalb von 24 Stunden. Ein durch die Moderation entfernter Ort kann nicht erneut eingereicht werden. Wenn wir etwas von dir entfernen oder dein Konto sperren, schicken wir dir den Grund per E-Mail, und du kannst antworten, um eine erneute Prüfung zu verlangen (Gesetz über digitale Dienste (DSA)).
 
 ## Was wir nicht garantieren
 
@@ -88,7 +88,7 @@ Die Nutzung von Cruising kann Aspekte deines **Sexuallebens oder deiner sexuelle
 - **Orte:** die, die du vorschlägst (Name, Art, Lage, Beschreibung, Zeiten), mit deinem Konto verknüpft, damit du sie sehen und bearbeiten kannst und wir sie moderieren können.
 - **Bewertungen und Meldungen:** die, die du schreibst und machst.
 - **Fotos und Videos (besondere Kategorie von Daten):** die, die du in dein Profil hochlädst, mit deiner **ausdrücklichen Einwilligung** bei jedem Hochladen (Art. 9 Abs. 2 lit. a DSGVO). Wir entfernen ihre Metadaten (Standort, Kamera). Sie werden auf Servern in der Europäischen Union (OVHcloud) gespeichert, **außerhalb der Backups**, und nur Mitglieder, die Cruising betreten haben, können sie sehen, niemals Suchmaschinen.
-- **Verifizierungsfoto:** das, das du uns mit deinem Benutzernamen, „Codeqlick“ und dem Datum schickst; nur das Team sieht es. Wird es genehmigt, wird es **privat aufbewahrt, solange die Verifizierung besteht**, und gelöscht, wenn es zurückgezogen wird oder verloren geht, ersetzt wird oder du dein Konto löschst; ein abgelehntes wird sofort gelöscht. Die Verifizierung wird mit den anderen 18+-Apps von Codeqlick geteilt (siehe den letzten Abschnitt).
+- **Verifizierungsfoto:** das, das du uns mit deinem Benutzernamen, „Neoqlick“ und dem Datum schickst; nur das Team sieht es. Wird es genehmigt, wird es **privat aufbewahrt, solange die Verifizierung besteht**, und gelöscht, wenn es zurückgezogen wird oder verloren geht, ersetzt wird oder du dein Konto löschst; ein abgelehntes wird sofort gelöscht. Die Verifizierung wird mit den anderen 18+-Apps von Neoqlick geteilt (siehe den letzten Abschnitt).
 - **Sexuelle Gesundheit (Gesundheitsdaten, besondere Kategorie):** nur wenn du sie aktivierst, mit einer **eigenen ausdrücklichen Einwilligung** (Art. 9 Abs. 2 lit. a DSGVO), getrennt von der beim Betreten: ob du PrEP nimmst, der Monat deines letzten Tests und wie oft wir dich an deinen Check-up erinnern sollen. Standardmäßig siehst nur du sie; wenn du sie anzeigen möchtest, sehen Mitglieder, die Cruising betreten haben, sie in deinem Profil. Wenn du die Funktion deaktivierst, werden sie sofort **gelöscht**. Erinnerungen sagen nur „Zeit für deinen Check-up“.
 - **Vertrauenspersonen und der Sicherheits-Timer:** die E-Mail-Adresse von bis zu 2 Personen, die du auswählst, der Name, den du dir ihnen gegenüber gibst, und ob sie zugestimmt haben (berechtigtes Interesse an deiner Sicherheit, Art. 6 Abs. 1 lit. f DSGVO; jede Vertrauensperson erteilt ihre eigene Einwilligung, indem sie per E-Mail zustimmt, und kann jederzeit aufhören). Von einem Timer speichern wir seine Endzeit, deine Nachricht und, nur wenn du ihn teilen möchtest, den Ort. Wenn du ihn nicht rechtzeitig beendest, erhalten deine Vertrauenspersonen, die zugestimmt haben, eine einzige E-Mail mit diesem Namen, deiner Nachricht, der Uhrzeit und dem geteilten Ort; niemals deinen Benutzernamen oder was Cruising ist.
 - **Sicherheit:** die IP-Adresse und der Browser jeder Sitzung (berechtigtes Interesse, Art. 6 Abs. 1 lit. f DSGVO).

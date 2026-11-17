@@ -1,6 +1,8 @@
 import type { MetadataRoute } from 'next';
 import { headers } from 'next/headers';
 import { absoluteUrl } from '@/lib/seo';
+import { env } from '@/lib/env';
+import { classifyHost } from '@/lib/hosts';
 import { webappForHost } from '@/lib/webapps';
 import { webappOrigin } from '@/lib/webapp-seo';
 
@@ -39,6 +41,17 @@ const APP_PRIVATE_PAGES = {
  */
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const host = (await headers()).get('host');
+  const { brand, kind } = classifyHost(host);
+  // Neoqlick's portal lists its own sitemap; the account host is never for search.
+  if (brand === 'neoqlick' && kind === 'portal') {
+    return {
+      rules: [{ userAgent: '*', allow: '/', disallow: ['/*/login', '/*/register'] }],
+      sitemap: `${env.NEOQLICK_URL}/sitemap.xml`,
+    };
+  }
+  if (brand === 'neoqlick' && kind === 'account') {
+    return { rules: [{ userAgent: '*', disallow: '/' }] };
+  }
   const app = webappForHost(host);
   if (app === 'videochat' || app === 'swipe' || app === 'cruising') {
     return {

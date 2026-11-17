@@ -136,7 +136,7 @@
   height: 1.2rem;
   border-radius: 50%;
   border: 3px solid var(--color-line-strong);
-  border-top-color: var(--color-fuchsia);
+  border-top-color: var(--color-brand);
   animation: spin 0.9s linear infinite;
 }
 
@@ -190,12 +190,12 @@
 }
 
 .primary {
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
   color: var(--color-white);
 }
 
 .primary:hover:not(:disabled) {
-  background: var(--color-fuchsia-dark);
+  background: var(--color-brand-dark);
 }
 
 .secondary {
@@ -210,8 +210,8 @@
 
 .danger {
   background: var(--color-white);
-  color: var(--color-fuchsia-dark);
-  border-color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
+  border-color: var(--color-brand-dark);
 }
 
 .danger:hover:not(:disabled) {
@@ -230,7 +230,7 @@
 .danger:focus-visible,
 .chatInput:focus-visible,
 .select:focus-visible {
-  outline: 3px solid var(--color-fuchsia);
+  outline: 3px solid var(--color-brand);
   outline-offset: 2px;
 }
 
@@ -273,7 +273,7 @@
 
 .lineMe {
   justify-self: end;
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
   color: var(--color-white);
 }
 
@@ -355,8 +355,8 @@
 
 .dialog .danger {
   color: var(--color-white);
-  background: var(--color-fuchsia);
-  border-color: var(--color-fuchsia);
+  background: var(--color-brand);
+  border-color: var(--color-brand);
 }
 
 .kbd {
@@ -453,7 +453,7 @@
 }
 
 .statusHint a {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 /* The partner's interests, under their tag; the shared ones stand out. */
@@ -479,7 +479,7 @@
 }
 
 .interests .sharedInterest {
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
   font-weight: 600;
 }
 
@@ -501,12 +501,12 @@
   font-weight: 600;
   cursor: pointer;
   background: var(--color-blush);
-  color: var(--color-fuchsia-dark);
-  border: 1.5px solid var(--color-fuchsia);
+  color: var(--color-brand-dark);
+  border: 1.5px solid var(--color-brand);
 }
 
 .like:hover:not(:disabled) {
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
   color: var(--color-white);
 }
 
@@ -516,13 +516,13 @@
 }
 
 .like[aria-pressed='true'] {
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
   color: var(--color-white);
   opacity: 1;
 }
 
 .like:focus-visible {
-  outline: 3px solid var(--color-fuchsia-light);
+  outline: 3px solid var(--color-brand-light);
   outline-offset: 2px;
 }
 
@@ -532,7 +532,7 @@
   gap: var(--space-4);
   max-width: 22rem;
   padding: var(--space-6);
-  border: 1.5px solid var(--color-fuchsia);
+  border: 1.5px solid var(--color-brand);
   border-radius: var(--radius-lg);
   background: var(--color-white);
   box-shadow: var(--shadow-md);
@@ -706,7 +706,7 @@
 
 .reaction:hover:not(:disabled) {
   background: var(--color-blush);
-  border-color: var(--color-fuchsia);
+  border-color: var(--color-brand);
 }
 
 .reaction:disabled {
@@ -715,7 +715,7 @@
 }
 
 .reaction:focus-visible {
-  outline: 3px solid var(--color-fuchsia-light);
+  outline: 3px solid var(--color-brand-light);
   outline-offset: 2px;
 }
 
@@ -782,7 +782,7 @@
 }
 
 .sounds input {
-  accent-color: var(--color-fuchsia);
+  accent-color: var(--color-brand);
 }
 
 /* Chat translation: the switch back to the original text. */
@@ -824,7 +824,7 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-4);
-  border: 1.5px solid var(--color-fuchsia);
+  border: 1.5px solid var(--color-brand);
   border-radius: var(--radius-md);
   background: var(--color-white);
 }

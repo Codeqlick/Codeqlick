@@ -30,10 +30,11 @@ import {
   mainHostOf,
   routeAccount,
 } from './lib/account-host';
+import { classifyHost } from './lib/hosts';
 import { hostApp, localeRedirect, requestLocales } from './lib/locales';
 import { cspHeaders, makeNonce, type CspContext } from './lib/security-headers';
 import { SSO_COOKIE_MAX_AGE, routeSignIn, ssoClientForHost, startSso } from './lib/sso';
-import { WEBAPPS, routeWebapp, webappForHost, webappHost } from './lib/webapps';
+import { appsOfBrand, routePortal, routeWebapp, webappForHost, webappHost } from './lib/webapps';
 
 // Cruising speaks six languages, every other host two (decision 103): each has its own locale
 // routing, so a visitor's browser language or cookie never sends the website to /fr.
@@ -82,7 +83,8 @@ export default async function proxy(request: NextRequest) {
 function cspContext(request: NextRequest): CspContext {
   const { host, protocol } = visitorAddress(request);
   // The account host (decision 108) is its own kind: named `account` like an app's first label.
-  const app = isAccountHost(host) ? 'account' : webappForHost(host);
+  const { brand, kind } = classifyHost(host);
+  const app = isAccountHost(host) ? 'account' : kind === 'portal' ? 'portal' : webappForHost(host);
   const mainHost = mainHostOf(host);
   const sockets = [process.env.VIDEOCHAT_WS_URL, process.env.MEETINGS_WS_URL].flatMap((url) => {
     try {
@@ -98,7 +100,7 @@ function cspContext(request: NextRequest): CspContext {
     siteOrigins: [
       mainHost,
       accountHostFor(host),
-      ...WEBAPPS.map((name) => webappHost(name, mainHost)),
+      ...appsOfBrand(brand).map((name) => webappHost(name, mainHost)),
     ].map((name) => `${protocol}//${name}`),
     sockets,
   };
@@ -164,6 +166,18 @@ async function route(request: NextRequest): Promise<NextResponse> {
   const dest = request.headers.get('sec-fetch-dest');
   const navigation =
     request.method === 'GET' && dest !== 'image' && request.headers.get('host') === host;
+  // Neoqlick's hosts (architecture 4.18): `www` goes to the apex, and a name that is none of its
+  // hosts (an unknown subdomain) is not served at all.
+  const { brand, kind } = classifyHost(host);
+  if (brand === 'neoqlick' && !isIpHost(host)) {
+    if (host.toLowerCase().startsWith('www.')) {
+      return NextResponse.redirect(
+        new URL(`${pathname}${search}`, `${protocol}//${mainHostOf(host)}`),
+        301,
+      );
+    }
+    if (kind === 'site') return new NextResponse('Not found', { status: 404 });
+  }
   // A language this host doesn't speak (/fr on the website): the same page in English.
   const english = localeRedirect(pathname, hostApp(host));
   if (english) {
@@ -203,7 +217,9 @@ async function route(request: NextRequest): Promise<NextResponse> {
   const webapp =
     sso && isAccountHost(host)
       ? routeAccount(pathname, host, protocol, navigation)
-      : routeWebapp(pathname, host, protocol, navigation);
+      : kind === 'portal'
+        ? routePortal(pathname, host, protocol, navigation)
+        : routeWebapp(pathname, host, protocol, navigation);
   if (webapp.action === 'redirect') {
     const target = new URL(webapp.to, `${protocol}//${host}`);
     target.search = search;

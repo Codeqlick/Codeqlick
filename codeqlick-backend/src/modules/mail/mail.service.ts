@@ -4,9 +4,15 @@ import { join } from 'node:path';
 import { Injectable, Logger } from '@nestjs/common';
 import { createTransport } from 'nodemailer';
 import { AppConfigService } from '../../config/app-config.service.js';
+import { brandText, type MailBrand } from './email-layout.js';
 
 export interface MailMessage {
   to: string;
+  /**
+   * Whose email it is (architecture 4.18, decision 128), derived from the recipient's realm and
+   * never from a request: Neoqlick's goes out from its own sender and mailbox. Default: Codeqlick.
+   */
+  brand?: MailBrand;
   subject: string;
   text: string;
   /** Branded alternative to `text` (see email-layout.ts). */
@@ -43,41 +49,80 @@ export function mailDomain(from: string): string | undefined {
   return domain?.toLowerCase();
 }
 
+/** The address of a From (`Codeqlick <hello@codeqlick.com>` → hello@codeqlick.com). */
+export function mailAddress(from: string): string {
+  return /<([^>]+)>/.exec(from)?.[1]?.trim() ?? from.trim();
+}
+
+/** One brand's way out: its From, its Reply-To and its SMTP connection. */
+interface Sender {
+  from: string;
+  replyTo?: string;
+  transporter: MailTransport;
+}
+
 /** Thin abstraction over Nodemailer. In NODE_ENV=test nothing leaves the process. */
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly transporter: MailTransport;
-  private readonly from: string;
+  private readonly codeqlick: Sender;
+  private readonly neoqlick: Sender;
   private readonly outbox: string | undefined;
 
   constructor(config: AppConfigService) {
-    this.from = config.mailFrom;
     this.outbox = config.mailOutboxDir;
-    if (config.isTest) {
-      this.transporter = createTransport({ jsonTransport: true });
-    } else {
-      const smtp = config.smtp;
-      this.transporter = createTransport({
-        // EHLO with the sending domain, not the container's random hostname (spam filters score
-        // a name that isn't a domain); Message-IDs already end in the From address's domain.
-        name: mailDomain(this.from),
-        host: smtp.host,
-        port: smtp.port,
-        secure: smtp.secure,
-        auth: smtp.user ? { user: smtp.user, pass: smtp.password ?? '' } : undefined,
-      });
+    const smtp = config.smtp;
+    const neoqlickMail = config.neoqlickMail;
+    const transport = (
+      from: string,
+      auth: { user: string; pass: string } | undefined,
+    ): MailTransport =>
+      config.isTest
+        ? createTransport({ jsonTransport: true })
+        : createTransport({
+            // EHLO with the sending domain, not the container's random hostname (spam filters
+            // score a name that isn't a domain); Message-IDs already end in the From's domain.
+            name: mailDomain(from),
+            host: smtp.host,
+            port: smtp.port,
+            secure: smtp.secure,
+            auth,
+          });
+    const defaultAuth = smtp.user ? { user: smtp.user, pass: smtp.password ?? '' } : undefined;
+
+    this.codeqlick = {
+      from: config.mailFrom,
+      transporter: transport(config.mailFrom, defaultAuth),
+    };
+
+    // Neoqlick's own mailbox (decision 128). While it isn't set up (MAIL_FROM_NEOQLICK unset) its
+    // emails go out as "Neoqlick" from the default mailbox, so nothing breaks, and a warning says so.
+    const neoFrom = neoqlickMail.from ?? `Neoqlick <${mailAddress(config.mailFrom)}>`;
+    if (!neoqlickMail.from && !config.isTest) {
+      this.logger.warn(
+        "MAIL_FROM_NEOQLICK is not set: Neoqlick's emails use the default mailbox until Neoqlick's own exists",
+      );
     }
+    const neoAuth = neoqlickMail.user
+      ? { user: neoqlickMail.user, pass: neoqlickMail.password ?? '' }
+      : defaultAuth;
+    this.neoqlick = {
+      from: neoFrom,
+      // Replies go to Neoqlick's own address, never to Codeqlick's.
+      replyTo: neoqlickMail.from ? mailAddress(neoqlickMail.from) : undefined,
+      transporter: transport(neoFrom, neoAuth),
+    };
   }
 
   async send(message: MailMessage): Promise<void> {
-    await this.transporter.sendMail({
-      from: this.from,
+    const sender = message.brand === 'neoqlick' ? this.neoqlick : this.codeqlick;
+    await sender.transporter.sendMail({
+      from: sender.from,
       to: message.to,
-      subject: message.subject,
+      subject: brandText(message.subject, message.brand),
       text: message.text,
       html: message.html,
-      replyTo: message.replyTo,
+      replyTo: message.replyTo ?? sender.replyTo,
       icalEvent: message.icalEvent && { ...message.icalEvent, filename: 'invite.ics' },
       headers: this.headers(message),
     });
@@ -104,8 +149,9 @@ export class MailService {
       join(folder, name),
       JSON.stringify({
         to: message.to,
-        subject: message.subject,
+        subject: brandText(message.subject, message.brand),
         text: message.text,
+        ...(message.brand ? { brand: message.brand } : {}),
         ...(message.listUnsubscribe ? { listUnsubscribe: message.listUnsubscribe } : {}),
       }),
     );

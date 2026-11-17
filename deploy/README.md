@@ -207,17 +207,16 @@ All optional while `NEOQLICK_URL` is empty; `docker-compose.prod.yml` passes the
 | `NEOQLICK_TERMS_VERSION` | Default `2026-11-17.1` |
 | `NEOQLICK_TRADE_NAME`, `NEOQLICK_LEGAL_OWNER_NAME`, `NEOQLICK_LEGAL_OWNER_TAX_ID`, `NEOQLICK_LEGAL_OWNER_ADDRESS` | The operator in the legal pages; each falls back to `LEGAL_OWNER_*`; the pages render only with a holder name |
 | `NEOQLICK_VAPID_PUBLIC_KEY`, `NEOQLICK_VAPID_PRIVATE_KEY`, `NEOQLICK_VAPID_SUBJECT` | Neoqlick's own Web Push pair (the generator command is in `deploy/.env.example`); subject `mailto:hello@neoqlick.com` |
+| `TURNSTILE_SITE_KEY_NEOQLICK` (web), `TURNSTILE_SECRET_KEY_NEOQLICK` (api) | The keys of Neoqlick's own Turnstile widget (empty: no widget and no check for Neoqlick) |
 | `NEOQLICK_UMAMI_WEBSITE_ID` | The website id created in Umami for Neoqlick (read by the website) |
 
-The SSO clients need no variable: the code lists them by realm. The website's own variables
-(`NEOQLICK_URL`, `NEOQLICK_UMAMI_WEBSITE_ID`, the legal ones) are passed to the `web` service by the
-pull request that adds the host table to the website, not by this one.
+The SSO clients need no variable: the code lists them by realm. The `web` service receives `NEOQLICK_URL`, `NEOQLICK_UMAMI_WEBSITE_ID`, `NEOQLICK_TRADE_NAME` and the three `NEOQLICK_LEGAL_OWNER_*` variables (empty means unset: with no `NEOQLICK_URL` the website has no Neoqlick hosts and with no holder name the legal pages and their links are hidden).
 
 #### Owner tasks outside the server
 
 - The mailbox `hello@neoqlick.com` in OVH, and SPF, DKIM and DMARC for `neoqlick.com`
   (`./deploy/check-email-dns.sh neoqlick.com` prints what is missing).
-- Cloudflare Turnstile: add `neoqlick.com` and its subdomains to the widget's hostnames.
+- Cloudflare Turnstile: create the widget in **Neoqlick's own Cloudflare account** (hostnames `neoqlick.com` and `account.neoqlick.com`, mode Managed) and put its keys in `TURNSTILE_SITE_KEY_NEOQLICK` and `TURNSTILE_SECRET_KEY_NEOQLICK` (also Actions secrets of the same names, like Codeqlick's). Neoqlick never uses Codeqlick's keys: while these are empty, Neoqlick shows no widget and the API runs no check for it.
 - Umami: add a website for Neoqlick and put its id in `NEOQLICK_UMAMI_WEBSITE_ID`.
 - ExoClick: register the three sites again for the new domains and send their zone ids and
   verification tags.

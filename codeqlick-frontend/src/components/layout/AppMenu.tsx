@@ -12,6 +12,8 @@ import {
   type AppMenuItem,
 } from '@/lib/app-menus';
 import { env } from '@/lib/env';
+import type { Brand } from '@/lib/hosts';
+import { requestBrand } from '@/lib/request-brand';
 import { webappUrl } from '@/lib/webapp-seo';
 import { switcherApps, type Webapp } from '@/lib/webapps';
 import { AppMenuDrawer, AppMenuLink } from './AppMenuDrawer';
@@ -44,9 +46,10 @@ type AppMenuProps = {
  * "My account": one helper for every app. It points at the account site (account.codeqlick.com,
  * decision 108) as soon as that is switched on with `ACCOUNT_SSO=true`, else at the portal's.
  */
-function myAccountHref(locale: AppLocale, user: AuthUser): string {
-  const origin = accountSiteOrigin(env.SITE_URL, env.ACCOUNT_SSO);
-  return accountSettingsHref(locale, user.role, env.SITE_URL, origin);
+function myAccountHref(locale: AppLocale, user: AuthUser, brand: Brand): string {
+  const base = brand === 'neoqlick' ? (env.NEOQLICK_URL ?? env.SITE_URL) : env.SITE_URL;
+  const origin = accountSiteOrigin(base, env.ACCOUNT_SSO);
+  return accountSettingsHref(locale, user.role, base, origin);
 }
 
 /**
@@ -59,7 +62,10 @@ export async function AppMenu({ app, locale, config, user, verified, locales }: 
   // Keys come from each app's configuration (checked against en.json by app-menus.test.ts).
   const t = (key: string) => intl(key as never);
   const ns = APP_MESSAGES[app];
-  const site = env.SITE_URL.replace(/\/$/, '');
+  const brand = await requestBrand();
+  const neoqlick = brand === 'neoqlick';
+  // "All apps" is the website's list; Neoqlick's is its portal's home (no cross-links, 4.18).
+  const site = (neoqlick ? (env.NEOQLICK_URL ?? env.SITE_URL) : env.SITE_URL).replace(/\/$/, '');
 
   const link = (item: AppMenuItem, className: string) =>
     item.external ? (
@@ -99,7 +105,7 @@ export async function AppMenu({ app, locale, config, user, verified, locales }: 
                 {t(config.profile.label)}
               </AppMenuLink>
             ) : null}
-            <a href={myAccountHref(locale, user)} className={styles.cardSecondary}>
+            <a href={myAccountHref(locale, user, brand)} className={styles.cardSecondary}>
               {t('AppMenu.card.account')}
             </a>
           </div>
@@ -147,7 +153,7 @@ export async function AppMenu({ app, locale, config, user, verified, locales }: 
             {t('AppSwitcher.label')}
           </h2>
           <ul className={styles.list}>
-            {switcherApps(app).map(({ app: other, adult }) => (
+            {switcherApps(app, brand).map(({ app: other, adult }) => (
               <li key={other}>
                 <a
                   href={webappUrl(other, locale)}
@@ -166,7 +172,7 @@ export async function AppMenu({ app, locale, config, user, verified, locales }: 
             ))}
             <li>
               <a
-                href={`${site}/${locale}/apps`}
+                href={neoqlick ? `${site}/${locale}` : `${site}/${locale}/apps`}
                 className={styles.item}
                 data-umami-event="app-switcher"
                 data-umami-event-from={app}

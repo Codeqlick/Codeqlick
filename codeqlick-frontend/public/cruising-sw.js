@@ -1,5 +1,5 @@
 /*
- * Service worker of cruising.codeqlick.com (architecture 4.15).
+ * Service worker of cruising.neoqlick.com (architecture 4.15, 4.18).
  * - Decision 85: it shows Cruising's discreet notifications ("someone is at one of your favourite
  *   spots", "new message") and opens the favourites or the messages when one is tapped.
  * - Decision 96: it keeps an offline page ("You're offline") and the app shell (the icons and the
@@ -7,9 +7,14 @@
  *   something useful without a connection. Pages, the API, the BFF routes and members' photos are
  *   never cached: they are personal or change all the time.
  */
-const CACHE = 'cruising-shell-v1';
+const CACHE = 'neoqlick-cruising-shell-v1';
 const OFFLINE_URL = '/cruising-offline.html';
-const SHELL = [OFFLINE_URL, '/cruising-192.png', '/cruising-512.png', '/favicon.svg'];
+const SHELL = [
+  OFFLINE_URL,
+  '/neoqlick/png/favicon-192.png',
+  '/neoqlick/png/favicon-512.png',
+  '/neoqlick/svg/favicon.svg',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -27,7 +32,7 @@ self.addEventListener('activate', (event) => {
       .then((names) =>
         Promise.all(
           names
-            .filter((name) => name.startsWith('cruising-') && name !== CACHE)
+            .filter((name) => (name.startsWith('cruising-') || name.startsWith('neoqlick-cruising-')) && name !== CACHE)
             .map((name) => caches.delete(name)),
         ),
       )
@@ -85,8 +90,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body: typeof data.body === 'string' ? data.body : '',
-      icon: '/favicon-192.png',
-      badge: '/favicon-192.png',
+      icon: '/neoqlick/png/favicon-192.png',
+      badge: '/neoqlick/png/favicon-192.png',
       tag: typeof data.tag === 'string' ? data.tag : 'cruising',
       data: { url },
     }),

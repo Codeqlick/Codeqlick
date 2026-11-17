@@ -1,9 +1,9 @@
 /* Codeqlick brand tokens — docs/architecture.md section 7. */
 :root {
   /* Brand colors */
-  --color-fuchsia: #d9177e; /* primary; white text on it passes WCAG AA (4.8:1) */
-  --color-fuchsia-dark: #a80f5e; /* hover, eyebrows on light backgrounds */
-  --color-fuchsia-light: #ff7dbe; /* accents on dark backgrounds */
+  --color-brand: #d9177e; /* primary; white text on it passes WCAG AA (4.8:1) */
+  --color-brand-dark: #a80f5e; /* hover, eyebrows on light backgrounds */
+  --color-brand-light: #ff7dbe; /* accents on dark backgrounds */
   --color-ink: #14101f; /* text, dark sections */
   --color-blush: #fceaf3; /* soft backgrounds */
   --color-slate: #5c5768; /* secondary text */
@@ -26,6 +26,9 @@
   --color-warning-bg: #fff4e0;
   --color-info: #2f5fb4; /* calm states: planned maintenance (also the status badge's colour) */
   --color-info-bg: #e9eff9;
+
+  /* The brand's symbol as an image (empty states): the theme of a brand swaps it. */
+  --brand-symbol: url('/brand/symbol.svg');
 
   /* Typography — the next/font variables are set on <html> in app/[locale]/layout.tsx */
   --font-family-display:

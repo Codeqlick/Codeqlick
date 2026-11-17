@@ -57,7 +57,7 @@
 
 .remove:hover:not(:disabled) {
   background: var(--color-blush);
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 .remove:disabled {
@@ -91,7 +91,7 @@
 }
 
 .add:hover {
-  border-color: var(--color-fuchsia);
+  border-color: var(--color-brand);
   background: var(--color-blush);
 }
 

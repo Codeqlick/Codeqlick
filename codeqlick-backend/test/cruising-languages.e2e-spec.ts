@@ -41,11 +41,12 @@ describe('Cruising in more languages (decision 103, e2e)', () => {
     });
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
     const user = await prisma.user.create({
-      data: { email, name: 'Fabien', role: Role.CLIENT, passwordHash },
+      data: { email, name: 'Fabien', role: Role.CLIENT, realm: 'NEOQLICK', passwordHash },
     });
     userId = user.id;
     const login = await request(server())
       .post('/v1/auth/login')
+      .set('X-Realm', 'NEOQLICK')
       .send({ email, password })
       .expect(200);
     token = (login.body as { accessToken: string }).accessToken;
@@ -111,12 +112,16 @@ describe('Cruising in more languages (decision 103, e2e)', () => {
     sent.length = 0;
     await request(server())
       .post('/v1/auth/login')
+      .set('X-Realm', 'NEOQLICK')
       .set('User-Agent', FIREFOX_LINUX)
       .send({ email, password })
       .expect(200);
     const mail = mine().at(-1);
+    // Neoqlick's own sender and words (architecture 4.18), in English.
+    expect(mail?.brand).toBe('neoqlick');
     expect(mail?.subject).toBe('New sign-in to your account — Codeqlick');
     expect(mail?.html).toContain('lang="en"');
+    expect(mail?.html?.toLowerCase()).not.toContain('codeqlick');
     expect(mail?.text).toContain('account.localhost:3000/en/security');
   });
 
@@ -126,12 +131,14 @@ describe('Cruising in more languages (decision 103, e2e)', () => {
     await request(server())
       .post('/v1/auth/register')
       .set('X-Forwarded-For', '203.0.113.103')
+      .set('X-Realm', 'NEOQLICK')
       .send({
         email: newcomer,
         name: 'Nouveau',
         password: 'a-long-password-for-signup-9',
         locale: 'fr',
         acceptPrivacy: true,
+        acceptTerms: true,
         app: 'cruising',
       })
       .expect(202);

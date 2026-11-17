@@ -38,7 +38,7 @@ export default async function AuthorizePage({ params, searchParams }: PageProps)
   for (const [key, value] of Object.entries(await searchParams)) {
     if (typeof value === 'string') query.set(key, value);
   }
-  const authorize = parseAuthorizeQuery(query);
+  const authorize = parseAuthorizeQuery(query, host);
   if (!authorize) {
     const t = await getTranslations({ locale, namespace: 'AccountSite' });
     const tc = await getTranslations({ locale, namespace: 'Common' });

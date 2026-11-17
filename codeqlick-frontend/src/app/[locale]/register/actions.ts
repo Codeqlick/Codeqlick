@@ -19,6 +19,7 @@ import { WEBAPPS, type Webapp } from '@/lib/webapps';
 import { homeAfterSignIn, requestWebapp } from '@/lib/webapp-request';
 import { formString, zodFieldErrors, type FormState } from '@/lib/forms';
 import { registerSchema } from '@/lib/schemas/auth';
+import { requestBrand } from '@/lib/request-brand';
 
 /** What the form keeps after an error: never the passwords. */
 function kept(formData: FormData) {
@@ -74,6 +75,24 @@ export async function registerAction(_previous: FormState, formData: FormData): 
   }
   const { name, email, password } = parsed.data;
 
+  // Neoqlick's sign-up also needs the terms and the confirmation of being 18 or older.
+  const neoqlick = (await requestBrand()) === 'neoqlick';
+  if (neoqlick && !invitation) {
+    const adult = formData.get('confirmAdult') === 'on';
+    const terms = formData.get('acceptTerms') === 'on';
+    if (!adult || !terms) {
+      const tv = await getTranslations({ locale, namespace: 'Validation' });
+      return {
+        status: 'error',
+        fieldErrors: {
+          ...(adult ? {} : { confirmAdult: tv('adult') }),
+          ...(terms ? {} : { acceptTerms: tv('terms') }),
+        },
+        values: kept(formData),
+      };
+    }
+  }
+
   if (invitation) {
     let tokens: AuthTokens;
     try {
@@ -101,6 +120,7 @@ export async function registerAction(_previous: FormState, formData: FormData): 
       password,
       locale,
       acceptPrivacy: true,
+      ...(neoqlick ? { acceptTerms: true as const } : {}),
       website: formString(formData, 'website'),
       // From an app's host, or on the account host the app the sign-up started from (decision 108).
       app: (await requestWebapp()) ?? formApp(formData),

@@ -211,8 +211,8 @@ export function mediaUploadEndpoint(locale: string): string {
   return `/${locale}/cruising/api/media`;
 }
 
-/** The text on each item over the picture: `@nickname · cruising.codeqlick.com`. */
-export function watermarkText(nickname: string, host = 'cruising.codeqlick.com'): string {
+/** The text on each item over the picture: `@nickname · cruising.neoqlick.com`. */
+export function watermarkText(nickname: string, host = 'cruising.neoqlick.com'): string {
   return `@${nickname} · ${host}`;
 }
 

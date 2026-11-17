@@ -1,3 +1,5 @@
+import type { RealmName } from '../realm.js';
+
 export type UserRole = 'ADMIN' | 'CLIENT';
 
 /** The authenticated caller, attached to `request.user` by JwtAuthGuard. */
@@ -6,6 +8,8 @@ export interface AuthUser {
   email: string;
   name: string;
   role: UserRole;
+  /** The user base the account belongs to (architecture 4.18); from the token's `rlm` claim. */
+  realm: RealmName;
   /** Unique username (`GET /auth/me` and account changes only; not in the token). */
   username?: string | null;
   /** Profile photo's file name (`/avatar/<file>` on the website); same sources as `username`. */
@@ -37,6 +41,8 @@ export interface AccessTokenPayload {
   email: string;
   name: string;
   role: UserRole;
+  /** The account's realm; a token without it (issued before realms) is CODEQLICK. */
+  rlm?: RealmName;
   /** Refresh-token family: identifies the signed-in device. */
   sid?: string;
   /** Client account (company) a member acts for; absent for everyone else. */

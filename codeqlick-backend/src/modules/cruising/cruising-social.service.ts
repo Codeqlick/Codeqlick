@@ -257,7 +257,7 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
             'unread',
             null,
             this.config.webappUrl('cruising'),
-            this.config.siteUrl,
+            this.config.siteUrlFor('NEOQLICK'),
           ),
         )
         .catch((error: unknown) => {
@@ -511,7 +511,7 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
             'favorites',
             null,
             this.config.webappUrl('cruising'),
-            this.config.siteUrl,
+            this.config.siteUrlFor('NEOQLICK'),
           ),
         )
         .catch((error: unknown) => {

@@ -1,5 +1,5 @@
 import type { AppLocale } from '@/i18n/routing';
-import { CONTACT_EMAIL } from '@/lib/site';
+import { CONTACT_EMAIL_NEOQLICK as CONTACT_EMAIL } from '@/lib/brand';
 import { de } from './cruising-texts/de';
 import { en } from './cruising-texts/en';
 import { es } from './cruising-texts/es';
@@ -8,6 +8,7 @@ import { it } from './cruising-texts/it';
 import { pt } from './cruising-texts/pt';
 import { adultSafetySection } from './adult-safety';
 import type { LegalDocument, LegalOwner } from './index';
+import { neoqlickOwnerLines } from './neoqlick';
 
 /** Cruising's own terms of use and privacy policy (architecture 4.15). */
 export type CruisingLegalPage = 'cruising-terms' | 'cruising-privacy';
@@ -26,15 +27,6 @@ export type CruisingLegalTexts = {
 
 const TEXTS: Record<AppLocale, CruisingLegalTexts> = { en, es, fr, de, it, pt };
 
-function ownerLines(owner: LegalOwner, labels: CruisingLegalTexts['owner']): string {
-  const lines = [`- **${labels.owner}:** ${owner.name}`];
-  if (owner.taxId) lines.push(`- **${labels.taxId}:** ${owner.taxId}`);
-  if (owner.address) lines.push(`- **${labels.address}:** ${owner.address}`);
-  lines.push(`- **${labels.email}:** [${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL})`);
-  lines.push(`- **${labels.website}:** codeqlick.com`);
-  return lines.join('\n');
-}
-
 export function cruisingLegalDocument(
   page: CruisingLegalPage,
   owner: LegalOwner,
@@ -42,7 +34,7 @@ export function cruisingLegalDocument(
 ): LegalDocument {
   const texts = TEXTS[locale];
   const context: CruisingLegalContext = {
-    ownerLines: ownerLines(owner, texts.owner),
+    ownerLines: neoqlickOwnerLines(owner, locale),
     mail: `[${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL})`,
     locale,
   };

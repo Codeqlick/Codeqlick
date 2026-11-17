@@ -20,11 +20,11 @@
 }
 
 .on {
-  color: var(--color-fuchsia);
+  color: var(--color-brand);
 }
 
 .star:has(input:focus-visible) {
-  outline: 3px solid var(--color-fuchsia);
+  outline: 3px solid var(--color-brand);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }

@@ -10,6 +10,7 @@ import { getCruisingVisits } from '@/lib/api/cruising-notifications';
 import { getSwipeStatus } from '@/lib/api/swipe';
 import { getVideochatStatus } from '@/lib/api/videochat';
 import { updatePreferencesAction } from '@/lib/auth/actions';
+import { requestBrand } from '@/lib/request-brand';
 import { requireUser } from '@/lib/auth/session';
 import {
   cruisingNotificationsAction,
@@ -28,6 +29,7 @@ export default async function AccountNotificationsPage({
 }) {
   const locale = resolveCruisingLocale((await params).locale);
   const user = await requireUser(locale);
+  const neoqlick = (await requestBrand()) === 'neoqlick';
   const t = await getTranslations({ locale, namespace: 'AccountSite' });
   const ta = await getTranslations({ locale, namespace: 'Account' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
@@ -35,7 +37,8 @@ export default async function AccountNotificationsPage({
 
   const apps = new Set((await accountApps().catch(() => ({ items: [] }))).items.map((a) => a.app));
   const [preferences, cruising, visits, swipe, videochat] = await Promise.all([
-    user.role === 'CLIENT' ? getPreferences() : null,
+    // The website's digest and report are for Codeqlick's clients, not for Neoqlick's accounts.
+    user.role === 'CLIENT' && !neoqlick ? getPreferences() : null,
     apps.has('cruising') ? getCruisingStatus().catch(() => null) : null,
     apps.has('cruising') ? getCruisingVisits().catch(() => null) : null,
     apps.has('swipe') ? getSwipeStatus().catch(() => null) : null,

@@ -8,8 +8,10 @@ import { ClientMessages } from '@/i18n/ClientMessages';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { OG_LOCALES, SITE_LOCALES } from '@/i18n/routing';
 import { env } from '@/lib/env';
-import { DEFAULT_OG_IMAGE, localeAlternates } from '@/lib/seo';
-import { fontVariables } from '../fonts';
+import { localeAlternates } from '@/lib/seo';
+import { fontVariablesFor } from '../fonts';
+import { BRANDS } from '@/lib/brand';
+import { requestBrand } from '@/lib/request-brand';
 
 type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
 
@@ -21,9 +23,12 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: LayoutProps): Promise<Metadata> {
   const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Metadata' });
+  const brand = BRANDS[await requestBrand()];
+  // Neoqlick's hosts: the portal's own origin (the apps set theirs); Codeqlick's: the website's.
+  const origin = brand.id === 'neoqlick' && env.NEOQLICK_URL ? env.NEOQLICK_URL : env.SITE_URL;
 
   return {
-    metadataBase: new URL(env.SITE_URL),
+    metadataBase: new URL(origin),
     title: { default: t('defaultTitle'), template: `%s — ${t('siteName')}` },
     description: t('description'),
     alternates: localeAlternates(locale),
@@ -34,18 +39,15 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
       description: t('ogDescription'),
       url: `/${locale}`,
       locale: OG_LOCALES[locale],
-      images: [DEFAULT_OG_IMAGE],
+      images: [brand.ogImage],
     },
     twitter: { card: 'summary_large_image' },
-    icons: {
-      icon: [
-        { url: '/favicon.ico', sizes: 'any' },
-        { url: '/favicon.svg', type: 'image/svg+xml' },
-      ],
-      apple: '/apple-touch-icon.png',
-    },
-    // ExoClick's ownership check for the video chat's ads (architecture 4.7).
-    other: { '6a97888e-site-verification': '5e55aa28a6c9210038f92e69880e6449' },
+    icons: brand.icons,
+    // ExoClick's ownership check for the video chat's ads (architecture 4.7); Neoqlick's sites
+    // carry the tags of their own ExoClick sites when the owner registers them.
+    ...(brand.id === 'codeqlick'
+      ? { other: { '6a97888e-site-verification': '5e55aa28a6c9210038f92e69880e6449' } }
+      : {}),
   };
 }
 
@@ -55,9 +57,10 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
   await connection();
   const locale = resolveCruisingLocale((await params).locale);
   setRequestLocale(locale);
+  const brand = await requestBrand();
 
   return (
-    <html lang={locale} className={fontVariables}>
+    <html lang={locale} className={await fontVariablesFor(brand)} data-brand={brand}>
       <body>
         <ClientMessages>{children}</ClientMessages>
         <ErrorReporter />

@@ -314,9 +314,14 @@ describe('Admin overview (e2e)', () => {
   it("counts portal clients by the dashboard's own rule (decision 29)", async () => {
     service.clearCache();
     const overview = await get();
-    const clients = await prisma.user.count({ where: { AND: [CLIENT_WHERE, { isActive: true }] } });
+    // Codeqlick's own accounts; Neoqlick's are counted apart (architecture 4.18).
+    const clients = await prisma.user.count({
+      where: { AND: [CLIENT_WHERE, { isActive: true }], realm: 'CODEQLICK' },
+    });
     expect(overview.people.apps.portal).toBe(clients);
-    const people = await prisma.user.count({ where: { role: Role.CLIENT } });
+    const people = await prisma.user.count({ where: { role: Role.CLIENT, realm: 'CODEQLICK' } });
     expect(overview.people.accounts).toBe(people);
+    const neoqlick = await prisma.user.count({ where: { role: Role.CLIENT, realm: 'NEOQLICK' } });
+    expect(overview.people.neoqlickAccounts).toBe(neoqlick);
   });
 });

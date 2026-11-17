@@ -19,7 +19,13 @@ import type { GithubClient } from './github.client.js';
 
 const MB = 1024 * 1024;
 const ctx: CloudCtx = {
-  user: { id: 'u-mover', email: 'ada@codeqlick.test', name: 'Ada', role: 'CLIENT' },
+  user: {
+    id: 'u-mover',
+    email: 'ada@codeqlick.test',
+    name: 'Ada',
+    role: 'CLIENT',
+    realm: 'CODEQLICK',
+  },
   ip: '127.0.0.1',
 } as unknown as CloudCtx;
 

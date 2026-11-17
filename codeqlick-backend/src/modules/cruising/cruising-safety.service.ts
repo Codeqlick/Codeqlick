@@ -225,7 +225,7 @@ export class CruisingSafetyService implements OnApplicationBootstrap, OnApplicat
 
   /** The website's page where a contact answers or stops (no session: the token is the proof). */
   private contactPage(locale: AccountLocale, token: string): string {
-    return `${this.config.siteUrl}/${siteLocale(locale)}/safety-contact?token=${encodeURIComponent(token)}`;
+    return `${this.config.siteUrlFor('NEOQLICK')}/${siteLocale(locale)}/safety-contact?token=${encodeURIComponent(token)}`;
   }
 
   private stopUrl(contact: { id: string; locale: Locale }): string {
@@ -304,7 +304,7 @@ export class CruisingSafetyService implements OnApplicationBootstrap, OnApplicat
         contact.displayName,
         this.contactPage(locale, token),
         this.stopUrl(contact),
-        this.config.siteUrl,
+        this.config.siteUrlFor('NEOQLICK'),
       ),
     );
     return {
@@ -477,7 +477,7 @@ export class CruisingSafetyService implements OnApplicationBootstrap, OnApplicat
         locale,
         'timer',
         this.config.webappUrl('cruising'),
-        this.config.siteUrl,
+        this.config.siteUrlFor('NEOQLICK'),
       ),
     );
   }
@@ -508,7 +508,7 @@ export class CruisingSafetyService implements OnApplicationBootstrap, OnApplicat
               : null,
           },
           this.stopUrl(contact),
-          this.config.siteUrl,
+          this.config.siteUrlFor('NEOQLICK'),
         ),
       );
     }
@@ -601,7 +601,7 @@ export class CruisingSafetyService implements OnApplicationBootstrap, OnApplicat
                 locale,
                 'health',
                 this.config.webappUrl('cruising'),
-                this.config.siteUrl,
+                this.config.siteUrlFor('NEOQLICK'),
               ),
             );
           }

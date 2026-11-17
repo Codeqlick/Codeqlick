@@ -96,7 +96,9 @@ describe('Codeqlick Cloud status page email subscriptions (e2e)', () => {
       .set(auth)
       .send({ name: 'Acme', slug: team, acceptTerms: true, termsVersion: CLOUD_TERMS_VERSION })
       .expect(201);
-    const ownerRow = await prisma.user.findUniqueOrThrow({ where: { email: owner.email } });
+    const ownerRow = await prisma.user.findUniqueOrThrow({
+      where: { realm_email: { realm: 'CODEQLICK', email: owner.email } },
+    });
     const monitor = await request(server())
       .post(`/v1/cloud/teams/${team}/monitors`)
       .set(auth)
@@ -139,7 +141,9 @@ describe('Codeqlick Cloud status page email subscriptions (e2e)', () => {
     await signUp(team, ada).expect(404);
 
     // A member can't switch it on; the owner can (team event).
-    const memberRow = await prisma.user.findUniqueOrThrow({ where: { email: member.email } });
+    const memberRow = await prisma.user.findUniqueOrThrow({
+      where: { realm_email: { realm: 'CODEQLICK', email: member.email } },
+    });
     await prisma.cloudMember.create({
       data: {
         teamId,

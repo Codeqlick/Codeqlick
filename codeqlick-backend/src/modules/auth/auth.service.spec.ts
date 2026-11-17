@@ -18,6 +18,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     passwordHash: '$argon2id$stub',
     name: 'Ada',
     role: 'ADMIN',
+    realm: 'CODEQLICK',
     locale: 'EN',
     isActive: true,
     totpSecret: null,
@@ -52,6 +53,7 @@ function makeSession(user: User, overrides: Partial<Session> = {}): SessionWithU
 describe('AuthService', () => {
   let repository: {
     findUserByEmail: ReturnType<typeof vi.fn>;
+    createSignupToken: ReturnType<typeof vi.fn>;
     findUserById: ReturnType<typeof vi.fn>;
     createSession: ReturnType<typeof vi.fn>;
     findSessionByTokenHash: ReturnType<typeof vi.fn>;
@@ -84,6 +86,7 @@ describe('AuthService', () => {
   beforeEach(() => {
     repository = {
       findUserByEmail: vi.fn(),
+      createSignupToken: vi.fn().mockResolvedValue(undefined),
       findUserById: vi.fn(),
       createSession: vi.fn().mockResolvedValue(undefined),
       findSessionByTokenHash: vi.fn(),
@@ -118,9 +121,14 @@ describe('AuthService', () => {
       jwtAccessTtl: 900,
       refreshTokenTtlDays: 30,
       siteUrl: 'https://codeqlick.com',
+      siteUrlFor: (realm: string) =>
+        realm === 'NEOQLICK' ? 'https://neoqlick.com' : 'https://codeqlick.com',
+      accountUrlFor: (realm: string) =>
+        realm === 'NEOQLICK' ? 'https://account.neoqlick.com' : 'https://account.codeqlick.com',
       accountUrl: 'https://account.codeqlick.com',
       jwtAccessSecret: 'unit-test-secret-unit-test-secret-1234',
-    } as AppConfigService;
+      neoqlickTermsVersion: '2026-11-17.1',
+    } as unknown as AppConfigService;
 
     service = new AuthService(
       repository as unknown as AuthRepository,
@@ -139,13 +147,23 @@ describe('AuthService', () => {
       repository.findUserByEmail.mockResolvedValue(user);
       passwords.verify.mockResolvedValue(true);
 
-      const result = (await service.login('  ADA@codeqlick.com ', 'correct horse')) as AuthTokens;
+      const result = (await service.login(
+        'CODEQLICK',
+        '  ADA@codeqlick.com ',
+        'correct horse',
+      )) as AuthTokens;
 
-      expect(repository.findUserByEmail).toHaveBeenCalledWith('ada@codeqlick.com');
+      expect(repository.findUserByEmail).toHaveBeenCalledWith('CODEQLICK', 'ada@codeqlick.com');
       expect(result.accessToken).toBe('signed.jwt.token');
       expect(result.expiresIn).toBe(900);
       expect(result.refreshToken).toMatch(/^[\w-]{64}$/);
-      expect(result.user).toEqual({ id: user.id, email: user.email, name: 'Ada', role: 'ADMIN' });
+      expect(result.user).toEqual({
+        id: user.id,
+        email: user.email,
+        name: 'Ada',
+        role: 'ADMIN',
+        realm: 'CODEQLICK',
+      });
       expect(repository.createSession).toHaveBeenCalledTimes(1);
       const session = repository.createSession.mock.calls[0]?.[0] as {
         tokenHash: string;
@@ -156,6 +174,7 @@ describe('AuthService', () => {
         email: user.email,
         name: 'Ada',
         role: 'ADMIN',
+        rlm: 'CODEQLICK',
         sid: session.familyId,
       });
       expect(session.tokenHash).toBe(hashRefreshToken(result.refreshToken));
@@ -166,7 +185,7 @@ describe('AuthService', () => {
       repository.findUserByEmail.mockResolvedValue(makeUser());
       passwords.verify.mockResolvedValue(false);
 
-      await expect(service.login('ada@codeqlick.com', 'nope')).rejects.toBeInstanceOf(
+      await expect(service.login('CODEQLICK', 'ada@codeqlick.com', 'nope')).rejects.toBeInstanceOf(
         UnauthorizedException,
       );
       expect(repository.createSession).not.toHaveBeenCalled();
@@ -175,9 +194,9 @@ describe('AuthService', () => {
     it('still runs a dummy verify when the email does not exist', async () => {
       repository.findUserByEmail.mockResolvedValue(null);
 
-      await expect(service.login('ghost@codeqlick.com', 'whatever')).rejects.toBeInstanceOf(
-        UnauthorizedException,
-      );
+      await expect(
+        service.login('CODEQLICK', 'ghost@codeqlick.com', 'whatever'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
       expect(passwords.verifyDummy).toHaveBeenCalledWith('whatever');
     });
 
@@ -185,9 +204,9 @@ describe('AuthService', () => {
       repository.findUserByEmail.mockResolvedValue(makeUser({ isActive: false }));
       passwords.verify.mockResolvedValue(true);
 
-      await expect(service.login('ada@codeqlick.com', 'correct horse')).rejects.toBeInstanceOf(
-        UnauthorizedException,
-      );
+      await expect(
+        service.login('CODEQLICK', 'ada@codeqlick.com', 'correct horse'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
       expect(repository.createSession).not.toHaveBeenCalled();
     });
   });
@@ -206,7 +225,7 @@ describe('AuthService', () => {
       repository.findUserByEmail.mockResolvedValue(user);
       repository.listSessionUserAgents.mockResolvedValue([FIREFOX_LINUX, null]);
 
-      await service.login(user.email, 'correct horse', {
+      await service.login('CODEQLICK', user.email, 'correct horse', {
         userAgent: SAFARI_IPHONE,
         ip: '203.0.113.7',
       });
@@ -230,7 +249,10 @@ describe('AuthService', () => {
       const user = makeUser({ role: 'ADMIN' });
       repository.findUserByEmail.mockResolvedValue(user);
 
-      await service.login(user.email, 'correct horse', { userAgent: FIREFOX_LINUX, ip: null });
+      await service.login('CODEQLICK', user.email, 'correct horse', {
+        userAgent: FIREFOX_LINUX,
+        ip: null,
+      });
 
       const message = mail.send.mock.calls[0]?.[0] as { subject: string; text: string };
       expect(message.subject).toBe('New sign-in to your account — Codeqlick');
@@ -243,7 +265,7 @@ describe('AuthService', () => {
       repository.findUserByEmail.mockResolvedValue(user);
       repository.listSessionUserAgents.mockResolvedValue([FIREFOX_LINUX.replaceAll('140', '139')]);
 
-      await service.login(user.email, 'correct horse', { userAgent: FIREFOX_LINUX });
+      await service.login('CODEQLICK', user.email, 'correct horse', { userAgent: FIREFOX_LINUX });
 
       expect(mail.send).not.toHaveBeenCalled();
     });
@@ -252,8 +274,8 @@ describe('AuthService', () => {
       const user = makeUser();
       repository.findUserByEmail.mockResolvedValue(user);
 
-      await service.login(user.email, 'correct horse', { userAgent: 'curl/8.7.1' });
-      await service.login(user.email, 'correct horse');
+      await service.login('CODEQLICK', user.email, 'correct horse', { userAgent: 'curl/8.7.1' });
+      await service.login('CODEQLICK', user.email, 'correct horse');
 
       expect(repository.listSessionUserAgents).not.toHaveBeenCalled();
       expect(mail.send).not.toHaveBeenCalled();
@@ -264,14 +286,14 @@ describe('AuthService', () => {
       repository.findUserByEmail.mockResolvedValue(user);
       repository.listSessionUserAgents.mockRejectedValueOnce(new Error('database down'));
 
-      const first = (await service.login(user.email, 'correct horse', {
+      const first = (await service.login('CODEQLICK', user.email, 'correct horse', {
         userAgent: FIREFOX_LINUX,
       })) as AuthTokens;
       expect(first.accessToken).toBe('signed.jwt.token');
       expect(mail.send).not.toHaveBeenCalled();
 
       mail.send.mockRejectedValueOnce(new Error('SMTP down'));
-      const second = (await service.login(user.email, 'correct horse', {
+      const second = (await service.login('CODEQLICK', user.email, 'correct horse', {
         userAgent: FIREFOX_LINUX,
       })) as AuthTokens;
       expect(second.accessToken).toBe('signed.jwt.token');
@@ -407,9 +429,9 @@ describe('AuthService', () => {
       const user = makeUser();
       repository.findUserByEmail.mockResolvedValue(user);
 
-      await service.requestPasswordReset(' ADA@codeqlick.com ', 'es');
+      await service.requestPasswordReset('CODEQLICK', ' ADA@codeqlick.com ', 'es');
 
-      expect(repository.findUserByEmail).toHaveBeenCalledWith('ada@codeqlick.com');
+      expect(repository.findUserByEmail).toHaveBeenCalledWith('CODEQLICK', 'ada@codeqlick.com');
       const [userId, tokenHash, expiresAt] = repository.replacePasswordResetToken.mock.calls[0] as [
         string,
         string,
@@ -431,11 +453,13 @@ describe('AuthService', () => {
 
     it('does nothing, silently, for an unknown or disabled account', async () => {
       repository.findUserByEmail.mockResolvedValue(null);
-      await expect(service.requestPasswordReset('nobody@x.com', 'en')).resolves.toBeUndefined();
+      await expect(
+        service.requestPasswordReset('CODEQLICK', 'nobody@x.com', 'en'),
+      ).resolves.toBeUndefined();
 
       repository.findUserByEmail.mockResolvedValue(makeUser({ isActive: false }));
       await expect(
-        service.requestPasswordReset('ada@codeqlick.com', 'en'),
+        service.requestPasswordReset('CODEQLICK', 'ada@codeqlick.com', 'en'),
       ).resolves.toBeUndefined();
 
       expect(repository.replacePasswordResetToken).not.toHaveBeenCalled();
@@ -447,7 +471,7 @@ describe('AuthService', () => {
       mail.send.mockRejectedValue(new Error('smtp down'));
 
       await expect(
-        service.requestPasswordReset('ada@codeqlick.com', 'en'),
+        service.requestPasswordReset('CODEQLICK', 'ada@codeqlick.com', 'en'),
       ).resolves.toBeUndefined();
     });
   });
@@ -487,13 +511,15 @@ describe('AuthService', () => {
     it('spends the token by its hash', async () => {
       passwords.hash.mockResolvedValue('$argon2id$new');
 
-      await service.confirmPasswordReset('emailed-token', 'new password 456');
+      await service.confirmPasswordReset('CODEQLICK', 'emailed-token', 'new password 456');
 
-      const [tokenHash, hashPassword] = repository.resetPassword.mock.calls[0] as [
+      const [tokenHash, realm, hashPassword] = repository.resetPassword.mock.calls[0] as [
+        string,
         string,
         () => Promise<string>,
       ];
       expect(tokenHash).toBe(hashRefreshToken('emailed-token'));
+      expect(realm).toBe('CODEQLICK');
       await expect(hashPassword()).resolves.toBe('$argon2id$new');
       expect(passwords.hash).toHaveBeenCalledWith('new password 456');
     });
@@ -502,7 +528,7 @@ describe('AuthService', () => {
       breaches.assertNotBreached.mockRejectedValue(new BadRequestException());
 
       await expect(
-        service.confirmPasswordReset('emailed-token', 'password1234'),
+        service.confirmPasswordReset('CODEQLICK', 'emailed-token', 'password1234'),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(breaches.assertNotBreached).toHaveBeenCalledWith('password1234', 'newPassword');
       expect(repository.resetPassword).not.toHaveBeenCalled();
@@ -512,7 +538,7 @@ describe('AuthService', () => {
       repository.resetPassword.mockResolvedValue(false);
 
       await expect(
-        service.confirmPasswordReset('bad-token', 'new password 456'),
+        service.confirmPasswordReset('CODEQLICK', 'bad-token', 'new password 456'),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
@@ -522,13 +548,13 @@ describe('AuthService', () => {
       breaches.assertNotBreached.mockRejectedValue(new BadRequestException());
 
       await expect(
-        service.register({
+        service.register('CODEQLICK', {
           name: 'Ada',
           email: 'ada@example.com',
           password: 'password1234',
           locale: 'en',
           acceptPrivacy: true,
-        } as Parameters<AuthService['register']>[0]),
+        } as Parameters<AuthService['register']>[1]),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(breaches.assertNotBreached).toHaveBeenCalledWith('password1234', 'password');
       expect(repository.findUserByEmail).not.toHaveBeenCalled();
@@ -541,13 +567,13 @@ describe('AuthService', () => {
       breaches.assertNotBreached.mockRejectedValue(new BadRequestException());
 
       await expect(
-        service.acceptInvitation({
+        service.acceptInvitation('CODEQLICK', {
           token: 'invitation-token',
           name: 'Ada',
           password: 'password1234',
           locale: 'en',
           acceptPrivacy: true,
-        } as Parameters<AuthService['acceptInvitation']>[0]),
+        } as Parameters<AuthService['acceptInvitation']>[1]),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(breaches.assertNotBreached).toHaveBeenCalledWith('password1234', 'password');
     });
@@ -613,7 +639,7 @@ describe('AuthService', () => {
       passwords.verify.mockResolvedValue(true);
       jwt.signAsync.mockResolvedValue('challenge.jwt');
 
-      const result = await service.login(user.email, 'correct horse');
+      const result = await service.login('CODEQLICK', user.email, 'correct horse');
 
       expect(result).toEqual({ twoFactorRequired: true, challengeToken: 'challenge.jwt' });
       expect(repository.createSession).not.toHaveBeenCalled();
@@ -629,7 +655,11 @@ describe('AuthService', () => {
       jwt.signAsync.mockResolvedValue('signed.jwt.token');
 
       const step = Math.floor(Date.now() / 30_000);
-      const tokens = await service.verifyTwoFactor('challenge.jwt', totpCode(secret, step));
+      const tokens = await service.verifyTwoFactor(
+        'CODEQLICK',
+        'challenge.jwt',
+        totpCode(secret, step),
+      );
 
       expect(tokens.accessToken).toBe('signed.jwt.token');
       expect(repository.useTotpStep).toHaveBeenCalledWith(user.id, step);
@@ -643,12 +673,12 @@ describe('AuthService', () => {
       passwords.verify.mockResolvedValue(true);
       const firefox = 'Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0';
 
-      await service.login(user.email, 'correct horse', { userAgent: firefox });
+      await service.login('CODEQLICK', user.email, 'correct horse', { userAgent: firefox });
       expect(mail.send).not.toHaveBeenCalled();
 
       jwt.verifyAsync.mockResolvedValue({ sub: user.id, purpose: '2fa' });
       const step = Math.floor(Date.now() / 30_000);
-      await service.verifyTwoFactor('challenge.jwt', totpCode(secret, step), {
+      await service.verifyTwoFactor('CODEQLICK', 'challenge.jwt', totpCode(secret, step), {
         userAgent: firefox,
       });
       expect(mail.send).toHaveBeenCalledTimes(1);
@@ -661,14 +691,14 @@ describe('AuthService', () => {
       const code = totpCode(secret, Math.floor(Date.now() / 30_000));
 
       repository.useTotpStep.mockResolvedValue(false);
-      await expect(service.verifyTwoFactor('c', code)).rejects.toBeInstanceOf(
+      await expect(service.verifyTwoFactor('CODEQLICK', 'c', code)).rejects.toBeInstanceOf(
         UnauthorizedException,
       );
-      await expect(service.verifyTwoFactor('c', '123456')).rejects.toBeInstanceOf(
+      await expect(service.verifyTwoFactor('CODEQLICK', 'c', '123456')).rejects.toBeInstanceOf(
         UnauthorizedException,
       );
       jwt.verifyAsync.mockResolvedValue({ sub: user.id, role: 'ADMIN' });
-      await expect(service.verifyTwoFactor('c', code)).rejects.toBeInstanceOf(
+      await expect(service.verifyTwoFactor('CODEQLICK', 'c', code)).rejects.toBeInstanceOf(
         UnauthorizedException,
       );
       expect(repository.createSession).not.toHaveBeenCalled();
@@ -679,7 +709,7 @@ describe('AuthService', () => {
       repository.findUserById.mockResolvedValue(user);
       jwt.verifyAsync.mockResolvedValue({ sub: user.id, purpose: '2fa' });
 
-      await service.verifyTwoFactor('c', recoveryCodes[0]!.toUpperCase());
+      await service.verifyTwoFactor('CODEQLICK', 'c', recoveryCodes[0]!.toUpperCase());
 
       const [, hash, remaining] = repository.useRecoveryCode.mock.calls[0] as [
         string,
@@ -707,6 +737,107 @@ describe('AuthService', () => {
 
       await service.disableTwoFactor(user.id, 'right', code);
       expect(repository.disableTotp).toHaveBeenCalledWith(user.id);
+    });
+  });
+
+  describe('realms (architecture 4.18)', () => {
+    const neoUser = () => makeUser({ role: 'CLIENT', realm: 'NEOQLICK' });
+    const signup = {
+      name: 'Ada',
+      email: 'Ada@Example.com',
+      password: 'password1234',
+      locale: 'es',
+      acceptPrivacy: true,
+    } as Parameters<AuthService['register']>[1];
+
+    it("looks the email up in the realm's user base and signs the realm into the token", async () => {
+      const user = neoUser();
+      repository.findUserByEmail.mockResolvedValue(user);
+      passwords.verify.mockResolvedValue(true);
+
+      await service.login('NEOQLICK', 'ada@example.com', 'correct horse');
+
+      expect(repository.findUserByEmail).toHaveBeenCalledWith('NEOQLICK', 'ada@example.com');
+      expect(jwt.signAsync).toHaveBeenCalledWith(expect.objectContaining({ rlm: 'NEOQLICK' }));
+    });
+
+    it('registers in Neoqlick only with the terms accepted', async () => {
+      await expect(service.register('NEOQLICK', signup)).rejects.toMatchObject({
+        response: { errors: [expect.objectContaining({ path: 'acceptTerms' })] },
+      });
+      expect(repository.createSignupToken).not.toHaveBeenCalled();
+      expect(mail.send).not.toHaveBeenCalled();
+    });
+
+    it("accepts only a realm's own apps", async () => {
+      await expect(
+        service.register('NEOQLICK', { ...signup, acceptTerms: true, app: 'meetings' }),
+      ).rejects.toMatchObject({ response: { errors: [expect.objectContaining({ path: 'app' })] } });
+      await expect(
+        service.register('CODEQLICK', { ...signup, app: 'cruising' }),
+      ).rejects.toMatchObject({ response: { errors: [expect.objectContaining({ path: 'app' })] } });
+      expect(repository.createSignupToken).not.toHaveBeenCalled();
+    });
+
+    it("keeps the sign-up in the realm, with the terms version, and emails Neoqlick's link", async () => {
+      repository.findUserByEmail.mockResolvedValue(null);
+      passwords.hash.mockResolvedValue('$argon2id$new');
+
+      await service.register('NEOQLICK', { ...signup, acceptTerms: true, app: 'cruising' });
+
+      expect(repository.findUserByEmail).toHaveBeenCalledWith('NEOQLICK', 'ada@example.com');
+      expect(repository.createSignupToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          realm: 'NEOQLICK',
+          termsVersion: '2026-11-17.1',
+          email: 'ada@example.com',
+          app: 'cruising',
+        }),
+      );
+      const message = mail.send.mock.calls[0]?.[0] as { brand: string; text: string };
+      expect(message.brand).toBe('neoqlick');
+      expect(message.text).toContain('https://account.neoqlick.com/es/register/confirm?token=');
+      expect(message.text.toLowerCase()).not.toContain('codeqlick');
+    });
+
+    it("signs a Codeqlick sign-up up as before: no terms, Codeqlick's host and email", async () => {
+      repository.findUserByEmail.mockResolvedValue(null);
+      passwords.hash.mockResolvedValue('$argon2id$new');
+
+      await service.register('CODEQLICK', signup);
+
+      expect(repository.createSignupToken).toHaveBeenCalledWith(
+        expect.objectContaining({ realm: 'CODEQLICK', termsVersion: null }),
+      );
+      const message = mail.send.mock.calls[0]?.[0] as { brand?: string; text: string };
+      expect(message.brand).toBeUndefined();
+      expect(message.text).toContain('https://account.codeqlick.com/es/register/confirm?token=');
+    });
+
+    it("emails a Neoqlick person's password reset from Neoqlick, to its account host", async () => {
+      repository.findUserByEmail.mockResolvedValue(neoUser());
+
+      await service.requestPasswordReset('NEOQLICK', 'ada@example.com', 'en');
+
+      expect(repository.findUserByEmail).toHaveBeenCalledWith('NEOQLICK', 'ada@example.com');
+      const message = mail.send.mock.calls[0]?.[0] as { brand: string; text: string };
+      expect(message.brand).toBe('neoqlick');
+      expect(message.text).toContain('https://account.neoqlick.com/en/reset-password?token=');
+    });
+
+    it("doesn't finish another realm's two-step sign-in", async () => {
+      const user = makeUser({ totpEnabledAt: new Date('2026-10-01T10:00:00Z') });
+      repository.findUserById.mockResolvedValue(user);
+      jwt.verifyAsync.mockResolvedValue({ sub: user.id, purpose: '2fa' });
+
+      await expect(
+        service.verifyTwoFactor('NEOQLICK', 'challenge.jwt', '123456'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(repository.createSession).not.toHaveBeenCalled();
+    });
+
+    it('carries the realm in the signed-in user', () => {
+      expect(toAuthUser(neoUser()).realm).toBe('NEOQLICK');
     });
   });
 

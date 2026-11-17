@@ -1,9 +1,19 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { adminHeaders, API_URL, asAdmin, runTag, signIn } from './helpers';
+import {
+  accountId,
+  adminHeaders,
+  API_URL,
+  asAdmin,
+  createNeoqlickUser,
+  deleteNeoqlickUser,
+  neoqlickUrl,
+  runTag,
+  signIn,
+} from './helpers';
 import { testPng } from './images';
 
 /*
- * Swipe on its own host (swipe.localhost): two people get in (18+ step, nickname, verification
+ * Swipe on its own host (swipe.neoqlick.localhost): two people get in (18+ step, nickname, verification
  * photo, a photo), the admin approves them from the moderation page, they like each other's
  * photos, match and talk.
  */
@@ -12,9 +22,7 @@ test.use({
 });
 
 function swipeUrl(baseURL: string | undefined): string {
-  const url = new URL(baseURL ?? 'http://localhost:3001');
-  url.hostname = `swipe.${url.hostname}`;
-  return url.origin;
+  return neoqlickUrl('swipe', baseURL);
 }
 
 const open: BrowserContext[] = [];
@@ -50,7 +58,7 @@ async function member(
   await expect(page).toHaveURL(`${base}/es/deck`);
   await page.getByLabel('Fecha de nacimiento').fill('1992-05-20');
   await page.getByLabel(/Tengo 18 años o más/).check();
-  await page.getByLabel(/Consiento que Codeqlick trate datos/).check();
+  await page.getByLabel(/Consiento que Neoqlick trate datos/).check();
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page.getByLabel('Fecha de nacimiento')).toBeHidden();
 
@@ -83,18 +91,7 @@ test('two people get approved, match on Swipe and talk', async ({ browser, reque
   }));
   const ids: string[] = [];
   for (const user of users) {
-    const response = await request.post(`${API_URL}/admin/users`, {
-      headers: adminHeaders(),
-      data: {
-        email: user.email,
-        name: user.name,
-        role: 'CLIENT',
-        password: user.password,
-        locale: 'es',
-      },
-    });
-    expect(response.ok()).toBeTruthy();
-    ids.push(((await response.json()) as { id: string }).id);
+    ids.push(await accountId(request, await createNeoqlickUser(request, user)));
   }
   const [anaUser, benUser] = users as [(typeof users)[0], (typeof users)[0]];
 
@@ -167,8 +164,6 @@ test('two people get approved, match on Swipe and talk', async ({ browser, reque
     await expect(week.getByRole('listitem').first().locator('span').first()).toHaveText('1');
   } finally {
     await Promise.all(open.splice(0).map((context) => context.close()));
-    for (const id of ids) {
-      await request.delete(`${API_URL}/admin/users/${id}`, { headers: adminHeaders() });
-    }
+    for (const user of users) await deleteNeoqlickUser(request, user);
   }
 });

@@ -22,9 +22,9 @@ import { formatDateTime, formatMoney } from '@/lib/format';
 type PageProps = { params: Promise<{ locale: string }> };
 
 const APP_COLORS = [
-  'var(--color-fuchsia)',
-  'var(--color-fuchsia-dark)',
-  'var(--color-fuchsia-light)',
+  'var(--color-brand)',
+  'var(--color-brand-dark)',
+  'var(--color-brand-light)',
   'var(--color-ink)',
   'var(--color-slate)',
   'var(--color-info)',
@@ -185,7 +185,7 @@ export default async function AdminOverviewPage({ params }: PageProps) {
           {t('people.title')}
         </h2>
         <div className={styles.charts}>
-          {single(t('people.newChart'), 'var(--color-fuchsia)', (w) => w.accounts.new)}
+          {single(t('people.newChart'), 'var(--color-brand)', (w) => w.accounts.new)}
           {single(t('people.activeChart'), 'var(--color-ink)', (w) => w.accounts.active)}
           <section className={styles.panel}>
             <h3 className={styles.panelTitle}>{t('people.appsChart')}</h3>
@@ -268,7 +268,7 @@ export default async function AdminOverviewPage({ params }: PageProps) {
               {unpriced > 0 ? ` ${t('revenue.unpriced', { count: unpriced })}` : ''}
             </p>
           </section>
-          {single(t('revenue.purchasesChart'), 'var(--color-fuchsia)', (w) => w.purchases.count)}
+          {single(t('revenue.purchasesChart'), 'var(--color-brand)', (w) => w.purchases.count)}
           <section className={styles.panel}>
             <h3 className={styles.panelTitle}>{t('revenue.purchasesTable')}</h3>
             {purchaseWeeks.length === 0 ? (
@@ -317,16 +317,12 @@ export default async function AdminOverviewPage({ params }: PageProps) {
           })}
         </p>
         <div className={styles.charts}>
-          {single(t('activity.leads'), 'var(--color-fuchsia)', (w) => w.leads)}
-          {single(
-            t('activity.supportOpened'),
-            'var(--color-fuchsia-dark)',
-            (w) => w.support.opened,
-          )}
+          {single(t('activity.leads'), 'var(--color-brand)', (w) => w.leads)}
+          {single(t('activity.supportOpened'), 'var(--color-brand-dark)', (w) => w.support.opened)}
           {single(t('activity.supportClosed'), 'var(--color-slate)', (w) => w.support.closed)}
           {single(t('activity.deployments'), 'var(--color-ink)', (w) => w.deployments)}
-          {single(t('activity.siteChecks'), 'var(--color-fuchsia-light)', (w) => w.siteChecks)}
-          {single(t('activity.newsletter'), 'var(--color-fuchsia)', (w) => w.newsletter)}
+          {single(t('activity.siteChecks'), 'var(--color-brand-light)', (w) => w.siteChecks)}
+          {single(t('activity.newsletter'), 'var(--color-brand)', (w) => w.newsletter)}
         </div>
       </section>
 

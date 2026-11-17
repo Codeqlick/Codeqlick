@@ -47,11 +47,13 @@ import {
   type VideochatStatus,
   type VideochatTicket,
 } from './videochat.service.js';
+import { Realm } from '../../common/decorators/realm.decorator.js';
 
 /** The video chat for its users: any signed-in account (verified by registration). */
 @ApiTags('videochat')
 @ApiBearerAuth()
 @Roles('CLIENT', 'ADMIN')
+@Realm('NEOQLICK')
 @Controller('videochat')
 export class VideochatController {
   constructor(
@@ -187,6 +189,7 @@ export class VideochatController {
 /** What anyone may see: how many people are in the video chat now (shown on its landing). */
 @ApiTags('videochat')
 @Public()
+@Realm('NEOQLICK')
 @Controller('videochat')
 export class VideochatPublicController {
   private cached = { online: 0, at: 0 };

@@ -4,7 +4,7 @@
   place-items: center;
   border-radius: 50%;
   object-fit: cover;
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
   color: var(--color-white);
   font-family: var(--font-family-display);
   font-weight: 600;

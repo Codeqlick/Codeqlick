@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react';
-import { BrandSymbol } from '@/components/brand/Symbol';
 import styles from './EmptyState.module.css';
 
 /**
- * An empty list or page (architecture 6.6): an icon (the brand symbol unless another or `null` is
+ * An empty list or page (architecture 6.6): an icon (the brand's symbol, drawn by the theme, unless another or `null` is
  * given), a title, a line of text and at most one action, an `md` button.
  */
 export function EmptyState({
@@ -21,7 +20,7 @@ export function EmptyState({
   headingLevel?: 2 | 3;
 }) {
   const Heading = headingLevel === 2 ? 'h2' : 'h3';
-  const shown = icon === undefined ? <BrandSymbol size={40} /> : icon;
+  const shown = icon === undefined ? <span className={styles.symbol} /> : icon;
   return (
     <div className={styles.empty}>
       {shown ? (

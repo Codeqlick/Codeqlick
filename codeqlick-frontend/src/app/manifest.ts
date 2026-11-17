@@ -1,6 +1,8 @@
 import type { MetadataRoute } from 'next';
 import { headers } from 'next/headers';
 import { routing } from '@/i18n/routing';
+import { NEOQLICK_APP_ICONS } from '@/lib/brand';
+import { classifyHost } from '@/lib/hosts';
 import { SITE_NAME, TAGLINE } from '@/lib/site';
 import { webappForHost } from '@/lib/webapps';
 
@@ -22,24 +24,28 @@ const ICONS: MetadataRoute.Manifest['icons'] = [
  * Cruising (4.15, decision 96), anywhere else the website.
  */
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
-  const host = (await headers()).get('host');
-  if (webappForHost(host) === 'videochat') {
+  const incoming = await headers();
+  const host = incoming.get('x-forwarded-host')?.split(',')[0]?.trim() || incoming.get('host');
+  const app = webappForHost(host);
+  // The 18+ apps are Neoqlick's (architecture 4.18): its violet, its mark on night, no Codeqlick.
+  const icons = [...NEOQLICK_APP_ICONS];
+  if (app === 'videochat') {
     return {
       id: '/videochat',
-      name: `${SITE_NAME} Videochat`,
+      name: 'Neoqlick Videochat',
       short_name: 'Videochat',
       description: 'Random 1:1 video chat for adults.',
       start_url: '/',
       scope: '/',
       display: 'standalone',
       orientation: 'portrait',
-      background_color: '#f8f6f9',
-      theme_color: '#ffffff',
-      icons: ICONS,
+      background_color: '#ffffff',
+      theme_color: '#7c3aed',
+      icons,
     };
   }
-  if (webappForHost(host) === 'cruising') {
-    // Cruising (decision 96): opens the map full screen; the logo on ink, apart from the site's.
+  if (app === 'cruising') {
+    // Cruising (decision 96): opens the map full screen.
     return {
       id: '/cruising',
       name: 'Cruising',
@@ -49,27 +55,11 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
       scope: '/',
       display: 'standalone',
       background_color: '#ffffff',
-      theme_color: '#ffffff',
-      icons: [
-        { src: '/cruising-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-        { src: '/cruising-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-        {
-          src: '/cruising-maskable-192.png',
-          sizes: '192x192',
-          type: 'image/png',
-          purpose: 'maskable',
-        },
-        {
-          src: '/cruising-maskable-512.png',
-          sizes: '512x512',
-          type: 'image/png',
-          purpose: 'maskable',
-        },
-      ],
+      theme_color: '#7c3aed',
+      icons,
     };
   }
-  if (webappForHost(host) === 'swipe') {
-    // Swipe carries no Codeqlick name or logo (architecture 4.10).
+  if (app === 'swipe') {
     return {
       id: '/swipe',
       name: 'Swipe',
@@ -79,12 +69,22 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
       scope: '/',
       display: 'standalone',
       orientation: 'portrait',
-      background_color: '#f8f6f9',
-      theme_color: '#ffffff',
-      icons: [
-        { src: '/swipe-192.png', sizes: '192x192', type: 'image/png' },
-        { src: '/swipe-512.png', sizes: '512x512', type: 'image/png' },
-      ],
+      background_color: '#ffffff',
+      theme_color: '#7c3aed',
+      icons,
+    };
+  }
+  // Neoqlick's portal and account host: its own name, never the website's.
+  if (classifyHost(host).brand === 'neoqlick') {
+    return {
+      name: 'Neoqlick',
+      short_name: 'Neoqlick',
+      description: 'Apps for adults (18+).',
+      start_url: `/${routing.defaultLocale}`,
+      display: 'standalone',
+      background_color: '#ffffff',
+      theme_color: '#7c3aed',
+      icons,
     };
   }
   return {
