@@ -7,6 +7,7 @@ import { Link } from '@/i18n/navigation';
 import { CRUISING_LOCALES, type AppLocale } from '@/i18n/routing';
 import { CONTACT_EMAIL_NEOQLICK } from '@/lib/brand';
 import { neoqlickLegalOwner } from '@/lib/env';
+import { NEOQLICK_TAGLINE } from '@/lib/neoqlick-tagline';
 import { neoqlickAccountUrl } from '@/lib/portal-links';
 import styles from './neoqlick.module.css';
 
@@ -62,7 +63,12 @@ export async function PortalFrame({
       </main>
       <footer className={footer.footer}>
         <div className={footer.footerInner}>
-          <p className={footer.copyright}>{t('copyright', { year })}</p>
+          <div>
+            <p className={footer.copyright}>{t('copyright', { year })}</p>
+            <p className={footer.copyright} lang="en">
+              {NEOQLICK_TAGLINE}
+            </p>
+          </div>
           <nav aria-label={t('legalLabel')}>
             <ul className={footer.links}>
               {links.map((item) => (

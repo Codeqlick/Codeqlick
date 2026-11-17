@@ -250,6 +250,15 @@
   z-index: 1;
 }
 
+.band .bandTagline {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-blush);
+}
+
 .band h2 {
   margin: 0 0 var(--space-3);
   font-size: var(--text-h1);

@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { routing } from '@/i18n/routing';
 import { NEOQLICK_APP_ICONS } from '@/lib/brand';
 import { classifyHost } from '@/lib/hosts';
+import { NEOQLICK_TAGLINE } from '@/lib/neoqlick-tagline';
 import { SITE_NAME, TAGLINE } from '@/lib/site';
 import { webappForHost } from '@/lib/webapps';
 
@@ -79,7 +80,7 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     return {
       name: 'Neoqlick',
       short_name: 'Neoqlick',
-      description: 'Apps for adults (18+).',
+      description: `Apps for adults (18+). ${NEOQLICK_TAGLINE}`,
       start_url: `/${routing.defaultLocale}`,
       display: 'standalone',
       background_color: '#ffffff',
