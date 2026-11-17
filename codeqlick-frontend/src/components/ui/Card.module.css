@@ -30,3 +30,55 @@
 .blush a:not([class]) {
   color: var(--color-fuchsia-dark);
 }
+
+/* Interactive (architecture 6.6): the whole card opens its one link (`CardLink`, stretched over
+   the card); other links and buttons in it stay clickable above it. */
+.interactive {
+  position: relative;
+  border: 1px solid var(--color-line);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.interactive:hover {
+  border-color: var(--color-fuchsia-light);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.interactive:has(.cardLink:focus-visible) {
+  outline: 2px solid var(--color-fuchsia);
+  outline-offset: 2px;
+}
+
+.interactive :is(a, button, summary, input, select, textarea, label):not(.cardLink) {
+  position: relative;
+  z-index: 1;
+}
+
+.cardLink {
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.cardLink:hover {
+  color: var(--color-ink);
+}
+
+.cardLink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.cardLink:focus-visible {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interactive:hover {
+    transform: none;
+  }
+}

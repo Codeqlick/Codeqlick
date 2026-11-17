@@ -5,7 +5,8 @@ type AvatarProps = {
   /** The profile photo's file name, if any. */
   file: string | null | undefined;
   name: string;
-  size?: 'sm' | 'md' | 'lg';
+  /** sm 32 px, md 48, header 56 (beside a page title), lg 96. */
+  size?: 'sm' | 'md' | 'header' | 'lg';
   className?: string;
 };
 
