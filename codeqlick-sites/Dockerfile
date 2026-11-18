@@ -8,6 +8,9 @@ COPY builder ./builder
 # Builds write dist/, .astro/, .work/ and .drafts/ inside the template, as whatever user compose sets.
 RUN mkdir -p web-basica/dist web-basica/.astro web-basica/.work web-basica/.drafts \
   && chmod -R a+rwX web-basica
+# Compose overrides the user (`user:`) with the deploy user so the sites it writes belong to them;
+# the default is still unprivileged.
+USER node
 ENV NODE_ENV=production TEMPLATE_DIR=/app/web-basica PORT=4100
 EXPOSE 4100
 HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://127.0.0.1:4100/health > /dev/null || exit 1
