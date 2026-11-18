@@ -27,23 +27,34 @@ COPY . .
 RUN DATABASE_URL=postgresql://build:build@localhost:5432/build npx prisma generate \
   && npm run build
 
-# NOTE: dev dependencies are intentionally NOT pruned (`npm prune --omit=dev` is skipped).
-# The container runs `prisma migrate deploy` on start and the Prisma CLI (`prisma`) and the
-# TypeScript config loader it needs are dev dependencies. Keeping them makes the image larger
-# but avoids adding extra runtime dependencies or a separate migration image.
+# ---- Production dependencies ---------------------------------------------------------------
+# Only what runs in production. The Prisma CLI and tsx are regular dependencies on purpose: the
+# container runs `prisma migrate deploy` on start and `prisma db seed` (tsx) on demand.
+# TypeScript, the linters and the test tools stay in the build stage.
+FROM node:24-alpine AS prod-deps
+WORKDIR /app
+COPY package*.json .npmrc ./
+RUN npm ci --omit=dev \
+  # TypeScript is only an optional peer of Prisma and Nest Swagger (neither needs it at runtime), but
+  # npm still installs it, and its native compiler (a Go binary) would ship in the image.
+  && rm -rf node_modules/typescript node_modules/@typescript
 
 # ---- Runtime stage -------------------------------------------------------------------------
 FROM node:24-alpine AS runtime
-ENV NODE_ENV=production
+ENV NODE_ENV=production PATH=/app/node_modules/.bin:$PATH
 WORKDIR /app
 
 COPY --from=build --chown=node:node /app/package.json ./package.json
-COPY --from=build --chown=node:node /app/node_modules ./node_modules
+COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/prisma ./prisma
 COPY --from=build --chown=node:node /app/prisma.config.ts ./prisma.config.ts
 # `prisma db seed` (first admin) runs prisma/seed.ts with tsx and imports the generated client.
 COPY --from=build --chown=node:node /app/src/generated ./src/generated
+
+# Nothing runs npm at runtime (start and migrations call node directly), so the base image's npm
+# is removed: it ships its own dependencies, which scanners flag and nothing here uses.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 # Uploaded images. Created here so the volume mounted on it starts out owned by `node`.
 RUN mkdir uploads && chown node:node uploads
@@ -54,4 +65,4 @@ EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD wget -qO- "http://127.0.0.1:${PORT:-4000}/v1/health" > /dev/null || exit 1
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node dist/main.js"]

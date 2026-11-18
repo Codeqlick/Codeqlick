@@ -1,5 +1,8 @@
 import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from 'node:crypto';
 
+/** GCM authentication tag bytes, fixed so a shortened (forgeable) tag is never accepted. */
+const TAG_LENGTH = 16;
+
 /**
  * Encrypts small secrets (two-step verification keys) before they reach the database, so a leaked
  * dump doesn't hand out working authenticator secrets. AES-256-GCM with a key derived from
@@ -16,7 +19,7 @@ export class SecretBox {
 
   seal(plaintext: string): string {
     const iv = randomBytes(12);
-    const cipher = createCipheriv('aes-256-gcm', this.key, iv);
+    const cipher = createCipheriv('aes-256-gcm', this.key, iv, { authTagLength: TAG_LENGTH });
     const data = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
     return ['v1', iv, cipher.getAuthTag(), data]
       .map((part) => (typeof part === 'string' ? part : part.toString('base64url')))
@@ -27,8 +30,12 @@ export class SecretBox {
   open(sealed: string): string {
     const [version, iv, tag, data] = sealed.split('.');
     if (version !== 'v1' || !iv || !tag || data === undefined) throw new Error('Unknown format');
-    const decipher = createDecipheriv('aes-256-gcm', this.key, Buffer.from(iv, 'base64url'));
-    decipher.setAuthTag(Buffer.from(tag, 'base64url'));
+    const decipher = createDecipheriv('aes-256-gcm', this.key, Buffer.from(iv, 'base64url'), {
+      authTagLength: TAG_LENGTH,
+    });
+    const authTag = Buffer.from(tag, 'base64url');
+    if (authTag.length !== TAG_LENGTH) throw new Error('Unknown format');
+    decipher.setAuthTag(authTag);
     return Buffer.concat([
       decipher.update(Buffer.from(data, 'base64url')),
       decipher.final(),

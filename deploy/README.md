@@ -46,7 +46,7 @@ docker compose -f docker-compose.prod.yml exec \
   -e SEED_ADMIN_EMAIL=you@codeqlick.com \
   -e SEED_ADMIN_NAME='Your Name' \
   -e SEED_ADMIN_PASSWORD='at-least-12-characters' \
-  api npx prisma db seed
+  api node node_modules/prisma/build/index.js db seed
 ```
 
 Running it again with the same email resets that account's name and password. Create the rest of
