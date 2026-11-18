@@ -15,7 +15,8 @@ import { AppConfigService } from '../../config/app-config.service.js';
 import type { SecurityCheck } from '../../generated/prisma/client.js';
 import { LeadsService } from '../leads/leads.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
-import { DomainNotFoundError, gatherInputs, USER_AGENT } from './gather.js';
+import { registrableDomain } from './checks-web.js';
+import { DomainNotFoundError, gatherInputs, networkProbes, USER_AGENT } from './gather.js';
 import { parseRetire, type RetireRepository } from './retire.js';
 import { runChecks } from './run-checks.js';
 import {
@@ -47,12 +48,18 @@ const DAY_MS = 24 * HOUR_MS;
 export const DAILY_EMAIL_LIMIT = 5;
 /** Checks of one domain, from anyone, in a day. */
 export const DAILY_DOMAIN_LIMIT = 10;
+/** Checks asked for by anyone in a day; past it the service says it is busy. */
+export const DAILY_GLOBAL_LIMIT = 300;
+/** Checks waiting to run; past it the service says it is busy. */
+export const MAX_QUEUE = 40;
 /** How long checks are kept. */
 const KEEP_DAYS = 180;
 /** A check gives up after this long. */
 export const CHECK_TIMEOUT_MS = 60_000;
 /** The Retire.js data is refreshed at most this often. */
 const RETIRE_MAX_AGE_MS = DAY_MS;
+/** Cleanup and the Retire.js refresh run this often (and 30 s after boot). */
+const MAINTENANCE_MS = 6 * HOUR_MS;
 const RETIRE_URL =
   'https://raw.githubusercontent.com/RetireJS/retire.js/master/repository/jsrepository.json';
 
@@ -173,10 +180,17 @@ export class SecurityChecksService implements OnApplicationBootstrap, OnApplicat
   private readonly queue: string[] = [];
   private running = false;
   private timer: NodeJS.Timeout | undefined;
+  private startTimer: NodeJS.Timeout | undefined;
   private lastRetireAttempt = 0;
-  /** Replaced in tests: what a run reads of the domain. */
-  gather: (domain: string, retire: RetireRepository | null) => Promise<SecurityInputs> =
-    gatherInputs;
+  /** The Retire.js data in memory (its compiled patterns hang on this object). */
+  private retireCache: { repository: RetireRepository; fetchedAt: Date } | null = null;
+  /** Replaced in tests: what a run reads of the domain; aborting `signal` stops it. */
+  gather: (
+    domain: string,
+    retire: RetireRepository | null,
+    signal: AbortSignal,
+  ) => Promise<SecurityInputs> = (domain, retire, signal) =>
+    gatherInputs(domain, retire, networkProbes(signal));
   /** Replaced in tests: the Retire.js repository's JSON. */
   fetchRetireJson: () => Promise<unknown> = async () => {
     const file = await safeFetch(RETIRE_URL, {
@@ -197,15 +211,26 @@ export class SecurityChecksService implements OnApplicationBootstrap, OnApplicat
 
   async onApplicationBootstrap(): Promise<void> {
     if (this.config.isTest) return;
-    // Runs a restart cut short: the last hour's again, older ones are given up.
+    // Runs a restart cut short: the last hour's again, older ones are given up (and told so).
     const since = new Date(Date.now() - HOUR_MS);
-    await this.repository.failStale(since);
-    for (const { id } of await this.repository.pendingSince(since)) this.enqueue(id);
-    this.timer = setInterval(() => void this.cleanup(), DAY_MS).unref();
+    for (const { id } of await this.repository.pendingBefore(since)) {
+      this.queue.push(`stale:${id}`);
+    }
+    for (const { id } of await this.repository.pendingSince(since)) this.queue.push(id);
+    void this.drain();
+    // Retention and the Retire.js data: shortly after boot, then every few hours.
+    this.startTimer = setTimeout(() => void this.maintain(), 30_000).unref();
+    this.timer = setInterval(() => void this.maintain(), MAINTENANCE_MS).unref();
   }
 
   onApplicationShutdown(): void {
     clearInterval(this.timer);
+    clearTimeout(this.startTimer);
+  }
+
+  private async maintain(): Promise<void> {
+    await this.cleanup();
+    await this.retire().catch(() => null);
   }
 
   async create(input: CreateSecurityCheckInput): Promise<{ id: string }> {
@@ -219,9 +244,19 @@ export class SecurityChecksService implements OnApplicationBootstrap, OnApplicat
     if (recent) return { id: recent.id };
     if (
       (await this.repository.countByEmailSince(email, since)) >= DAILY_EMAIL_LIMIT ||
-      (await this.repository.countByDomainSince(input.domain, since)) >= DAILY_DOMAIN_LIMIT
+      (await this.repository.countByDomainSince(registrableDomain(input.domain), since)) >=
+        DAILY_DOMAIN_LIMIT
     ) {
       throw new HttpException('Too many security checks today', HttpStatus.TOO_MANY_REQUESTS);
+    }
+    if (
+      this.queue.length >= MAX_QUEUE ||
+      (await this.repository.countSince(since)) >= DAILY_GLOBAL_LIMIT
+    ) {
+      throw new HttpException(
+        'The security check is busy right now, try again later',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
     }
     const row = await this.repository.create({
       domain: input.domain,
@@ -272,7 +307,7 @@ export class SecurityChecksService implements OnApplicationBootstrap, OnApplicat
     const cached = await this.repository.retireData();
     const now = Date.now();
     if (cached && now - cached.fetchedAt.getTime() < RETIRE_MAX_AGE_MS) {
-      return { repository: cached.data, fetchedAt: cached.fetchedAt };
+      return this.remember(cached.data, cached.fetchedAt);
     }
     // After a failure the next attempt waits an hour, so a GitHub outage isn't hammered.
     if (now - this.lastRetireAttempt >= HOUR_MS) {
@@ -282,12 +317,27 @@ export class SecurityChecksService implements OnApplicationBootstrap, OnApplicat
         const fetchedAt = new Date();
         await this.repository.saveRetireData(repository, fetchedAt);
         this.lastRetireAttempt = 0;
-        return { repository, fetchedAt };
+        return this.remember(repository, fetchedAt);
       } catch (error) {
         this.logger.warn(`Retire.js data couldn't be refreshed: ${String(error)}`);
       }
     }
-    return cached ? { repository: cached.data, fetchedAt: cached.fetchedAt } : null;
+    return cached ? this.remember(cached.data, cached.fetchedAt) : null;
+  }
+
+  /** Keeps the same object while the data is the same, so its compiled patterns are reused. */
+  private remember(repository: RetireRepository, fetchedAt: Date) {
+    if (this.retireCache?.fetchedAt.getTime() !== fetchedAt.getTime()) {
+      this.retireCache = { repository, fetchedAt };
+    }
+    return this.retireCache;
+  }
+
+  /** What a check uses: the copy in memory or the stored one. Never fetches (no time spent). */
+  private async currentRetire(): Promise<{ repository: RetireRepository; fetchedAt: Date } | null> {
+    if (this.retireCache) return this.retireCache;
+    const stored = await this.repository.retireData();
+    return stored ? this.remember(stored.data, stored.fetchedAt) : null;
   }
 
   /** Checks the domain, stores the result, makes the lead and sends the emails. Never throws. */
@@ -296,13 +346,12 @@ export class SecurityChecksService implements OnApplicationBootstrap, OnApplicat
     if (!row || row.status !== 'PENDING') return;
     let done: SecurityCheck;
     try {
-      const { inputs, retireFetchedAt } = await this.withTimeout(async () => {
-        const retire = await this.retire().catch(() => null);
-        return {
-          inputs: await this.gather(row.domain, retire?.repository ?? null),
-          retireFetchedAt: retire?.fetchedAt.toISOString() ?? null,
-        };
-      });
+      // The Retire.js data is refreshed elsewhere (boot, every few hours): not in this budget.
+      const retire = await this.currentRetire().catch(() => null);
+      const inputs = await this.withTimeout((signal) =>
+        this.gather(row.domain, retire?.repository ?? null, signal),
+      );
+      const retireFetchedAt = retire?.fetchedAt.toISOString() ?? null;
       const checks = runChecks(inputs);
       const { score, grade } = gradeChecks(checks);
       const result: StoredResult = {
@@ -330,6 +379,12 @@ export class SecurityChecksService implements OnApplicationBootstrap, OnApplicat
       });
     }
 
+    await this.finish(done);
+  }
+
+  /** The lead and the emails of a check that ended (DONE or FAILED). Never throws. */
+  private async finish(done: SecurityCheck): Promise<void> {
+    const id = done.id;
     const visitor = forEmail(done, toApiLocale(done.locale));
     const team = forEmail(done, 'en');
     let leadId: string | null = null;
@@ -362,11 +417,15 @@ export class SecurityChecksService implements OnApplicationBootstrap, OnApplicat
     this.send(securityTeamEmail(this.config.leadsNotifyTo, team, leadId, siteUrl), 'team');
   }
 
-  /** `work`, or a rejection after the check's time limit. */
-  private withTimeout<T>(work: () => Promise<T>): Promise<T> {
+  /** `work`, or a rejection after the check's time limit, which also aborts what it started. */
+  private withTimeout<T>(work: (signal: AbortSignal) => Promise<T>): Promise<T> {
     return new Promise<T>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error(FAILURE_TIMEOUT)), CHECK_TIMEOUT_MS);
-      work().then(
+      const controller = new AbortController();
+      const timer = setTimeout(() => {
+        controller.abort();
+        reject(new Error(FAILURE_TIMEOUT));
+      }, CHECK_TIMEOUT_MS);
+      work(controller.signal).then(
         (value) => {
           clearTimeout(timer);
           resolve(value);
@@ -389,13 +448,27 @@ export class SecurityChecksService implements OnApplicationBootstrap, OnApplicat
     this.running = true;
     try {
       for (let id = this.queue.shift(); id; id = this.queue.shift()) {
-        await this.run(id).catch((error: unknown) =>
+        // `stale:<id>`: a check lost in a restart long ago, given up and told so.
+        const job = id.startsWith('stale:') ? this.giveUp(id.slice(6)) : this.run(id);
+        await job.catch((error: unknown) =>
           this.logger.error(`Security check ${id} crashed: ${String(error)}`),
         );
       }
     } finally {
       this.running = false;
     }
+  }
+
+  /** A PENDING check from before the last restart: FAILED ("Interrupted") and the visitor told. */
+  async giveUp(id: string): Promise<void> {
+    const row = await this.repository.find(id);
+    if (!row || row.status !== 'PENDING') return;
+    const done = await this.repository.update(id, {
+      status: 'FAILED',
+      error: 'Interrupted',
+      finishedAt: new Date(),
+    });
+    await this.finish(done);
   }
 
   private async cleanup(): Promise<void> {

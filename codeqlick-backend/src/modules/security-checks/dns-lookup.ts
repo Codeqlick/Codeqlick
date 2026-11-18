@@ -34,7 +34,7 @@ async function attempt<T>(lookup: () => Promise<T>): Promise<T | 'empty' | null>
 
 const TYPES = { A: 1, DS: 43 } as const;
 
-function encodeQuery(id: number, name: string, type: number): Buffer {
+export function encodeQuery(id: number, name: string, type: number): Buffer {
   const labels = name.split('.').filter(Boolean);
   const question = Buffer.concat([
     ...labels.map((label) =>
@@ -53,54 +53,95 @@ function encodeQuery(id: number, name: string, type: number): Buffer {
   return Buffer.concat([header, question, opt]);
 }
 
-interface RawAnswer {
+export interface RawAnswer {
   rcode: number;
   ad: boolean;
-  answers: number;
+  /** The record types of the answer section, in order. */
+  answerTypes: number[];
 }
 
-function rawQuery(
+/** The offset after a (possibly compressed) name starting at `offset`, or -1 when malformed. */
+function skipName(message: Buffer, offset: number): number {
+  let cursor = offset;
+  for (let hops = 0; hops < 128 && cursor < message.length; hops += 1) {
+    const length = message[cursor]!;
+    if (length === 0) return cursor + 1;
+    if ((length & 0xc0) === 0xc0) return cursor + 2 <= message.length ? cursor + 2 : -1;
+    cursor += 1 + length;
+  }
+  return -1;
+}
+
+/**
+ * Reads a reply to `query`: the id must match, it must be a response (QR bit) that repeats the
+ * question we sent; null for anything else (short, malformed, another id or question).
+ */
+export function parseResponse(message: Buffer, query: Buffer): RawAnswer | null {
+  if (message.length < 12 || message.readUInt16BE(0) !== query.readUInt16BE(0)) return null;
+  const flags = message.readUInt16BE(2);
+  if ((flags & 0x8000) === 0) return null;
+  if (message.readUInt16BE(4) !== 1) return null;
+  // The question section is identical to the one sent (name, type and class).
+  const questionEnd = skipName(query, 12) + 4;
+  if (questionEnd < 16 || message.length < questionEnd) return null;
+  if (!message.subarray(12, questionEnd).equals(query.subarray(12, questionEnd))) return null;
+  const count = Math.min(message.readUInt16BE(6), 64);
+  const answerTypes: number[] = [];
+  let offset = questionEnd;
+  for (let index = 0; index < count; index += 1) {
+    offset = skipName(message, offset);
+    if (offset < 0 || offset + 10 > message.length) return null;
+    answerTypes.push(message.readUInt16BE(offset));
+    offset += 10 + message.readUInt16BE(offset + 8);
+  }
+  return { rcode: flags & 0xf, ad: (flags & 0x0020) !== 0, answerTypes };
+}
+
+/**
+ * One UDP query. Replies from another address or port, and replies that are not for this query,
+ * are ignored (the query times out instead of trusting them).
+ */
+export function rawQuery(
   server: string,
   name: string,
   type: number,
-  timeoutMs = 4_000,
+  options: { timeoutMs?: number; port?: number; signal?: AbortSignal } = {},
 ): Promise<RawAnswer> {
+  const { timeoutMs = 4_000, port = 53, signal } = options;
   return new Promise((resolve, reject) => {
     const socket = createSocket('udp4');
-    const id = randomInt(0, 0x10000);
-    const timer = setTimeout(() => {
-      socket.close();
-      reject(new Error('DNS timeout'));
-    }, timeoutMs);
-    socket.once('message', (message) => {
+    const query = encodeQuery(randomInt(0, 0x10000), name, type);
+    const done = (error: Error | null, answer?: RawAnswer) => {
       clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
       socket.close();
-      if (message.length < 12 || message.readUInt16BE(0) !== id) {
-        reject(new Error('Bad DNS answer'));
-        return;
-      }
-      const flags = message.readUInt16BE(2);
-      resolve({ rcode: flags & 0xf, ad: (flags & 0x0020) !== 0, answers: message.readUInt16BE(6) });
+      if (error) reject(error);
+      else resolve(answer!);
+    };
+    const onAbort = () => done(new Error('Aborted'));
+    const timer = setTimeout(() => done(new Error('DNS timeout')), timeoutMs);
+    socket.on('message', (message, rinfo) => {
+      if (rinfo.address !== server || rinfo.port !== port) return;
+      const answer = parseResponse(message, query);
+      if (answer) done(null, answer);
     });
-    socket.once('error', (error) => {
-      clearTimeout(timer);
-      socket.close();
-      reject(error);
-    });
-    socket.send(encodeQuery(id, name, type), 53, server, (error) => {
-      if (error) {
-        clearTimeout(timer);
-        socket.close();
-        reject(error);
-      }
+    socket.once('error', (error) => done(error));
+    if (signal?.aborted) {
+      onAbort();
+      return;
+    }
+    signal?.addEventListener('abort', onAbort, { once: true });
+    socket.send(query, port, server, (error) => {
+      if (error) done(error);
     });
   });
 }
 
 const flat = (records: string[][]) => records.map((chunks) => chunks.join(''));
 
-export function createDnsClient(): DnsClient {
+export function createDnsClient(signal?: AbortSignal): DnsClient {
   const resolver = new Resolver({ timeout: 4_000, tries: 2 });
+  signal?.addEventListener('abort', () => resolver.cancel(), { once: true });
   return {
     async txt(name) {
       const found = await attempt(() => resolver.resolveTxt(name));
@@ -134,11 +175,13 @@ export function createDnsClient(): DnsClient {
     },
     async dnssec(name) {
       try {
-        const a = await rawQuery(VALIDATING_RESOLVER, name, TYPES.A);
+        const a = await rawQuery(VALIDATING_RESOLVER, name, TYPES.A, { signal });
         // SERVFAIL on a validating resolver can mean a broken signature: not a clean "no".
         if (a.rcode !== 0) return { ad: null, hasDs: null };
-        const ds = await rawQuery(VALIDATING_RESOLVER, name, TYPES.DS).catch(() => null);
-        return { ad: a.ad, hasDs: ds ? ds.answers > 0 : null };
+        const ds = await rawQuery(VALIDATING_RESOLVER, name, TYPES.DS, { signal }).catch(
+          () => null,
+        );
+        return { ad: a.ad, hasDs: ds ? ds.answerTypes.includes(TYPES.DS) : null };
       } catch {
         return { ad: null, hasDs: null };
       }

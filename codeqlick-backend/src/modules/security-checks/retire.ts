@@ -79,14 +79,57 @@ export const storedRetireSchema = z.object({
   ),
 });
 
-const VERSION = '[0-9][0-9a-z._\\-]+?';
+/** A version number: bounded, so a pattern can't run away on a long file name. */
+const VERSION = '[0-9][0-9a-z._-]{0,30}?';
+/** Longest pattern accepted from the downloaded data. */
+const MAX_PATTERN_CHARS = 200;
+/** A group that holds a quantifier and is itself quantified (`(a+)+`, `(.*)*`): catastrophic. */
+const NESTED_QUANTIFIER = /\([^)]*[+*}][^)]*\)[+*{]/;
+/** A back-reference (`\1`). */
+const BACKREFERENCE = /\\[1-9]/;
+/** Longest script URL and file name matched; longer ones are skipped. */
+export const MAX_URL_CHARS = 512;
+export const MAX_FILENAME_CHARS = 128;
+/** Most distinct scripts matched per page. */
+export const MAX_SCRIPTS = 50;
+/** Hard time limit of one matching run (the caps above should keep it far below). */
+const MATCH_BUDGET_MS = 250;
 
-function pattern(source: string): RegExp | null {
+/** A pattern of the downloaded data as a RegExp, or null when it is unsafe or invalid. */
+export function pattern(source: string): RegExp | null {
+  if (source.length > MAX_PATTERN_CHARS) return null;
+  if (NESTED_QUANTIFIER.test(source) || BACKREFERENCE.test(source)) return null;
   try {
     return new RegExp(source.replaceAll('§§version§§', `(${VERSION})`), 'i');
   } catch {
     return null;
   }
+}
+
+interface CompiledLibrary {
+  library: string;
+  entry: RetireLibrary;
+  filename: RegExp[];
+  uri: RegExp[];
+}
+
+/** Patterns compiled once per loaded repository (the object identity is the key). */
+const compiledRepositories = new WeakMap<RetireRepository, CompiledLibrary[]>();
+
+function compiled(repository: RetireRepository): CompiledLibrary[] {
+  let libraries = compiledRepositories.get(repository);
+  if (!libraries) {
+    const usable = (sources: string[]) =>
+      sources.map(pattern).filter((regex): regex is RegExp => regex !== null);
+    libraries = Object.entries(repository).map(([library, entry]) => ({
+      library,
+      entry,
+      filename: usable(entry.filename),
+      uri: usable(entry.uri),
+    }));
+    compiledRepositories.set(repository, libraries);
+  }
+  return libraries;
 }
 
 /** Numeric parts of a version (`1.8.0-beta` → [1, 8, 0]). */
@@ -122,25 +165,34 @@ export function findVulnerableLibraries(
   repository: RetireRepository,
 ): LibraryFinding[] {
   const found = new Map<string, LibraryFinding>();
-  for (const url of scriptUrls) {
+  const libraries = compiled(repository);
+  const deadline = Date.now() + MATCH_BUDGET_MS;
+  const urls = [...new Set(scriptUrls)]
+    .filter((url) => url.length <= MAX_URL_CHARS)
+    .slice(0, MAX_SCRIPTS);
+  for (const url of urls) {
     let name = url;
     try {
       name = new URL(url, 'https://x.invalid/').pathname.split('/').pop() ?? url;
     } catch {
       // The raw text is matched.
     }
-    for (const [library, entry] of Object.entries(repository)) {
-      const candidates = [
-        ...entry.filename.map((source) => [pattern(source), name] as const),
-        ...entry.uri.map((source) => [pattern(source), url] as const),
-      ];
+    if (name.length > MAX_FILENAME_CHARS) continue;
+    for (const { library, entry, filename, uri } of libraries) {
+      if (Date.now() > deadline) return [...found.values()];
       let version: string | null = null;
-      for (const [regex, text] of candidates) {
-        const match = regex?.exec(text);
-        if (match?.[1]) {
-          version = match[1].replace(/[.\-_]+$/, '');
-          break;
+      for (const [regexes, text] of [
+        [filename, name],
+        [uri, url],
+      ] as const) {
+        for (const regex of regexes) {
+          const match = regex.exec(text);
+          if (match?.[1]) {
+            version = match[1].replace(/[.\-_]+$/, '');
+            break;
+          }
         }
+        if (version) break;
       }
       if (!version) continue;
       const hits = entry.vulnerabilities.filter(

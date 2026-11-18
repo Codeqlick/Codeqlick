@@ -441,7 +441,8 @@
       "mobile": "Una app móvil",
       "design": "Diseño",
       "support": "Mantenimiento o mejoras",
-      "not-sure": "Aún no lo sé"
+      "not-sure": "Aún no lo sé",
+      "security": "Seguridad"
     }
   },
   "Validation": {

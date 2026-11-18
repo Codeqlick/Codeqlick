@@ -16,11 +16,12 @@ export interface Probes {
   dns: DnsClient;
 }
 
-export function networkProbes(): Probes {
+/** The real network; aborting `signal` stops every request, handshake and lookup under way. */
+export function networkProbes(signal?: AbortSignal): Probes {
   return {
-    fetch: (url, options) => safeFetch(url, { userAgent: USER_AGENT, ...options }),
-    tls: (domain) => probeTls(domain),
-    dns: createDnsClient(),
+    fetch: (url, options) => safeFetch(url, { userAgent: USER_AGENT, signal, ...options }),
+    tls: (domain) => probeTls(domain, undefined, signal),
+    dns: createDnsClient(signal),
   };
 }
 

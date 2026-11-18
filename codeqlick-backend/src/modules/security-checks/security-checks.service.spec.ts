@@ -102,6 +102,9 @@ describe('SecurityChecksService', () => {
       findRecent: vi.fn().mockResolvedValue(null),
       countByEmailSince: vi.fn().mockResolvedValue(0),
       countByDomainSince: vi.fn().mockResolvedValue(0),
+      countSince: vi.fn().mockResolvedValue(0),
+      pendingBefore: vi.fn().mockResolvedValue([]),
+      pendingSince: vi.fn().mockResolvedValue([]),
       update: vi.fn((_id: string, data: Partial<SecurityCheck>) =>
         Promise.resolve(row({ ...data })),
       ),

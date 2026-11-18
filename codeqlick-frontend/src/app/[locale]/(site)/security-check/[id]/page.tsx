@@ -9,7 +9,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { Link } from '@/i18n/navigation';
 import { isNotFound } from '@/lib/api/errors';
 import {
-  getSecurityCheck,
+  getSecurityCheckOrBusy,
   type SecurityCheckReport,
   type SecurityCheckStatus,
 } from '@/lib/api/security-checks';
@@ -44,12 +44,23 @@ export default async function SecurityCheckReportPage({ params }: PageProps) {
 
   let report: SecurityCheckReport;
   try {
-    report = await getSecurityCheck(id, locale);
+    // Rate-limited (429): show it as still running and ask again.
+    report = (await getSecurityCheckOrBusy(id, locale)) ?? {
+      id,
+      domain: '',
+      status: 'PENDING',
+      score: null,
+      grade: null,
+      failure: null,
+      groups: [],
+      createdAt: new Date().toISOString(),
+      finishedAt: null,
+    };
   } catch (error) {
     if (isNotFound(error)) notFound();
     throw error;
   }
-  const host = report.domain;
+  const host = report.domain || '…';
 
   return (
     <section className={`wrap ${styles.page}`}>
@@ -59,7 +70,7 @@ export default async function SecurityCheckReportPage({ params }: PageProps) {
 
       {report.status === 'PENDING' ? (
         <>
-          <AutoRefresh seconds={3} />
+          <AutoRefresh seconds={5} />
           <p className="eyebrow">{t('eyebrow')}</p>
           <h1 className={styles.reportTitle}>{t('report.pendingTitle', { host })}</h1>
           <output className={styles.waiting}>

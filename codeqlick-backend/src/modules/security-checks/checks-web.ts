@@ -1,5 +1,6 @@
 import type { IncomingHttpHeaders } from 'node:http';
 import { findVulnerableLibraries } from './retire.js';
+import { HANDSHAKE_FAILED } from './security-check-inputs.js';
 import type { SecurityInputs, WebInputs } from './security-check-inputs.js';
 import type { CheckResult, CheckStatus, CheckValue } from './security-check-types.js';
 import type { CheckId } from './security-check-types.js';
@@ -37,17 +38,83 @@ export function registrableDomain(host: string): string {
 
 type Attributes = Record<string, string>;
 
-/** The attributes of every `<name …>` tag of `html`. */
-export function tagsOf(html: string, name: string): Attributes[] {
-  const tags: Attributes[] = [];
-  const open = new RegExp(`<${name}(?=[\\s/>])([^>]*)>`, 'gi');
-  for (const match of html.matchAll(open)) {
-    const attributes: Attributes = {};
-    const pair = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;
-    for (const attribute of (match[1] ?? '').matchAll(pair)) {
-      attributes[attribute[1]!.toLowerCase()] = attribute[2] ?? attribute[3] ?? attribute[4] ?? '';
+/** Most of a page analysed: the rest is ignored (bounded time on hostile input). */
+export const MAX_HTML_CHARS = 512 * 1024;
+/** Most characters of one tag's attributes read. */
+const MAX_TAG_CHARS = 4 * 1024;
+/** Most tags of one name read. */
+const MAX_TAGS = 2_000;
+
+const isSpace = (code: number): boolean =>
+  code === 32 || code === 9 || code === 10 || code === 12 || code === 13;
+const isNameStart = (code: number): boolean =>
+  (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || code === 95 || code === 58;
+const isNameChar = (code: number): boolean =>
+  isNameStart(code) || (code >= 48 && code <= 57) || code === 45 || code === 46;
+
+/** The attributes in the text between `<name` and `>`, read in one linear pass. */
+function parseAttributes(text: string): Attributes {
+  const attributes: Attributes = {};
+  const { length } = text;
+  let index = 0;
+  while (index < length) {
+    if (!isNameStart(text.charCodeAt(index))) {
+      index += 1;
+      continue;
     }
-    tags.push(attributes);
+    const nameStart = index;
+    while (index < length && isNameChar(text.charCodeAt(index))) index += 1;
+    const name = text.slice(nameStart, index).toLowerCase();
+    let cursor = index;
+    while (cursor < length && isSpace(text.charCodeAt(cursor))) cursor += 1;
+    let value = '';
+    if (text[cursor] === '=') {
+      cursor += 1;
+      while (cursor < length && isSpace(text.charCodeAt(cursor))) cursor += 1;
+      const quote = text[cursor];
+      if (quote === '"' || quote === "'") {
+        const close = text.indexOf(quote, cursor + 1);
+        const stop = close === -1 ? length : close;
+        value = text.slice(cursor + 1, stop);
+        index = Math.min(stop + 1, length);
+      } else {
+        const valueStart = cursor;
+        while (cursor < length && !isSpace(text.charCodeAt(cursor)) && text[cursor] !== '>') {
+          cursor += 1;
+        }
+        value = text.slice(valueStart, cursor);
+        index = cursor;
+      }
+    }
+    if (!(name in attributes)) attributes[name] = value;
+  }
+  return attributes;
+}
+
+/**
+ * The attributes of every `<name …>` tag of `html`. Linear in the size of the page: it looks for
+ * `<name`, then for the next `>`, and goes on after it (no backtracking, so hostile pages can't
+ * freeze the API); only the first 512 KB are read, 4 KB per tag and 2 000 tags per name.
+ */
+export function tagsOf(html: string, name: string): Attributes[] {
+  const lower = (html.length > MAX_HTML_CHARS ? html.slice(0, MAX_HTML_CHARS) : html).toLowerCase();
+  const source = html.length > MAX_HTML_CHARS ? html.slice(0, MAX_HTML_CHARS) : html;
+  const needle = `<${name}`;
+  const tags: Attributes[] = [];
+  let position = 0;
+  while (tags.length < MAX_TAGS) {
+    const found = lower.indexOf(needle, position);
+    if (found === -1) break;
+    const after = found + needle.length;
+    const boundary = lower.charCodeAt(after);
+    if (!(isSpace(boundary) || boundary === 47 || boundary === 62)) {
+      position = after;
+      continue;
+    }
+    const end = lower.indexOf('>', after);
+    if (end === -1) break;
+    tags.push(parseAttributes(source.slice(after, Math.min(end, after + MAX_TAG_CHARS))));
+    position = end + 1;
   }
   return tags;
 }
@@ -99,8 +166,15 @@ function httpsChecks(input: SecurityInputs): CheckResult[] {
     );
   }
 
-  // Certificate
-  if (!tls) {
+  // Certificate. When only the default handshake failed (the legacy ones may have worked) but the
+  // page loaded over https with a trusted certificate, the page is the tie-breaker: no verdict.
+  const handshakeOnlyFailed =
+    tls !== null &&
+    tls.authError === HANDSHAKE_FAILED &&
+    page !== null &&
+    !web.certificateFailed &&
+    new URL(page.url).protocol === 'https:';
+  if (!tls || handshakeOnlyFailed) {
     // No handshake details, but a page that loaded with a trusted certificate is still a pass.
     const reason = answered ? (web.certificateFailed ? 'invalid' : 'unknown') : 'no-website';
     const trusted = page !== null && !web.certificateFailed;

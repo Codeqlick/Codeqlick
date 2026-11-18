@@ -78,8 +78,13 @@ type LookupCallback = (
  * DNS lookup for the request itself: every address the name resolves to must be public, and the
  * connection uses one of them, so no second lookup can point it somewhere else.
  */
-function safeLookup(hostname: string, options: { all?: boolean }, callback: LookupCallback): void {
-  dnsLookup(hostname, { all: true }, (error, addresses) => {
+function safeLookup(
+  hostname: string,
+  options: { all?: boolean },
+  callback: LookupCallback,
+  resolver: typeof dnsLookup = dnsLookup,
+): void {
+  resolver(hostname, { all: true }, (error, addresses) => {
     if (error) return callback(error, '');
     if (addresses.length === 0 || !addresses.every((entry) => isPublicAddress(entry.address))) {
       return callback(new UnsafeUrlError('The name points to a private address'), '');
@@ -93,12 +98,20 @@ function safeLookup(hostname: string, options: { all?: boolean }, callback: Look
  * The public address a connection to `hostname` may use (the Security check's TLS handshakes,
  * architecture 4.19): every address the name resolves to must be public, the first is returned.
  */
-export function resolvePublicAddress(hostname: string): Promise<string> {
+export function resolvePublicAddress(
+  hostname: string,
+  resolver: typeof dnsLookup = dnsLookup,
+): Promise<string> {
   return new Promise((resolve, reject) => {
-    safeLookup(hostname, {}, (error, address) => {
-      if (error) return reject(error);
-      resolve(typeof address === 'string' ? address : address[0]!.address);
-    });
+    safeLookup(
+      hostname,
+      {},
+      (error, address) => {
+        if (error) return reject(error);
+        resolve(typeof address === 'string' ? address : address[0]!.address);
+      },
+      resolver,
+    );
   });
 }
 
@@ -112,6 +125,8 @@ export interface FetchOptions {
   /** `HEAD` asks for the headers only (the broken links check, architecture 4.6). */
   method?: 'GET' | 'HEAD';
   userAgent?: string;
+  /** Aborting it stops the request (a check that ran out of time). */
+  signal?: AbortSignal;
 }
 
 export interface FetchedPage {
@@ -155,11 +170,9 @@ interface Outgoing {
   headers: Record<string, string>;
 }
 
-function once(
-  url: URL,
-  options: Required<FetchOptions>,
-  outgoing?: Outgoing,
-): Promise<RawResponse> {
+type Settings = Required<Omit<FetchOptions, 'signal'>> & { signal?: AbortSignal };
+
+function once(url: URL, options: Settings, outgoing?: Outgoing): Promise<RawResponse> {
   assertCheckableUrl(url);
   const send = url.protocol === 'https:' ? httpsRequest : httpRequest;
   return new Promise((resolve, reject) => {
@@ -167,8 +180,10 @@ function once(
     const deadline = setTimeout(() => {
       request.destroy(Object.assign(new Error('Timed out'), { code: 'ETIMEDOUT' }));
     }, options.timeoutMs);
+    const abort = () => request.destroy(Object.assign(new Error('Aborted'), { code: 'ABORT_ERR' }));
     const fail = (error: Error) => {
       clearTimeout(deadline);
+      options.signal?.removeEventListener('abort', abort);
       reject(error);
     };
     const request = send(
@@ -205,6 +220,7 @@ function once(
         const stream = options.method === 'HEAD' ? response : decoded(response);
         const finish = () => {
           clearTimeout(deadline);
+          options.signal?.removeEventListener('abort', abort);
           resolve({
             status: response.statusCode ?? 0,
             headers: response.headers,
@@ -233,6 +249,8 @@ function once(
       },
     );
     request.on('error', fail);
+    if (options.signal?.aborted) abort();
+    else options.signal?.addEventListener('abort', abort, { once: true });
     request.end(outgoing?.body);
   });
 }
@@ -243,17 +261,19 @@ function once(
  * `maxRedirects` (0: the first answer is returned as is), with the same method.
  */
 export async function safeFetch(input: string, options: FetchOptions = {}): Promise<FetchedPage> {
-  const settings: Required<FetchOptions> = {
+  const settings: Settings = {
     timeoutMs: options.timeoutMs ?? 15_000,
     maxBytes: options.maxBytes ?? 3 * 1024 * 1024,
     maxRedirects: options.maxRedirects ?? 5,
     insecure: options.insecure ?? false,
     method: options.method ?? 'GET',
     userAgent: options.userAgent ?? USER_AGENT,
+    signal: options.signal,
   };
   let url = new URL(input);
   const redirects: string[] = [];
   for (;;) {
+    if (settings.signal?.aborted) throw new Error('Aborted');
     const response = await once(url, settings);
     const location = response.headers.location;
     if (response.status >= 300 && response.status < 400 && location) {

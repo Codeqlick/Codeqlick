@@ -22,10 +22,10 @@ export class SecurityChecksRepository {
     return this.prisma.securityCheck.update({ where: { id }, data });
   }
 
-  /** The email's latest check of `domain` since `since`. */
+  /** The email's latest check of `domain` since `since` (a failed one is not reused). */
   findRecent(email: string, domain: string, since: Date): Promise<SecurityCheck | null> {
     return this.prisma.securityCheck.findFirst({
-      where: { email, domain, createdAt: { gte: since } },
+      where: { email, domain, status: { not: 'FAILED' }, createdAt: { gte: since } },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -34,8 +34,18 @@ export class SecurityChecksRepository {
     return this.prisma.securityCheck.count({ where: { email, createdAt: { gte: since } } });
   }
 
-  countByDomainSince(domain: string, since: Date): Promise<number> {
-    return this.prisma.securityCheck.count({ where: { domain, createdAt: { gte: since } } });
+  /** Checks of the registrable domain or any of its subdomains. */
+  countByDomainSince(registrable: string, since: Date): Promise<number> {
+    return this.prisma.securityCheck.count({
+      where: {
+        OR: [{ domain: registrable }, { domain: { endsWith: `.${registrable}` } }],
+        createdAt: { gte: since },
+      },
+    });
+  }
+
+  countSince(since: Date): Promise<number> {
+    return this.prisma.securityCheck.count({ where: { createdAt: { gte: since } } });
   }
 
   pendingSince(since: Date): Promise<Array<{ id: string }>> {
@@ -46,13 +56,13 @@ export class SecurityChecksRepository {
     });
   }
 
-  /** PENDING checks from before `before` (the run was lost in a restart) become FAILED. */
-  async failStale(before: Date): Promise<number> {
-    const { count } = await this.prisma.securityCheck.updateMany({
+  /** PENDING checks from before `before` (the run was lost in a restart). */
+  pendingBefore(before: Date): Promise<Array<{ id: string }>> {
+    return this.prisma.securityCheck.findMany({
       where: { status: 'PENDING', createdAt: { lt: before } },
-      data: { status: 'FAILED', error: 'Interrupted', finishedAt: new Date() },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
     });
-    return count;
   }
 
   async deleteOlderThan(before: Date): Promise<number> {

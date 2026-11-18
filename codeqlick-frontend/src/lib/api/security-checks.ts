@@ -1,5 +1,6 @@
 import 'server-only';
 import { apiFetch } from './client';
+import { isApiError } from './errors';
 import type { Paginated } from './types';
 
 export type SecurityCheckGroupKey = 'https' | 'headers' | 'page' | 'dns-email' | 'security-txt';
@@ -66,9 +67,26 @@ export function createSecurityCheck(input: {
   });
 }
 
+/**
+ * A report, or null when the API is rate-limiting this reader (429): the page then keeps showing
+ * "running" and asks again, instead of an error.
+ */
+export async function getSecurityCheckOrBusy(
+  id: string,
+  locale: 'es' | 'en',
+): Promise<SecurityCheckReport | null> {
+  try {
+    return await getSecurityCheck(id, locale);
+  } catch (error) {
+    if (isApiError(error) && error.status === 429) return null;
+    throw error;
+  }
+}
+
 export function getSecurityCheck(id: string, locale: 'es' | 'en') {
   return apiFetch<SecurityCheckReport>(`/security-checks/${encodeURIComponent(id)}`, {
     query: { locale },
+    forwardClientIp: true,
   });
 }
 

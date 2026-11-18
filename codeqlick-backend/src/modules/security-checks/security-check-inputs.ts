@@ -1,6 +1,9 @@
 import type { IncomingHttpHeaders } from 'node:http';
 import type { RetireRepository } from './retire.js';
 
+/** `authError` when the default handshake itself failed. */
+export const HANDSHAKE_FAILED = 'handshake-failed';
+
 /** What the TLS handshakes found (architecture 4.19); null fields: not known. */
 export interface TlsInputs {
   /** The default handshake: `TLSv1.3`, `TLSv1.2`, … */

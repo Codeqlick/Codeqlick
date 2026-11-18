@@ -22,14 +22,21 @@ export function reportUrl(siteUrl: string, check: Pick<CheckForEmail, 'id' | 'lo
   return `${siteUrl}/${check.locale}/security-check/${check.id}`;
 }
 
-const greetingOf = (check: CheckForEmail): string =>
-  check.locale === 'es'
-    ? check.name
-      ? `Hola ${check.name}:`
-      : 'Hola:'
-    : check.name
-      ? `Hi ${check.name},`
-      : 'Hi,';
+/** The visitor's name for the greeting: letters and spaces only, at most 40 characters. */
+export function greetingName(name: string | null): string {
+  return (name ?? '')
+    .replace(/[^\p{L} ]/gu, ' ')
+    .replace(/ +/g, ' ')
+    .trim()
+    .slice(0, 40)
+    .trim();
+}
+
+const greetingOf = (check: CheckForEmail): string => {
+  const name = greetingName(check.name);
+  if (check.locale === 'es') return name ? `Hola ${name}:` : 'Hola:';
+  return name ? `Hi ${name},` : 'Hi,';
+};
 
 /** The report for the person who asked, in their language: grade, main findings, the full report. */
 export function securityReportEmail(check: CheckForEmail, siteUrl: string): MailMessage {

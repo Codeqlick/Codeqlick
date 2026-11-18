@@ -22,12 +22,8 @@ import {
 } from '@/lib/api/types';
 import { Link } from '@/i18n/navigation';
 import { formatDateTime } from '@/lib/format';
-import {
-  BUDGET_VALUES,
-  PROJECT_TYPES,
-  type BudgetValue,
-  type ProjectType,
-} from '@/lib/schemas/contact';
+import { LEAD_PROJECT_TYPES, type LeadProjectType } from '@/lib/contact-options';
+import { BUDGET_VALUES, type BudgetValue } from '@/lib/schemas/contact';
 import {
   convertLeadAction,
   deleteLeadAction,
@@ -82,8 +78,8 @@ export default async function AdminLeadPage({
     throw error;
   }
 
-  const knownType = PROJECT_TYPES.find((value) => value === lead.projectType) as
-    ProjectType | undefined;
+  const knownType = LEAD_PROJECT_TYPES.find((value) => value === lead.projectType) as
+    LeadProjectType | undefined;
   const knownBudget = BUDGET_VALUES.find((value) => value === lead.budget) as
     BudgetValue | undefined;
 
