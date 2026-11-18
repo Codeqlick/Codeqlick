@@ -58,7 +58,7 @@
 .live {
   font-family: var(--font-family-mono);
   font-size: 0.8rem;
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   white-space: nowrap;
 }
 

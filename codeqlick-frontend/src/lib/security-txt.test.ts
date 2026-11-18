@@ -4,7 +4,7 @@ import { requestedUrl, securityTxt } from './security-txt';
 describe('securityTxt', () => {
   const text = securityTxt({
     contact: 'hello@codeqlick.com',
-    canonical: 'https://cruising.codeqlick.com/.well-known/security.txt',
+    canonical: 'https://meetings.codeqlick.com/.well-known/security.txt',
     policy: 'https://codeqlick.com/en/security',
     now: new Date('2026-11-17T10:00:00.123Z'),
   });
@@ -20,7 +20,7 @@ describe('securityTxt', () => {
       Contact: 'mailto:hello@codeqlick.com',
       Expires: '2027-11-16T10:00:00Z',
       'Preferred-Languages': 'en, es',
-      Canonical: 'https://cruising.codeqlick.com/.well-known/security.txt',
+      Canonical: 'https://meetings.codeqlick.com/.well-known/security.txt',
       Policy: 'https://codeqlick.com/en/security',
     });
     expect(text.endsWith('\n')).toBe(true);
@@ -38,11 +38,11 @@ describe('requestedUrl', () => {
   it('uses the forwarded host and protocol', () => {
     const headers = new Headers({
       host: 'localhost:3000',
-      'x-forwarded-host': 'videochat.codeqlick.com',
+      'x-forwarded-host': 'citas.codeqlick.com',
       'x-forwarded-proto': 'https',
     });
     expect(requestedUrl(headers, '/.well-known/security.txt')).toBe(
-      'https://videochat.codeqlick.com/.well-known/security.txt',
+      'https://citas.codeqlick.com/.well-known/security.txt',
     );
   });
 

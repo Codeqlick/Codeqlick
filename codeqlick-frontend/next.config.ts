@@ -1,6 +1,6 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
-import { CALL_APPS, LOCATING_APPS, securityHeaders } from './src/lib/security-headers';
+import { CALL_APPS, securityHeaders } from './src/lib/security-headers';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -10,11 +10,11 @@ const production = process.env.NODE_ENV === 'production';
  * Every path but the drafts' previews (/site-draft): sandboxed, their origin is opaque and they
  * keep their own headers. The Content Security Policy is the proxy's (it needs a nonce per
  * response, architecture 6.4); these are the rest, the same on every host but the
- * Permissions-Policy of the apps that make calls or locate the device.
+ * Permissions-Policy of the apps that make calls.
  */
 const PAGES = '/:path((?!site-draft/).*)';
-/** Apps whose host gets its own Permissions-Policy: videochat.codeqlick.com, cruising.localhost… */
-const OWN_POLICY_APPS = [...CALL_APPS, ...LOCATING_APPS];
+/** Apps whose host gets its own Permissions-Policy: meetings.codeqlick.com, meetings.localhost… */
+const OWN_POLICY_APPS = CALL_APPS;
 const appHost = (app: string) => `${app}\\..+`;
 
 const nextConfig: NextConfig = {
@@ -50,7 +50,7 @@ const nextConfig: NextConfig = {
         headers: securityHeaders(null, production),
       },
       // Every page of a calling app's host may use the camera (navigating inside the app keeps the
-      // policy of the first page loaded), and only Cruising's may locate the device.
+      // policy of the first page loaded).
       ...OWN_POLICY_APPS.map((app) => ({
         source: PAGES,
         has: [{ type: 'host' as const, value: appHost(app) }],

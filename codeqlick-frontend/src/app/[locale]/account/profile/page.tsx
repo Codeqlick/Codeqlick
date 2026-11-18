@@ -4,7 +4,7 @@ import { ActionForm, FormSelect } from '@/components/app/ActionForm';
 import { PageHeader } from '@/components/app/PageHeader';
 import styles from '@/components/app/app.module.css';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { resolveCruisingLocale } from '@/i18n/locale';
+import { resolveLocale } from '@/i18n/locale';
 import { getPreferences } from '@/lib/api/auth';
 import { requireUser } from '@/lib/auth/session';
 import { emailLanguageAction } from '../actions';
@@ -15,7 +15,7 @@ export default async function AccountProfilePage({
 }: {
   params: Promise<{ locale: string }>;
 }) {
-  const locale = resolveCruisingLocale((await params).locale);
+  const locale = resolveLocale((await params).locale);
   const user = await requireUser(locale);
   const t = await getTranslations({ locale, namespace: 'AccountSite' });
   const tc = await getTranslations({ locale, namespace: 'Common' });

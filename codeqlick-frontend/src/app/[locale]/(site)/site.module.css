@@ -87,7 +87,7 @@
 }
 
 .itemTitle a:hover {
-  color: var(--color-brand);
+  color: var(--color-fuchsia);
 }
 
 .meta {
@@ -105,7 +105,7 @@
   padding-top: var(--space-2);
   font-weight: 600;
   text-decoration: none;
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .more::after {
@@ -136,7 +136,7 @@ li:hover > .more::after {
   font-weight: 600;
   text-decoration: none;
   margin-bottom: var(--space-4);
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .back:hover {
@@ -264,7 +264,7 @@ li:hover > .more::after {
       left: 0;
       right: 0;
       height: 3px;
-      background: var(--color-brand);
+      background: var(--color-fuchsia);
       transform-origin: 0 50%;
       animation: reading-progress linear both;
       animation-timeline: scroll(root);

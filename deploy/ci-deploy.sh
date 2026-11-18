@@ -16,7 +16,7 @@
 # are written to .env before the release, so the new containers start with them.
 set -eu
 
-SETTINGS="TURNSTILE_SITE_KEY TURNSTILE_SECRET_KEY TURNSTILE_SITE_KEY_NEOQLICK TURNSTILE_SECRET_KEY_NEOQLICK"
+SETTINGS="TURNSTILE_SITE_KEY TURNSTILE_SECRET_KEY"
 
 cd "$(dirname "$0")/.."
 

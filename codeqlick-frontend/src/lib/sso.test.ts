@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   callbackUrl,
   clientHost,
@@ -17,9 +17,6 @@ import {
 } from './sso';
 
 describe('single sign-on helpers (decision 108)', () => {
-  beforeEach(() => vi.stubEnv('NEOQLICK_URL', 'https://neoqlick.com'));
-  afterEach(() => vi.unstubAllEnvs());
-
   it('computes the S256 challenge of RFC 7636', async () => {
     expect(await pkceChallenge('dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk')).toBe(
       'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM',
@@ -63,15 +60,14 @@ describe('single sign-on helpers (decision 108)', () => {
 
   it('knows each host’s client and the clients’ fixed callbacks', () => {
     expect(ssoClientForHost('codeqlick.com')).toBe('site');
-    expect(ssoClientForHost('cruising.neoqlick.com')).toBe('cruising');
+    expect(ssoClientForHost('meetings.codeqlick.com')).toBe('meetings');
     expect(ssoClientForHost('account.codeqlick.com')).toBeNull();
     expect(clientHost('site', 'account.codeqlick.com')).toBe('codeqlick.com');
-    expect(clientHost('swipe', 'account.neoqlick.com')).toBe('swipe.neoqlick.com');
-    expect(callbackUrl('cruising', 'account.neoqlick.com', 'https:', 'fr')).toBe(
-      'https://cruising.neoqlick.com/fr/auth/callback',
+    expect(clientHost('citas', 'account.codeqlick.com')).toBe('citas.codeqlick.com');
+    expect(callbackUrl('meetings', 'account.codeqlick.com', 'https:', 'es')).toBe(
+      'https://meetings.codeqlick.com/es/auth/callback',
     );
-    // Only Cruising speaks French: the website's callback is in English.
-    expect(callbackUrl('site', 'account.codeqlick.com', 'https:', 'fr')).toBe(
+    expect(callbackUrl('site', 'account.codeqlick.com', 'https:', 'en')).toBe(
       'https://codeqlick.com/en/auth/callback',
     );
   });
@@ -105,24 +101,24 @@ describe('single sign-on helpers (decision 108)', () => {
 
   it('starts a flow: the authorize URL carries the challenge, the cookie the verifier', async () => {
     const flow = await startSso({
-      client: 'cruising',
-      host: 'cruising.neoqlick.com',
+      client: 'meetings',
+      host: 'meetings.codeqlick.com',
       protocol: 'https:',
-      locale: 'de',
-      next: '/de/cruising/me',
+      locale: 'es',
+      next: '/es/meetings/rooms',
     });
     const url = new URL(flow.url);
-    expect(url.origin).toBe('https://account.neoqlick.com');
-    expect(url.pathname).toBe('/de/authorize');
+    expect(url.origin).toBe('https://account.codeqlick.com');
+    expect(url.pathname).toBe('/es/authorize');
     const state = url.searchParams.get('state')!;
     expect(flow.cookie.name).toBe(ssoCookieName(state));
     const saved = decodeSsoCookie(flow.cookie.value)!;
-    expect(saved).toMatchObject({ state, returnTo: '/de/cruising/me' });
+    expect(saved).toMatchObject({ state, returnTo: '/es/meetings/rooms' });
     expect(url.searchParams.get('code_challenge')).toBe(await pkceChallenge(saved.verifier));
     // The verifier and the way back never leave the client host.
     expect(flow.url).not.toContain(saved.verifier);
-    expect(flow.url).not.toContain('cruising%2Fme');
-    expect(flow.url).not.toContain('/de/cruising/me');
+    expect(flow.url).not.toContain('meetings%2Frooms');
+    expect(flow.url).not.toContain('/es/meetings/rooms');
 
     const open = await startSso({
       client: 'site',
@@ -148,29 +144,29 @@ describe('single sign-on helpers (decision 108)', () => {
     expect(landingPath('site', 'es', '/es/portal/support', 'CLIENT')).toBe('/es/portal/support');
     expect(landingPath('site', 'es', '', 'ADMIN')).toBe('/es/admin');
     expect(landingPath('site', 'es', '', 'CLIENT')).toBe('/es/portal');
-    expect(landingPath('cruising', 'fr', '/fr/cruising/me', 'CLIENT')).toBe('/fr/me');
-    expect(landingPath('videochat', 'en', '//evil.example', 'CLIENT')).toBe('/en');
+    expect(landingPath('meetings', 'es', '/es/meetings/rooms', 'CLIENT')).toBe('/es/rooms');
+    expect(landingPath('cloud', 'en', '//evil.example', 'CLIENT')).toBe('/en');
   });
 
   it('routes the sign-in addresses of a client host', () => {
-    const route = (path: string, host = 'cruising.neoqlick.com') => {
+    const route = (path: string, host = 'meetings.codeqlick.com') => {
       const url = new URL(`https://${host}${path}`);
       return routeSignIn(url.pathname, url.searchParams, host, 'https:');
     };
-    expect(route('/fr/login?next=/fr/me')).toEqual({
+    expect(route('/es/login?next=/es/rooms')).toEqual({
       action: 'start',
-      locale: 'fr',
-      next: '/fr/me',
+      locale: 'es',
+      next: '/es/rooms',
       register: false,
     });
     expect(route('/en/register')).toMatchObject({ action: 'start', register: true });
     expect(route('/en/reset-password?token=abc')).toEqual({
       action: 'redirect',
-      to: 'https://account.neoqlick.com/en/reset-password?token=abc',
+      to: 'https://account.codeqlick.com/en/reset-password?token=abc',
     });
     expect(route('/en/register/confirm?token=abc')).toEqual({
       action: 'redirect',
-      to: 'https://account.neoqlick.com/en/register/confirm?token=abc&app=cruising',
+      to: 'https://account.codeqlick.com/en/register/confirm?token=abc&app=meetings',
     });
     expect(route('/es/register?invitation=xyz', 'codeqlick.com')).toEqual({
       action: 'redirect',
@@ -185,7 +181,7 @@ describe('single sign-on helpers (decision 108)', () => {
     expect(route('/es/login/verify', 'codeqlick.com')).toMatchObject({
       to: 'https://account.codeqlick.com/es/login',
     });
-    expect(route('/en/map')).toEqual({ action: 'pass' });
+    expect(route('/en/rooms')).toEqual({ action: 'pass' });
     // The account host serves them itself.
     expect(route('/en/login', 'account.codeqlick.com')).toEqual({ action: 'pass' });
   });

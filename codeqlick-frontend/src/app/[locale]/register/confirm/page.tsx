@@ -7,10 +7,9 @@ import { Alert } from '@/components/ui/Alert';
 import { Card } from '@/components/ui/Card';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
-import { resolveCruisingLocale } from '@/i18n/locale';
+import { resolveLocale } from '@/i18n/locale';
 import { firstParam } from '@/lib/format';
-import { requestBrand } from '@/lib/request-brand';
-import { appsOfBrand } from '@/lib/webapps';
+import { WEBAPPS } from '@/lib/webapps';
 import { pageMetadata } from '@/lib/seo';
 import { confirmSignupAction } from '../actions';
 
@@ -20,7 +19,7 @@ type PageProps = {
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const locale = resolveCruisingLocale((await params).locale);
+  const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Register' });
   return pageMetadata({
     locale,
@@ -35,12 +34,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  * opens links doesn't confirm the account for them.
  */
 export default async function ConfirmSignupPage({ params, searchParams }: PageProps) {
-  const locale = resolveCruisingLocale((await params).locale);
+  const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Register' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const query = await searchParams;
   const token = firstParam(query.token);
-  const app = appsOfBrand(await requestBrand()).find((name) => name === firstParam(query.app));
+  const app = WEBAPPS.find((name) => name === firstParam(query.app));
 
   return (
     <main className={styles.login}>

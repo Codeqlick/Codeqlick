@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { cruisingLocaleOrDefault } from '@/i18n/locale';
+import { localeOrDefault } from '@/i18n/locale';
 import { login, passkeyLogin, passkeyLoginOptions } from '@/lib/api/auth';
 import { isApiError, isCaptchaError } from '@/lib/api/errors';
 import type { AuthTokens, LoginResult, PasskeyLoginOptions } from '@/lib/api/types';
@@ -18,7 +18,7 @@ import { loginSchema } from '@/lib/schemas/auth';
 
 /** POST /auth/login, store the tokens in httpOnly cookies and go to `next` or the role's home. */
 export async function loginAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  const locale = cruisingLocaleOrDefault(formData.get('locale'));
+  const locale = localeOrDefault(formData.get('locale'));
   const t = await getTranslations({ locale, namespace: 'Login' });
   const email = formString(formData, 'email');
 
@@ -80,7 +80,7 @@ export async function passkeyLoginAction(
   challengeId: string,
   response: unknown,
 ): Promise<{ error: string }> {
-  const locale = cruisingLocaleOrDefault(rawLocale);
+  const locale = localeOrDefault(rawLocale);
   const t = await getTranslations({ locale, namespace: 'Login' });
   if (typeof challengeId !== 'string' || !UUID.test(challengeId) || !isWebAuthnResponse(response)) {
     return { error: t('passkeyFailed') };

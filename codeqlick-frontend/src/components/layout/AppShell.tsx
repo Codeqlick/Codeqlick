@@ -17,7 +17,6 @@ export async function AppShell({
   areaLabel,
   items,
   search,
-  locales,
   children,
 }: {
   locale: AppLocale;
@@ -27,7 +26,6 @@ export async function AppShell({
   /** The admin search's button (the admin layout gives it; the portal has none). */
   search?: ReactNode;
   /** The languages the switcher offers (the account site's six, decision 108; else EN and ES). */
-  locales?: readonly AppLocale[];
   children: ReactNode;
 }) {
   const t = await getTranslations({ locale, namespace: 'App' });
@@ -51,7 +49,7 @@ export async function AppShell({
             {t('signedInAs', { name: user.name })}
           </span>
           <div className={styles.userActions}>
-            <LocaleSwitcher locales={locales} />
+            <LocaleSwitcher />
             <form action={logoutAction}>
               <input type="hidden" name="locale" value={locale} />
               <SubmitButton variant="outline" size="sm">

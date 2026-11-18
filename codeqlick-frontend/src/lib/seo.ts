@@ -1,9 +1,14 @@
 import 'server-only';
 import type { Metadata } from 'next';
-import { OG_LOCALES, SITE_LOCALES, routing, type AppLocale } from '@/i18n/routing';
-import { BRANDS } from '@/lib/brand';
+import { SITE_LOCALES, routing } from '@/i18n/routing';
 import { env } from '@/lib/env';
-import { requestBrand } from '@/lib/request-brand';
+
+export const DEFAULT_OG_IMAGE = {
+  url: '/og-image.png',
+  width: 1200,
+  height: 630,
+  alt: 'Codeqlick — Redefining information technology in society',
+};
 
 /** An image for `og:image`: a URL, or a URL with its size and alt text. */
 export type OgImage = string | { url: string; width: number; height: number; alt: string };
@@ -29,22 +34,15 @@ export function absoluteUrl(path: string): string {
  * Canonical + hreflang alternates for a locale-less path (`''` for home, `/blog`, `/blog/x`).
  * Relative URLs resolve against `metadataBase` (set in the [locale] layout).
  */
-export function localeAlternates(
-  locale: string,
-  path = '',
-  locales: readonly string[] = SITE_LOCALES,
-): NonNullable<Metadata['alternates']> {
+export function localeAlternates(locale: string, path = ''): NonNullable<Metadata['alternates']> {
   const languages: Record<string, string> = {};
-  for (const l of locales) languages[l] = `/${l}${path}`;
+  for (const l of SITE_LOCALES) languages[l] = `/${l}${path}`;
   languages['x-default'] = `/${routing.defaultLocale}${path}`;
   return { canonical: `/${locale}${path}`, languages };
 }
 
-/**
- * Metadata for a page: title, description, alternates and Open Graph basics, in the brand of the
- * request's host (Neoqlick's pages list all six languages, Codeqlick's two).
- */
-export async function pageMetadata({
+/** Metadata for a page: title, description, alternates and Open Graph basics. */
+export function pageMetadata({
   locale,
   path = '',
   title,
@@ -58,25 +56,20 @@ export async function pageMetadata({
   description?: string;
   noindex?: boolean;
   images?: OgImage[];
-}): Promise<Metadata> {
-  const brand = BRANDS[await requestBrand()];
+}): Metadata {
   return {
     title,
     description,
-    alternates: localeAlternates(
-      locale,
-      path,
-      brand.id === 'neoqlick' ? routing.locales : SITE_LOCALES,
-    ),
+    alternates: localeAlternates(locale, path),
     // Page-level openGraph replaces the layout's object, so repeat the shared fields here.
     openGraph: {
       type: 'website',
-      siteName: brand.name,
+      siteName: 'Codeqlick',
       title,
       description,
       url: `/${locale}${path}`,
-      locale: OG_LOCALES[locale as AppLocale] ?? OG_LOCALES.en,
-      images: images && images.length > 0 ? images : [brand.ogImage],
+      locale: locale === 'es' ? 'es_ES' : 'en_US',
+      images: images && images.length > 0 ? images : [DEFAULT_OG_IMAGE],
     },
     ...(noindex ? { robots: { index: false, follow: false } } : {}),
   };

@@ -79,13 +79,13 @@
 
 .day:hover,
 .time:hover {
-  border-color: var(--color-brand);
+  border-color: var(--color-fuchsia);
 }
 
 .selected,
 .selected:hover {
-  border-color: var(--color-brand);
-  background: var(--color-brand);
+  border-color: var(--color-fuchsia);
+  background: var(--color-fuchsia);
   color: var(--color-white);
 }
 

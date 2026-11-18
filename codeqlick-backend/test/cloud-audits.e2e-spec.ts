@@ -186,9 +186,7 @@ describe('Codeqlick Cloud website check API (e2e)', () => {
       .send({ name: 'Weekly', slug: team, acceptTerms: true, termsVersion: CLOUD_TERMS_VERSION })
       .expect(201);
     const teamId = created.body.id as string;
-    const memberRow = await prisma.user.findUniqueOrThrow({
-      where: { realm_email: { realm: 'CODEQLICK', email: member.email } },
-    });
+    const memberRow = await prisma.user.findUniqueOrThrow({ where: { email: member.email } });
     await prisma.cloudMember.create({
       data: {
         teamId,

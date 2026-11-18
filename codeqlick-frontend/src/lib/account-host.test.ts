@@ -20,10 +20,10 @@ describe('the account host (decision 108)', () => {
 
   it('serves its pages at short addresses and the sign-in pages as they are', () => {
     const host = 'account.codeqlick.com';
-    expect(routeAccount('/fr', host, 'https:')).toEqual({ action: 'rewrite', to: '/fr/account' });
-    expect(routeAccount('/fr/security', host, 'https:')).toEqual({
+    expect(routeAccount('/es', host, 'https:')).toEqual({ action: 'rewrite', to: '/es/account' });
+    expect(routeAccount('/es/security', host, 'https:')).toEqual({
       action: 'rewrite',
-      to: '/fr/account/security',
+      to: '/es/account/security',
     });
     expect(routeAccount('/en/authorize', host, 'https:')).toEqual({
       action: 'rewrite',
@@ -32,7 +32,7 @@ describe('the account host (decision 108)', () => {
     for (const page of [
       '/en/login',
       '/en/register/confirm',
-      '/de/reset-password',
+      '/es/reset-password',
       '/en/auth/failed',
     ]) {
       expect(routeAccount(page, host, 'https:')).toEqual({ action: 'pass' });
@@ -50,13 +50,13 @@ describe('the account host (decision 108)', () => {
       action: 'redirect',
       to: 'https://codeqlick.com/es/portal',
     });
-    expect(routeAccount('/fr/blog', host, 'https:')).toEqual({
+    expect(routeAccount('/en/blog', host, 'https:')).toEqual({
       action: 'redirect',
       to: 'https://codeqlick.com/en/blog',
     });
-    expect(routeAccount('/fr/cruising/map', host, 'https:')).toEqual({
+    expect(routeAccount('/es/meetings/rooms', host, 'https:')).toEqual({
       action: 'redirect',
-      to: 'https://codeqlick.com/fr/cruising/map',
+      to: 'https://codeqlick.com/es/meetings/rooms',
     });
   });
 

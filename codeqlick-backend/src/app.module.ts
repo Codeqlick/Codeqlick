@@ -3,14 +3,12 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { ActivityModule } from './modules/activity/activity.module.js';
-import { AdultModule } from './modules/adult/adult.module.js';
 import { SiteFormsModule } from './modules/site-forms/site-forms.module.js';
 import { ManagedSitesModule } from './modules/managed-sites/managed-sites.module.js';
 import { DomainsModule } from './modules/domains/domains.module.js';
 import { ErrorsModule } from './modules/errors/errors.module.js';
 import { LinkChecksModule } from './modules/link-checks/link-checks.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
-import { RealmGuard } from './common/guards/realm.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 import { AppConfigService } from './config/app-config.service.js';
 import { AppConfigModule } from './config/config.module.js';
@@ -39,11 +37,8 @@ import { CalculatorModule } from './modules/calculator/calculator.module.js';
 import { TasksModule } from './modules/tasks/tasks.module.js';
 import { TimeModule } from './modules/time/time.module.js';
 import { UsersModule } from './modules/users/users.module.js';
-import { VideochatModule } from './modules/videochat/videochat.module.js';
 import { MeetingsModule } from './modules/meetings/meetings.module.js';
 import { CitasModule } from './modules/citas/citas.module.js';
-import { SwipeModule } from './modules/swipe/swipe.module.js';
-import { CruisingModule } from './modules/cruising/cruising.module.js';
 import { SiteAuditsModule } from './modules/site-audits/site-audits.module.js';
 import { CloudModule } from './modules/cloud/cloud.module.js';
 import { NewsletterModule } from './modules/newsletter/newsletter.module.js';
@@ -88,12 +83,8 @@ import { PrismaModule } from './prisma/prisma.module.js';
     DomainsModule,
     CredentialsModule,
     ReviewsModule,
-    VideochatModule,
     MeetingsModule,
     CitasModule,
-    SwipeModule,
-    CruisingModule,
-    AdultModule,
     SiteAuditsModule,
     CloudModule,
     NewsletterModule,
@@ -102,7 +93,6 @@ import { PrismaModule } from './prisma/prisma.module.js';
     // Order matters: rate limit first, then authentication, then authorization.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
-    { provide: APP_GUARD, useClass: RealmGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })

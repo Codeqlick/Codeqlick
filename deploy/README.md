@@ -71,57 +71,28 @@ the HTTP → HTTPS redirect, and renews them automatically. Both files send `X-R
 Then check https://codeqlick.com, https://codeqlick.com/en/login and
 https://api.codeqlick.com/v1/health.
 
-### Video chat (videochat.codeqlick.com)
+### Meetings and coturn
 
-The random video chat (architecture 4.7 and 6.3) is served by the same web and API containers;
-it needs its own host name, a TURN server and a few settings. Until it is set up, coturn stays
-off (it is in the `videochat` Compose profile), so releases work without `TURN_SECRET`.
-
-**One command** does the whole setup below, and is safe to run again:
+Meetings' calls (architecture 4.8) relay through **coturn**, a STUN/TURN server run by the stack
+itself. Until it is set up it stays off (it is in the `turn` Compose profile), so releases work
+without `TURN_SECRET`. **One command**, safe to run again:
 
 ```bash
-cd /srv/codeqlick && git pull --ff-only && ./deploy/setup-videochat.sh
+cd /srv/codeqlick && git pull --ff-only && ./deploy/setup-coturn.sh
 ```
 
-It creates the DNS record through OVH's API (the client-domains keys in `.env`), fills in the
-settings (a new `TURN_SECRET`, `TURN_URLS`, `VIDEOCHAT_URL`, `COMPOSE_PROFILES=videochat`, and the
-`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` pair for notifications), opens
-the ports in ufw, installs the Nginx site, gets the certificate once the DNS answers, releases and
-checks. It asks for sudo. The same steps by hand:
+It fills in `.env` (a new `TURN_SECRET`, `TURN_URLS` on `meetings.codeqlick.com`,
+`COMPOSE_PROFILES=turn`), opens the ports in ufw (`3478/tcp`, `3478/udp` and the relay range
+`49160-49400/udp`; open them in the OVH firewall too if it is on), releases and checks that coturn
+runs. `SITES_SERVER_IP` must be set: coturn announces it. It asks for sudo.
 
-1. **DNS:** an `A` record `videochat.codeqlick.com` → the server's IPv4 (`SITES_SERVER_IP`).
-2. **Settings** in `/srv/codeqlick/.env` (template in `deploy/.env.example`): `TURN_SECRET`
-   (`openssl rand -hex 32`), `TURN_URLS` (the default in the template), `COMPOSE_PROFILES=videochat`
-   (turns coturn on) and, if it isn't https://videochat.codeqlick.com, `VIDEOCHAT_URL`. For the
-   "someone is waiting" notifications, a VAPID key pair (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`);
-   `deploy/deploy.sh` creates and saves it on the first release without it, so nothing is needed by
-   hand (the manual command is in `deploy/.env.example`).
-   `SITES_SERVER_IP` must be set: coturn announces it.
-3. **Firewall:** open `3478/tcp`, `3478/udp` and the relay range `49160-49400/udp`
-   (`sudo ufw allow 3478 && sudo ufw allow 49160:49400/udp`, or the OVH firewall).
-4. **Nginx and TLS:**
-
-   ```bash
-   sudo cp deploy/nginx/videochat.codeqlick.com.conf /etc/nginx/sites-available/
-   sudo ln -s /etc/nginx/sites-available/videochat.codeqlick.com.conf /etc/nginx/sites-enabled/
-   sudo nginx -t && sudo systemctl reload nginx
-   sudo certbot --nginx -d videochat.codeqlick.com
-   ```
-
-5. Deploy (the `coturn` service starts with the stack), then open
-   https://videochat.codeqlick.com, sign in, accept the rules and try a call from two devices on
-   different networks (one on mobile data checks TURN).
-
-Moderation is in Admin → Videochat. Reports of a possible minor suspend the account at once and
-email `LEADS_NOTIFY_TO`. Explicit content between adults is allowed; before opening it to the
-public, have the rules and the privacy text reviewed (Digital Services Act, age assurance). To
-require a verified age instead of a declared one, set `VIDEOCHAT_AGE_VERIFICATION_REQUIRED=true`.
+The profile was called `videochat` while the video chat existed: `deploy/deploy.sh` renames it in
+`.env` on its own, so an existing coturn keeps running.
 
 ### Meetings (meetings.codeqlick.com)
 
 Video meetings by link (architecture 4.8 and 6.3), served by the same web and API containers.
-Calls use the video chat's coturn, so the video chat is set up first. **One command**, safe to
-run again:
+Calls use coturn, so it is set up first (above). **One command**, safe to run again:
 
 ```bash
 cd /srv/codeqlick
@@ -176,98 +147,51 @@ people to a host that isn't there, so run it right after the deploy. No variable
 API's `ACCOUNT_URL` defaults to `SITE_URL` with `account.`, and the website derives the account host
 from the request's host. Staging has no account host and sets `ACCOUNT_SSO=false` for its website.
 
-### Neoqlick cut-over (neoqlick.com, architecture 4.18, decisions 124-131)
+### Retiring the 18+ app hosts (architecture 4.7, decisions 138-140)
 
-Cruising, Swipe and Videochat move to **Neoqlick** (`*.neoqlick.com`), with their own accounts
-(realm `NEOQLICK`). Same server, same containers, same database: the realm and the host decide the
-brand. Two scripts do the server side; neither runs by itself, and neither touches DNS, the deploy
-or other projects' sites (`/srv/domfeliu`, `/srv/circlesfera*`).
+The 18+ apps left Codeqlick for their own project, which has its own repository, API, database,
+hosts and deploy, and starts from scratch: no data is copied. Codeqlick keeps nothing of them. The
+old hosts `cruising.codeqlick.com`, `swipe.codeqlick.com` and `videochat.codeqlick.com` are **not**
+redirected: they answer `410 Gone` until their DNS records are removed. Nginx's `*.neoqlick.com`
+sites belong to the other project's deploy and are not touched here.
 
-| Script | When | What |
-|---|---|---|
-| `sudo ./deploy/setup-neoqlick.sh` | Once, after the DNS exists | Checks that every host resolves to `SITES_SERVER_IP` (fails naming the missing ones, changing nothing), writes the Nginx sites from `deploy/nginx/*neoqlick*.template`, checks `nginx -t` (removes the new sites if refused), reloads and gets one Let's Encrypt certificate per site. Never changes an existing site. `--dry-run` only reports; `--render DIR` only writes the sites into `DIR`. |
-| `sudo ./deploy/neoqlick-cutover.sh` | At the cut-over, last | Turns the old `cruising`, `swipe` and `videochat` `.codeqlick.com` sites into redirects (301 to the same path and query on the new host), 410 on `/ws`, 200 with the self-unregistering worker script (`deploy/nginx/legacy-sw-unregister.js`) on `/<app>-sw.js`. Keeps their certificates, so redirects work over HTTPS and certbot keeps renewing them (keep them until at least 2027-11-17). Refuses to run if a certificate is missing or a new host doesn't answer (`--force` skips the answer check). `--dry-run` shows the diff; `--rollback` restores the previous sites. |
+1. **Merge and release** the pull request that removes the apps. Its migration
+   (`remove_neoqlick`) deletes the accounts of the old `NEOQLICK` user base and every table of the
+   18+ apps; take a backup first (`backups/` holds the nightly dump).
+2. **Retire the hosts**, from `/srv/codeqlick` with sudo. The default is a dry run that says what
+   it would do:
 
-The sites: `neoqlick.com` (`www.` answers a 301 to the apex), `account.`, `api.` (the same API; its
-Cloud routes answer 404), `stats.` (the same Umami), and `cruising.`, `swipe.`, `videochat.`
-(pages to the web on `127.0.0.1:3010`, `/ws` to the API's `/v1/<app>/ws`; Cruising's
-`/<locale>/cruising/api/media` takes 100 MB, like `add-cruising-upload-limits.sh`). The website
-and the API send the security headers themselves (see "Security headers"), so Nginx adds none.
+   ```bash
+   sudo ./deploy/retire-app-hosts.sh            # dry run
+   sudo ./deploy/retire-app-hosts.sh --apply
+   ```
 
-#### Variables (`/srv/codeqlick/.env`, template in `deploy/.env.example`)
+   It replaces the three Nginx sites by ones that answer 410 over HTTP and, with the existing
+   certificate, over HTTPS (the certificates are kept until they expire and are not renewed; the
+   old sites stay next to them as `<site>.retired-<date>`), moves coturn's name in `TURN_URLS` off
+   a retired host if it was there (to `meetings.codeqlick.com`), and deletes the three `A` records
+   through OVH's API from inside the API container. If OVH refuses (the keys lack the right to
+   delete records), delete them in OVH's manager.
+3. **Delete the data volumes** once the release is in and Neoqlick's own project is running. The
+   scripts never delete data:
 
-All optional while `NEOQLICK_URL` is empty; `docker-compose.prod.yml` passes them to the API.
+   ```bash
+   docker volume ls | grep -E 'swipe-data|cruising-data'
+   docker volume rm codeqlick-prod_swipe-data codeqlick-prod_cruising-data
+   ```
 
-| Variable | Value |
-|---|---|
-| `NEOQLICK_URL`, `NEOQLICK_ACCOUNT_URL`, `NEOQLICK_PUBLIC_API_URL` | `https://neoqlick.com`, `https://account.neoqlick.com`, `https://api.neoqlick.com/v1` |
-| `MAIL_FROM_NEOQLICK` | `Neoqlick <hello@neoqlick.com>` |
-| `SMTP_USER_NEOQLICK`, `SMTP_PASSWORD_NEOQLICK` | The login of the mailbox `hello@neoqlick.com` in OVH. Host and port are the existing `SMTP_HOST=ssl0.ovh.net`, `SMTP_PORT=465`, `SMTP_SECURE=true` |
-| `WEBAUTHN_RP_ID_NEOQLICK`, `WEBAUTHN_ORIGINS_NEOQLICK` | `neoqlick.com`; origins optional (default: the Neoqlick hosts) |
-| `NEOQLICK_TERMS_VERSION` | Default `2026-11-17.1` |
-| `NEOQLICK_TRADE_NAME`, `NEOQLICK_LEGAL_OWNER_NAME`, `NEOQLICK_LEGAL_OWNER_TAX_ID`, `NEOQLICK_LEGAL_OWNER_ADDRESS` | The operator in the legal pages; each falls back to `LEGAL_OWNER_*`; the pages render only with a holder name |
-| `NEOQLICK_VAPID_PUBLIC_KEY`, `NEOQLICK_VAPID_PRIVATE_KEY`, `NEOQLICK_VAPID_SUBJECT` | Neoqlick's own Web Push pair (the generator command is in `deploy/.env.example`); subject `mailto:hello@neoqlick.com` |
-| `TURNSTILE_SITE_KEY_NEOQLICK` (web), `TURNSTILE_SECRET_KEY_NEOQLICK` (api) | The keys of Neoqlick's own Turnstile widget (empty: no widget and no check for Neoqlick) |
-| `NEOQLICK_UMAMI_WEBSITE_ID` | The website id created in Umami for Neoqlick (read by the website) |
+4. **Clean `/srv/codeqlick/.env`** of what nothing reads any more: `ADULT_BAN_HASH_KEY`,
+   `VIDEOCHAT_*`, `VAPID_*`, every `*_NEOQLICK` and `NEOQLICK_*` variable. Remove the GitHub
+   Actions secrets `TURNSTILE_SITE_KEY_NEOQLICK` and `TURNSTILE_SECRET_KEY_NEOQLICK` too.
 
-The SSO clients need no variable: the code lists them by realm. The `web` service receives `NEOQLICK_URL`, `NEOQLICK_UMAMI_WEBSITE_ID`, `NEOQLICK_TRADE_NAME` and the three `NEOQLICK_LEGAL_OWNER_*` variables (empty means unset: with no `NEOQLICK_URL` the website has no Neoqlick hosts and with no holder name the legal pages and their links are hidden).
-
-#### Owner tasks outside the server
-
-- The mailbox `hello@neoqlick.com` in OVH, and SPF, DKIM and DMARC for `neoqlick.com`
-  (`./deploy/check-email-dns.sh neoqlick.com` prints what is missing).
-- Cloudflare Turnstile: create the widget in **Neoqlick's own Cloudflare account** (hostnames `neoqlick.com` and `account.neoqlick.com`, mode Managed) and put its keys in `TURNSTILE_SITE_KEY_NEOQLICK` and `TURNSTILE_SECRET_KEY_NEOQLICK` (also Actions secrets of the same names, like Codeqlick's). Neoqlick never uses Codeqlick's keys: while these are empty, Neoqlick shows no widget and the API runs no check for it.
-- Umami: add a website for Neoqlick and put its id in `NEOQLICK_UMAMI_WEBSITE_ID`.
-- ExoClick: register the three sites again for the new domains and send their zone ids and
-  verification tags.
-
-#### Order
-
-1. **DNS** (OVH's API or manager): `A` records `@`, `www`, `account`, `api`, `stats`, `cruising`,
-   `swipe`, `videochat` of `neoqlick.com` to `SITES_SERVER_IP`.
-2. `cd /srv/codeqlick && git pull --ff-only && ./deploy/setup-neoqlick.sh --dry-run`, then
-   `sudo ./deploy/setup-neoqlick.sh`. Run it right after the release that brings Neoqlick: from
-   that release on the old hosts' redirects point at hosts that need these certificates.
-3. **Settings** in `.env` (table above), then `docker compose -f docker-compose.prod.yml up -d api`
-   (or let the release pick them up).
-4. **Deploy** (merge to `main`, or run the Deploy workflow).
-5. The owner **creates their NEOQLICK account** at https://account.neoqlick.com.
-6. **Cleanup** of the 18+ test data of Codeqlick accounts. Take a backup first
-   (`deploy/backup/backup.sh`); there is no undo.
-   `docker compose -f docker-compose.prod.yml exec api node dist/scripts/neoqlick-cleanup.js`
-   (dry run, prints counts), then the same with `--apply`.
-7. `./deploy/neoqlick-cutover.sh --dry-run`, then `sudo ./deploy/neoqlick-cutover.sh`.
-8. The ExoClick sites and ids, once the owner has them (an empty id still shows nothing).
-
-#### Verification
+Check that the old hosts are gone and Meetings still works:
 
 ```bash
-for h in neoqlick.com account.neoqlick.com api.neoqlick.com cruising.neoqlick.com swipe.neoqlick.com videochat.neoqlick.com; do
-  printf '%s ' "$h"; curl -sS -o /dev/null -w '%{http_code}\n' "https://$h/"      # 200 (api: 404 is fine)
-  echo | openssl s_client -servername "$h" -connect "$h:443" 2>/dev/null | openssl x509 -noout -enddate
-done
-curl -sI https://www.neoqlick.com/es | grep -i '^location'                          # https://neoqlick.com/es
-for a in cruising swipe videochat; do
-  curl -sI "https://$a.codeqlick.com/es/x?y=1" | grep -iE '^(HTTP|location)'        # 301 to https://$a.neoqlick.com/es/x?y=1
-  curl -s -o /dev/null -w "$a-sw.js %{http_code}\n" "https://$a.codeqlick.com/$a-sw.js"   # 200
-  curl -s -o /dev/null -w "ws %{http_code}\n" "https://$a.codeqlick.com/ws"         # 410
-done
-sudo certbot certificates | grep -E 'Domains|Expiry'    # old and new names
-sudo certbot renew --dry-run                            # includes the old hosts
+for a in cruising swipe videochat; do curl -sI "https://$a.codeqlick.com/" | head -n 1; done   # 410
+curl -sI https://codeqlick.com/en/apps | head -n 1                                              # 200
 ```
 
-Also sign up on account.neoqlick.com and check that the confirmation email reaches a mailbox from
-`Neoqlick <hello@neoqlick.com>` with SPF, DKIM and DMARC passing.
-
-#### Rollback
-
-- The redirects: `sudo ./deploy/neoqlick-cutover.sh --rollback` puts back the sites kept as
-  `<site>.conf.bak-neoqlick-<date>` (the redirect sites stay next to them as `.redirect-<date>`),
-  checks `nginx -t` and reloads. If the release's in-app redirects (the website sends
-  `/<locale>/cruising…` on codeqlick.com to the new host) are the problem, revert that release too.
-- The new sites: remove `/etc/nginx/sites-enabled/<host>.conf` for each new host, then
-  `sudo nginx -t && sudo systemctl reload nginx`. The certificates can stay.
-- The cleanup has no undo: restore the backup taken before it.
+Then open a meeting from two devices (one on mobile data checks the TURN relay).
 
 ## Updating
 
@@ -372,33 +296,6 @@ there. To restore them all:
 docker compose -f docker-compose.prod.yml cp backups/uploads/. api:/app/uploads/
 ```
 
-Swipe's private photos (swipe.codeqlick.com) live in the `codeqlick-prod_swipe-data` volume and are
-**not** backed up on purpose: a removed or deleted intimate photo must not survive in a backup. Losing
-the volume loses those photos; their rows stay and the photos show as missing.
-
-Cruising's photos and videos (cruising.codeqlick.com, architecture 4.15 phase 4) live in the
-`codeqlick-prod_cruising-data` volume (`CRUISING_UPLOADS_DIR=/app/cruising-uploads`) and are **not**
-backed up either, for the same reason. The API image carries `ffmpeg`/`ffprobe` for the videos, and
-uploads are refused (`507`) while the disk is under the disk guard's low mark (`CLOUD_DISK_LOW_GB`).
-
-#### Cruising media: the 100 MB upload route (manual step, once)
-
-Videos are uploaded through one route on each side, allowed 100 MB (101m with the multipart
-envelope); everything else keeps its limit. Certbot has edited the installed sites, so they can't be
-copied over; instead run, once:
-
-```sh
-cd /srv/codeqlick && sudo ./deploy/add-cruising-upload-limits.sh
-```
-
-It adds the `location = /v1/cruising/media` block to `api.codeqlick.com.conf` and the
-`location ~ ^/(en|es)/cruising/api/media$` block to `cruising.codeqlick.com.conf`, before the TLS
-server's `location / {`, pointing at the same upstream as that block. Each file is backed up next to
-itself (`.bak-<date>`); when `nginx -t` fails the backups are restored and nothing is reloaded.
-Running it again changes nothing. (`deploy/webapp-site.sh` writes the block for a new Cruising site.)
-
-Until then, uploads over 1 MB (web) or 2 MB (API) fail with `413`; nothing else is affected.
-
 `docker compose -f docker-compose.prod.yml down -v` deletes the volumes and with them the database and the uploaded images.
 
 ### HTTP/2
@@ -435,8 +332,8 @@ The website and the API send every protective header themselves (architecture 6.
 Check them on every host:
 
 ```bash
-for h in codeqlick.com videochat.codeqlick.com meetings.codeqlick.com citas.codeqlick.com \
-  swipe.codeqlick.com cruising.codeqlick.com cloud.codeqlick.com api.codeqlick.com; do
+for h in codeqlick.com meetings.codeqlick.com citas.codeqlick.com account.codeqlick.com \
+  cloud.codeqlick.com api.codeqlick.com; do
   echo "== $h"; curl -sI "https://$h/en" | grep -iE '^(content-security|strict-transport|permissions|x-frame|cross-origin-opener|referrer)'
 done
 ```
@@ -449,9 +346,8 @@ by default (`docker-compose.staging.yml`). To enforce it in production:
 
 1. After a week of traffic, read Admin → Errors, "CSP": anything from our own pages
    (`script-src-elem blocked inline` on a page of ours, a host we use) must be fixed first.
-2. Check by hand with the policy enforced on staging: the map's tiles on Cruising, Turnstile on
-   sign-in and sign-up, a video call and a meeting (camera, screen sharing), Stripe Checkout from
-   a preview, a passkey sign-in, a photo upload (Swipe, Cruising) and the service workers.
+2. Check by hand with the policy enforced on staging: Turnstile on sign-in and sign-up, a meeting
+   (camera, screen sharing), Stripe Checkout from a preview and a passkey sign-in.
 3. Set `CSP_ENFORCE=true` in `/srv/codeqlick/.env`, then
    `docker compose -f docker-compose.prod.yml up -d web` (no rebuild needed). Back to `false` the
    same way if something breaks.
@@ -549,7 +445,7 @@ production: https://staging.codeqlick.com, behind the team's password. It runs f
 checkout (`/srv/codeqlick-staging`) as the `codeqlick-staging` Compose project
 (`docker-compose.staging.yml`): its own database, API and website on `127.0.0.1:3011`/`4011`, and
 Mailpit, which keeps every email instead of sending it (inbox at https://staging.codeqlick.com/mail/).
-Stripe, OVH, Umami, the site builder and the video chat are off.
+Stripe, OVH, Umami, the site builder and coturn are off.
 
 ### Put a branch on staging
 

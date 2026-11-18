@@ -6,7 +6,7 @@ type PageHeaderProps = {
   /** The page's one H1, always outside cards. */
   title: ReactNode;
   eyebrow?: ReactNode;
-  /** A live line between the eyebrow and the title (Videochat's "N online"). */
+  /** A live line between the eyebrow and the title ("N online"). */
   status?: ReactNode;
   lead?: ReactNode;
   /** Badges, addresses or a status line under the title. */
@@ -19,7 +19,7 @@ type PageHeaderProps = {
   variant?: 'page' | 'hero';
   titleId?: string;
   className?: string;
-  /** What goes between the lead and the actions (an 18+ landing's warning). */
+  /** What goes between the lead and the actions (a notice). */
   children?: ReactNode;
 };
 

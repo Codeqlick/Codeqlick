@@ -2,11 +2,8 @@
 
 export type DiskState = 'ok' | 'low' | 'full';
 
-/** Accounts per app: entered (a profile), a team member, a page or room owner, a portal client. */
+/** Accounts per app: a team member, a page or room owner, a portal client. */
 export type AppCounts = {
-  cruising: number;
-  swipe: number;
-  videochat: number;
   cloud: number;
   citas: number;
   meetings: number;
@@ -14,9 +11,6 @@ export type AppCounts = {
 };
 
 export const OVERVIEW_APPS = [
-  'cruising',
-  'swipe',
-  'videochat',
   'cloud',
   'citas',
   'meetings',
@@ -53,17 +47,6 @@ export type AdminOverview = {
     disk: { state: DiskState; totalBytes: number; freeBytes: number } | null;
     errors: { open: number; cspOpen: number };
     monitors: { watched: number; down: number };
-    moderation: {
-      cruising: {
-        spots: number;
-        reports: number;
-        media: number;
-        verifications: number;
-        takedowns: number;
-      };
-      swipe: { photos: number; reports: number; verifications: number; takedowns: number };
-      videochat: { reports: number; appeals: number; verifications: number };
-    };
   };
 };
 
@@ -94,13 +77,6 @@ export function diskUsedPercent(disk: { totalBytes: number; freeBytes: number })
   if (disk.totalBytes <= 0) return 0;
   const used = Math.max(0, disk.totalBytes - disk.freeBytes);
   return Math.min(100, Math.round((used / disk.totalBytes) * 100));
-}
-
-/** Everything waiting for a moderator, across the apps. */
-export function moderationWaiting(moderation: AdminOverview['health']['moderation']): number {
-  return [moderation.cruising, moderation.swipe, moderation.videochat]
-    .flatMap((queue) => Object.values(queue))
-    .reduce((sum, count) => sum + count, 0);
 }
 
 /** Subscriptions whose monthly amount isn't known yet (left out of the MRR). */

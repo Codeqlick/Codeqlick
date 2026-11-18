@@ -11,7 +11,6 @@ vi.mock('@/lib/api/posts', () => ({
 vi.mock('@/lib/api/portfolio', () => ({ listPortfolio: async () => ({ items: [] }) }));
 vi.mock('@/lib/api/calculator', () => ({ getCalculator: async () => null }));
 vi.mock('@/lib/api/bookings', () => ({ getBookingSlots: async () => null }));
-vi.mock('@/lib/api/cruising', () => ({ listCruisingSitemap: async () => [] }));
 
 const { default: sitemap } = await import('./sitemap');
 

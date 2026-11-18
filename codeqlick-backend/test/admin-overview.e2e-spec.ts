@@ -8,7 +8,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import { madridWeekStart } from '../src/common/stats-weeks.js';
-import { AppConfigService } from '../src/config/app-config.service.js';
 import { Role } from '../src/generated/prisma/client.js';
 import type { AdminOverview, OverviewWeek } from '../src/modules/stats/admin-overview.rules.js';
 import { AdminOverviewService } from '../src/modules/stats/admin-overview.service.js';
@@ -135,7 +134,7 @@ describe('Admin overview (e2e)', () => {
       ['activity', 'generatedAt', 'health', 'people', 'revenue', 'weeks'].toSorted(),
     );
     expect(overview.revenue.currency).toBe('eur');
-    expect(Object.keys(overview.health.moderation)).toEqual(['cruising', 'swipe', 'videochat']);
+    expect(Object.keys(overview.health).toSorted()).toEqual(['disk', 'errors', 'monitors']);
     // Nothing that names a person.
     expect(JSON.stringify(overview)).not.toMatch(/@|email|name/i);
   });
@@ -158,14 +157,8 @@ describe('Admin overview (e2e)', () => {
     await session(ana.id, t);
     await session(ana.id, new Date(t.getTime() + HOUR));
     await session(bea.id, t);
-    await prisma.cruisingProfile.create({
-      data: {
-        userId: ana.id,
-        birthYear: 1990,
-        termsVersion: app.get(AppConfigService).cruisingTermsVersion,
-        acceptedAt: t,
-        createdAt: t,
-      },
+    await prisma.meetingRoom.create({
+      data: { code: `ovr-${tag}`.slice(0, 12), ownerId: ana.id, title: 'Room', createdAt: t },
     });
 
     // Revenue: two PRO teams (one not priced yet), a paid maintenance plan and an included one.
@@ -280,7 +273,7 @@ describe('Admin overview (e2e)', () => {
     const week = weekOf(after, weekStart);
     expect(week.accounts.new - base.accounts.new).toBe(3);
     expect(week.accounts.active - base.accounts.active).toBe(2);
-    expect(week.apps.cruising - base.apps.cruising).toBe(1);
+    expect(week.apps.meetings - base.apps.meetings).toBe(1);
     expect(week.apps.cloud - base.apps.cloud).toBe(1);
     expect(week.apps.portal - base.apps.portal).toBe(1);
     expect(week.purchases.count - base.purchases.count).toBe(1);
@@ -293,7 +286,7 @@ describe('Admin overview (e2e)', () => {
     const people = after.people;
     // Ana, Bea, the client, Nosy (from the first test) are people; the admins aren't.
     expect(people.accounts - before.people.accounts).toBe(3);
-    expect(people.apps.cruising - before.people.apps.cruising).toBe(1);
+    expect(people.apps.meetings - before.people.apps.meetings).toBe(1);
     expect(people.apps.cloud - before.people.apps.cloud).toBe(1);
     expect(people.apps.portal - before.people.apps.portal).toBe(1);
 
@@ -314,14 +307,9 @@ describe('Admin overview (e2e)', () => {
   it("counts portal clients by the dashboard's own rule (decision 29)", async () => {
     service.clearCache();
     const overview = await get();
-    // Codeqlick's own accounts; Neoqlick's are counted apart (architecture 4.18).
-    const clients = await prisma.user.count({
-      where: { AND: [CLIENT_WHERE, { isActive: true }], realm: 'CODEQLICK' },
-    });
+    const clients = await prisma.user.count({ where: { AND: [CLIENT_WHERE, { isActive: true }] } });
     expect(overview.people.apps.portal).toBe(clients);
-    const people = await prisma.user.count({ where: { role: Role.CLIENT, realm: 'CODEQLICK' } });
+    const people = await prisma.user.count({ where: { role: Role.CLIENT } });
     expect(overview.people.accounts).toBe(people);
-    const neoqlick = await prisma.user.count({ where: { role: Role.CLIENT, realm: 'NEOQLICK' } });
-    expect(overview.people.neoqlickAccounts).toBe(neoqlick);
   });
 });

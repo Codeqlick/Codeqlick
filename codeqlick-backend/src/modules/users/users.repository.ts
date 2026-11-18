@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import type { Webapp } from '../../common/webapps.js';
 import type { Prisma, Role, User } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { deleteUserRecomputingRatings } from '../cruising/cruising.repository.js';
 import {
   USAGE_INCLUDE,
   appWhere,
@@ -11,10 +10,6 @@ import {
   type UserWithUsage,
 } from './account-kind.js';
 
-/**
- * The admin panel's users are CODEQLICK accounts only (architecture 4.18): every lookup here
- * answers "not found" for a NEOQLICK account, so the panel can't read or change one by its id.
- */
 @Injectable()
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -31,7 +26,7 @@ export class UsersRepository {
     skip: number,
     take: number,
   ): Promise<{ items: UserWithUsage[]; total: number }> {
-    const and: Prisma.UserWhereInput[] = [{ realm: 'CODEQLICK' }];
+    const and: Prisma.UserWhereInput[] = [];
     if (filter.role) and.push({ role: filter.role });
     if (filter.memberOf) and.push({ memberOfId: filter.memberOf });
     else if (filter.accounts) and.push({ memberOfId: null });
@@ -73,32 +68,24 @@ export class UsersRepository {
 
   /** Sessions, its company's people, proposals and support requests go with it (cascade). */
   async delete(id: string): Promise<void> {
-    await deleteUserRecomputingRatings(this.prisma, id);
+    await this.prisma.user.delete({ where: { id } });
   }
 
   findById(id: string): Promise<User | null> {
-    return this.prisma.user.findFirst({ where: { id, realm: 'CODEQLICK' } });
+    return this.prisma.user.findUnique({ where: { id } });
   }
 
   /** With what its kind and apps are worked out from. */
   findWithUsage(id: string): Promise<UserWithUsage | null> {
-    return this.prisma.user.findFirst({
-      where: { id, realm: 'CODEQLICK' },
-      include: USAGE_INCLUDE,
-    });
+    return this.prisma.user.findUnique({ where: { id }, include: USAGE_INCLUDE });
   }
 
   findByEmail(email: string): Promise<User | null> {
-    return this.prisma.user.findUnique({
-      where: { realm_email: { realm: 'CODEQLICK', email } },
-    });
+    return this.prisma.user.findUnique({ where: { email } });
   }
 
   create(data: Prisma.UserUncheckedCreateInput): Promise<UserWithUsage> {
-    return this.prisma.user.create({
-      data: { ...data, realm: 'CODEQLICK' },
-      include: USAGE_INCLUDE,
-    });
+    return this.prisma.user.create({ data, include: USAGE_INCLUDE });
   }
 
   /** Updates the user; when `revokeSessions` is true, also revokes all of their sessions. */
@@ -108,11 +95,7 @@ export class UsersRepository {
     revokeSessions: boolean,
   ): Promise<UserWithUsage> {
     return this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.update({
-        where: { id, realm: 'CODEQLICK' },
-        data,
-        include: USAGE_INCLUDE,
-      });
+      const user = await tx.user.update({ where: { id }, data, include: USAGE_INCLUDE });
       if (revokeSessions) {
         await tx.session.updateMany({
           where: { userId: id, revokedAt: null },

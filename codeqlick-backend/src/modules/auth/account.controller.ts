@@ -19,8 +19,6 @@ import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Public } from '../../common/decorators/public.decorator.js';
-import { Realm, RequestRealm } from '../../common/decorators/realm.decorator.js';
-import type { RealmName } from '../../common/realm.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { AccountService, type AccountActivity, type AccountApp } from './account.service.js';
 import {
@@ -43,7 +41,6 @@ const EXPORT_LIMIT = { default: { limit: 3, ttl: 3_600_000 } };
 
 /** The caller's own account: name, email, a copy of their data, deleting it (architecture 5). */
 @ApiTags('auth')
-@Realm('ANY')
 @Controller('auth')
 export class AccountController {
   constructor(private readonly account: AccountService) {}
@@ -138,9 +135,8 @@ export class AccountController {
   @HttpCode(HttpStatus.OK)
   confirmEmail(
     @Body({ schema: confirmEmailChangeSchema }) body: ConfirmEmailChangeInput,
-    @RequestRealm() realm: RealmName,
   ): Promise<{ email: string }> {
-    return this.account.confirmEmailChange(realm, body.token);
+    return this.account.confirmEmailChange(body.token);
   }
 
   @ApiBearerAuth()
@@ -151,8 +147,7 @@ export class AccountController {
     @Res({ passthrough: true }) reply: Response,
   ): Promise<unknown> {
     const day = new Date().toISOString().slice(0, 10);
-    const brand = user.realm === 'NEOQLICK' ? 'neoqlick' : 'codeqlick';
-    reply.setHeader('Content-Disposition', `attachment; filename="${brand}-${day}.json"`);
+    reply.setHeader('Content-Disposition', `attachment; filename="codeqlick-${day}.json"`);
     reply.setHeader('Cache-Control', 'no-store');
     return this.account.export(user);
   }

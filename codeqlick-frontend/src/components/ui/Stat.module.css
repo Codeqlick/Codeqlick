@@ -44,12 +44,12 @@ a.stat {
 }
 
 a.stat:hover {
-  border-color: var(--color-brand-light);
+  border-color: var(--color-fuchsia-light);
   color: var(--color-ink);
 }
 
 a.stat:focus-visible {
-  outline: 2px solid var(--color-brand);
+  outline: 2px solid var(--color-fuchsia);
   outline-offset: 2px;
 }
 
@@ -83,7 +83,7 @@ a.stat:focus-visible {
 }
 
 .down {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 /* A zero is still shown, dimmed: the counters that need attention stand out. */

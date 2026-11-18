@@ -5,7 +5,6 @@ import { Logger } from 'nestjs-pino';
 import { ProblemDetailsFilter } from './common/filters/problem-details.filter.js';
 import { largeJsonBody } from './common/large-json-body.js';
 import { AppConfigService } from './config/app-config.service.js';
-import { IMPORT_BODY_LIMIT } from './modules/cruising/cruising.schemas.js';
 import { ErrorsService } from './modules/errors/errors.service.js';
 
 /** Routes any page may call from a browser (Cloud's forms, heartbeats, status, analytics, public keys and the `codeqlick.json` schema, 4.13). */
@@ -65,10 +64,6 @@ export function configureApp(app: NestExpressApplication): void {
   // A `.env` import may hold 256 KB (more once escaped in JSON); every other JSON body keeps the
   // global parser's 100 KB. Registered before that parser, which Nest adds on init.
   app.use(largeJsonBody(/^\/v1\/cloud\/projects\/[^/]+\/env\/import$/, 1024 * 1024));
-  // Cruising's spot and testing-centre imports carry a file of up to 2 MB (decision 84), in JSON.
-  app.use(
-    largeJsonBody(/^\/v1\/admin\/cruising\/(spots|health-centers)\/import$/, IMPORT_BODY_LIMIT),
-  );
   app.setGlobalPrefix('v1');
   app.useGlobalPipes(new StandardSchemaValidationPipe());
   app.useGlobalFilters(new ProblemDetailsFilter(app.get(ErrorsService, { strict: false })));

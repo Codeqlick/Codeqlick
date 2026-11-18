@@ -19,8 +19,6 @@ import type {
 } from '@simplewebauthn/server';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Public } from '../../common/decorators/public.decorator.js';
-import { Realm, RequestRealm } from '../../common/decorators/realm.decorator.js';
-import type { RealmName } from '../../common/realm.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { AppRequest } from '../../common/types/request.js';
@@ -41,7 +39,6 @@ const PER_MINUTE = (limit: number) => ({ default: { limit, ttl: 60_000 } });
 
 /** Passkeys (architecture 4.3, decision 104). */
 @ApiTags('auth')
-@Realm('ANY')
 @Controller('auth/passkeys')
 export class PasskeysController {
   constructor(private readonly passkeys: PasskeyService) {}
@@ -51,8 +48,8 @@ export class PasskeysController {
   @Throttle(PER_MINUTE(20))
   @Post('login/options')
   @HttpCode(HttpStatus.OK)
-  loginOptions(@RequestRealm() realm: RealmName): Promise<PasskeyLoginOptions> {
-    return this.passkeys.loginOptions(realm);
+  loginOptions(): Promise<PasskeyLoginOptions> {
+    return this.passkeys.loginOptions();
   }
 
   /** The browser's assertion: tokens like a password sign-in, with no code asked. */
@@ -62,19 +59,13 @@ export class PasskeysController {
   @HttpCode(HttpStatus.OK)
   login(
     @Body({ schema: passkeyLoginSchema }) body: PasskeyLoginInput,
-    @RequestRealm() realm: RealmName,
     @Req() request: AppRequest,
   ): Promise<AuthTokens> {
     const userAgent = request.headers['user-agent'];
-    return this.passkeys.login(
-      realm,
-      body.challengeId,
-      body.response as AuthenticationResponseJSON,
-      {
-        userAgent: typeof userAgent === 'string' ? userAgent : null,
-        ip: request.ip ?? null,
-      },
-    );
+    return this.passkeys.login(body.challengeId, body.response as AuthenticationResponseJSON, {
+      userAgent: typeof userAgent === 'string' ? userAgent : null,
+      ip: request.ip ?? null,
+    });
   }
 
   @ApiBearerAuth()

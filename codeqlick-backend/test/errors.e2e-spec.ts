@@ -60,7 +60,7 @@ describe('Errors (e2e)', () => {
           source: 'browser',
           message: `TypeError: photo ${id} is undefined ${tag}`,
           stack: `TypeError\n    at Deck (https://codeqlick.com/_next/static/chunks/app-1a2b3c4d5e.js:1:${id})`,
-          path: `/es/swipe/deck?from=${id}`,
+          path: `/es/citas/book?from=${id}`,
           digest: 'abc123',
         })
         .expect(204);
@@ -92,7 +92,7 @@ describe('Errors (e2e)', () => {
     expect(browser).toMatchObject({
       source: 'WEB_BROWSER',
       count: 2,
-      path: '/es/swipe/deck',
+      path: '/es/citas/book',
       reference: 'abc123',
       resolvedAt: null,
     });

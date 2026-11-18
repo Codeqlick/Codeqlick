@@ -62,7 +62,7 @@
   display: grid;
   gap: var(--space-1);
   padding-left: var(--space-5);
-  border-left: 3px solid var(--color-brand);
+  border-left: 3px solid var(--color-fuchsia);
 }
 
 .areas span {
@@ -159,7 +159,7 @@
 
 .categories a:hover,
 .categories a:focus-visible {
-  border-color: var(--color-brand);
+  border-color: var(--color-fuchsia);
 }
 
 .categoryScore {
@@ -250,7 +250,7 @@
   width: 2rem;
   height: 2rem;
   border: 3px solid var(--color-line);
-  border-top-color: var(--color-brand);
+  border-top-color: var(--color-fuchsia);
   border-radius: 50%;
   animation: spin 0.9s linear infinite;
 }

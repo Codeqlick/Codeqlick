@@ -8,7 +8,7 @@ import { ActiveSessions } from '@/components/app/ActiveSessions';
 import { PageHeader } from '@/components/app/PageHeader';
 import { PasskeysPanel } from '@/components/app/PasskeysPanel';
 import styles from '@/components/app/app.module.css';
-import { resolveCruisingLocale } from '@/i18n/locale';
+import { resolveLocale } from '@/i18n/locale';
 import { accountActivity } from '@/lib/api/auth';
 import { requireUser } from '@/lib/auth/session';
 import { formatDateTime } from '@/lib/format';
@@ -33,7 +33,7 @@ export default async function AccountSecurityPage({
 }: {
   params: Promise<{ locale: string }>;
 }) {
-  const locale = resolveCruisingLocale((await params).locale);
+  const locale = resolveLocale((await params).locale);
   const user = await requireUser(locale);
   const t = await getTranslations({ locale, namespace: 'AccountSite' });
   const activity = await accountActivity().catch(() => ({ items: [] }));

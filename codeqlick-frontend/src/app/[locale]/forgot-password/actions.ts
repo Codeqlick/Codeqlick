@@ -1,7 +1,7 @@
 'use server';
 
 import { getTranslations } from 'next-intl/server';
-import { cruisingLocaleOrDefault } from '@/i18n/locale';
+import { localeOrDefault } from '@/i18n/locale';
 import { siteLocale } from '@/i18n/routing';
 import { invalidState } from '@/lib/actions';
 import { requestPasswordReset } from '@/lib/api/auth';
@@ -14,7 +14,7 @@ export async function forgotPasswordAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const locale = cruisingLocaleOrDefault(formData.get('locale'));
+  const locale = localeOrDefault(formData.get('locale'));
   const parsed = forgotPasswordSchema.safeParse({ email: formString(formData, 'email') });
   if (!parsed.success) return invalidState(parsed.error, locale, formData);
 

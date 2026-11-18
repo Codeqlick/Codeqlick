@@ -29,7 +29,7 @@
 
 .checks li::before {
   content: '✓ ';
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   font-weight: 700;
 }
 
@@ -55,7 +55,7 @@
 }
 
 .prompt {
-  color: var(--color-brand-light);
+  color: var(--color-fuchsia-light);
   user-select: none;
 }
 
@@ -290,7 +290,7 @@
 }
 
 .danger {
-  border-color: color-mix(in srgb, var(--color-brand) 35%, var(--color-line));
+  border-color: color-mix(in srgb, var(--color-fuchsia) 35%, var(--color-line));
 }
 
 .select {
@@ -378,7 +378,7 @@
 }
 
 .sparkOk {
-  background: var(--color-brand-light);
+  background: var(--color-fuchsia-light);
 }
 
 .sparkBad {
@@ -458,7 +458,7 @@
   min-width: 2px;
   min-height: 1px;
   border-radius: 2px 2px 0 0;
-  background: var(--color-brand);
+  background: var(--color-fuchsia);
 }
 
 .chart span[data-empty] {
@@ -528,7 +528,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   vertical-align: middle;
 }
 

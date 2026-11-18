@@ -57,7 +57,7 @@ describe('CSP reports (e2e)', () => {
           type: 'csp-violation',
           user_agent: 'Chrome/150',
           body: {
-            documentURL: 'https://cruising.codeqlick.com/en/map',
+            documentURL: 'https://meetings.codeqlick.com/en/room',
             effectiveDirective: 'script-src-elem',
             blockedURL: `${blockedOrigin}/y.js`,
             disposition: 'enforce',
@@ -87,7 +87,7 @@ describe('CSP reports (e2e)', () => {
       source: 'CSP',
       message: `script-src-elem blocked ${blockedOrigin}`,
       count: 2,
-      path: '/en/map',
+      path: '/en/room',
       userAgent: 'Chrome/150',
       stack: 'disposition: enforce',
       resolvedAt: null,

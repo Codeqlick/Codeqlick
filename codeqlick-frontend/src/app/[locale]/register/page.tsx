@@ -9,15 +9,12 @@ import { Alert } from '@/components/ui/Alert';
 import { Card } from '@/components/ui/Card';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
-import { resolveCruisingLocale } from '@/i18n/locale';
+import { resolveLocale } from '@/i18n/locale';
 import { signupInvitation } from '@/lib/api/auth';
 import { getCurrentUser, safeNextPath } from '@/lib/auth/session';
-import { appsOfBrand } from '@/lib/webapps';
+import { WEBAPPS } from '@/lib/webapps';
 import { homeAfterSignIn } from '@/lib/webapp-request';
 import { env } from '@/lib/env';
-import { turnstileSiteKey } from '@/lib/turnstile';
-import { portalUrl } from '@/lib/portal-links';
-import { requestBrand } from '@/lib/request-brand';
 import { firstParam } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
 import { registerAction } from './actions';
@@ -35,7 +32,7 @@ type PageProps = {
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const locale = resolveCruisingLocale((await params).locale);
+  const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Register' });
   return pageMetadata({
     locale,
@@ -52,7 +49,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  * email is on its way.
  */
 export default async function RegisterPage({ params, searchParams }: PageProps) {
-  const locale = resolveCruisingLocale((await params).locale);
+  const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Register' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
 
@@ -60,13 +57,7 @@ export default async function RegisterPage({ params, searchParams }: PageProps) 
   const query = await searchParams;
   const next = safeNextPath(firstParam(query.next), locale);
   if (user) redirect(next ?? (await homeAfterSignIn(locale, user.role)));
-  const brand = await requestBrand();
-  const app = appsOfBrand(brand).find((name) => name === firstParam(query.app));
-  const neoqlick = brand === 'neoqlick';
-  const siteKey = turnstileSiteKey(neoqlick ? 'neoqlick' : 'codeqlick', {
-    codeqlick: env.TURNSTILE_SITE_KEY,
-    neoqlick: env.TURNSTILE_SITE_KEY_NEOQLICK,
-  });
+  const app = WEBAPPS.find((name) => name === firstParam(query.app));
   const sent = firstParam(query.sent);
   const token = firstParam(query.invitation);
   const invited = token ? await signupInvitation(token).catch(() => null) : null;
@@ -135,35 +126,14 @@ export default async function RegisterPage({ params, searchParams }: PageProps) 
                   autoComplete="new-password"
                   required
                 />
-                {neoqlick ? (
-                  <>
-                    <FormCheckbox name="confirmAdult" label={t('confirmAdult')} required />
-                    <FormCheckbox
-                      name="acceptTerms"
-                      label={t.rich('acceptTerms', {
-                        link: (chunks) => (
-                          <a href={portalUrl(locale, '/terms')} target="_blank" rel="noopener">
-                            {chunks}
-                          </a>
-                        ),
-                      })}
-                      required
-                    />
-                  </>
-                ) : null}
                 <FormCheckbox
                   name="acceptPrivacy"
                   label={t.rich('acceptPrivacy', {
-                    link: (chunks) =>
-                      neoqlick ? (
-                        <a href={portalUrl(locale, '/privacy')} target="_blank" rel="noopener">
-                          {chunks}
-                        </a>
-                      ) : (
-                        <Link href="/privacy" target="_blank">
-                          {chunks}
-                        </Link>
-                      ),
+                    link: (chunks) => (
+                      <Link href="/privacy" target="_blank">
+                        {chunks}
+                      </Link>
+                    ),
                   })}
                   required
                 />
@@ -178,7 +148,9 @@ export default async function RegisterPage({ params, searchParams }: PageProps) 
                     autoComplete="off"
                   />
                 </div>
-                {siteKey && !invited ? <Turnstile siteKey={siteKey} locale={locale} /> : null}
+                {env.TURNSTILE_SITE_KEY && !invited ? (
+                  <Turnstile siteKey={env.TURNSTILE_SITE_KEY} locale={locale} />
+                ) : null}
                 <SubmitButton block pendingLabel={t('submitting')}>
                   {t('submit')}
                 </SubmitButton>

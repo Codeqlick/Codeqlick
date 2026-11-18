@@ -629,9 +629,7 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
 
     // Build notifications (decision 43): channels are checked, their URLs never come back, and a
     // failed production build emails the chosen members.
-    const me = await prisma.user.findUniqueOrThrow({
-      where: { realm_email: { realm: 'CODEQLICK', email: owner.email } },
-    });
+    const me = await prisma.user.findUniqueOrThrow({ where: { email: owner.email } });
     const notifications = `/v1/cloud/projects/${projectId}/notifications`;
     await request(server)
       .post(notifications)

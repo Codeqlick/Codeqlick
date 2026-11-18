@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { createNeoqlickUser, neoqlickUrl, runTag } from './helpers';
+import { asAdmin } from './helpers';
 
 /*
- * The web apps' menu drawer (decision 107) on a phone, on Cruising's own host (cruising.neoqlick.localhost):
+ * The web apps' menu drawer (decision 107) on a phone, on Meetings' own host (meetings.localhost):
  * the header keeps only the logo and the ☰ button, the drawer opens as a modal, closes with Escape
  * (focus back on the button) and on following a link, and marks the page it led to. The user card
- * at the top offers signing in and up to a visitor, and the profile and the account once signed in.
+ * at the top offers signing in and up to a visitor, and the account once signed in.
  */
 test.use({
   viewport: { width: 390, height: 844 },
@@ -14,27 +14,26 @@ test.use({
   launchOptions: { executablePath: process.env.E2E_CHROMIUM_PATH || undefined },
 });
 
-function cruisingUrl(baseURL: string | undefined): string {
-  return neoqlickUrl('cruising', baseURL);
+function meetingsUrl(baseURL: string | undefined): string {
+  const url = new URL(baseURL ?? 'http://localhost:3001');
+  url.hostname = `meetings.${url.hostname}`;
+  return url.origin;
 }
 
-test('the Cruising menu opens on a phone and navigates', async ({ page, baseURL }) => {
-  const base = cruisingUrl(baseURL);
+test('the Meetings menu opens on a phone and navigates', async ({ page, baseURL }) => {
+  const base = meetingsUrl(baseURL);
   await page.goto(`${base}/es`);
 
   const banner = page.getByRole('banner');
   const trigger = banner.getByRole('button', { name: 'Menú' });
   await expect(trigger).toHaveAttribute('aria-expanded', 'false');
   // The header holds no links but the logo: everything else is in the drawer.
-  await expect(banner.getByRole('link', { name: 'Lugares', exact: true })).toHaveCount(0);
+  await expect(banner.getByRole('link', { name: 'Inicio', exact: true })).toHaveCount(0);
 
   await trigger.click();
   const drawer = page.getByRole('dialog', { name: 'Menú' });
   await expect(drawer).toBeVisible();
   await expect(drawer.getByRole('button', { name: 'Cerrar el menú' })).toBeFocused();
-  await expect(drawer.getByRole('heading', { name: 'Descubrir' })).toBeVisible();
-  // A visitor sees no members-only links.
-  await expect(drawer.getByRole('link', { name: 'Mensajes', exact: true })).toHaveCount(0);
   // The card at the top: signing in and up, once (the footer no longer repeats it).
   const card = drawer.getByRole('region', { name: 'Tu cuenta' });
   await expect(card.getByRole('link', { name: 'Iniciar sesión' })).toHaveAttribute(
@@ -48,36 +47,24 @@ test('the Cruising menu opens on a phone and navigates', async ({ page, baseURL 
   await expect(drawer).toBeHidden();
   await expect(trigger).toBeFocused();
 
-  // The rules are in the drawer's footer, with the language and the account.
+  // The app's home is in the drawer and marked as the current page.
   await trigger.click();
-  await drawer.getByRole('link', { name: 'Normas', exact: true }).click();
-  await expect(page).toHaveURL(`${base}/es/rules`);
-  await expect(drawer).toBeHidden();
-
-  await trigger.click();
-  await expect(drawer.getByRole('link', { name: 'Normas', exact: true })).toHaveAttribute(
+  await expect(drawer.getByRole('link', { name: 'Inicio', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
   );
-  await drawer.getByRole('button', { name: 'Cerrar el menú' }).click();
+  await drawer.getByRole('link', { name: 'Inicio', exact: true }).click();
+  await expect(page).toHaveURL(`${base}/es`);
   await expect(drawer).toBeHidden();
 });
 
-test('signed in, the Cruising menu shows the avatar and the user card', async ({
+test('signed in, the Meetings menu shows the avatar and the user card', async ({
   page,
   context,
-  request,
   baseURL,
 }) => {
-  const base = cruisingUrl(baseURL);
-  // A Neoqlick account: the 18+ apps only know that user base (architecture 4.18).
-  const tag = runTag();
-  const token = await createNeoqlickUser(request, {
-    name: `Menu ${tag}`,
-    email: `e2e-menu-${tag}@codeqlick.test`,
-    password: `menu-pass-${tag}-0`,
-  });
-  await context.addCookies([{ name: 'cq_at', value: token, url: base, httpOnly: true }]);
+  const base = meetingsUrl(baseURL);
+  await asAdmin(context, base);
   await page.goto(`${base}/es`);
 
   const trigger = page.getByRole('banner').getByRole('button', { name: /^Menú — / });
@@ -85,16 +72,9 @@ test('signed in, the Cruising menu shows the avatar and the user card', async ({
   await trigger.click();
   const drawer = page.getByRole('dialog', { name: 'Menú' });
   const card = drawer.getByRole('region', { name: 'Tu cuenta' });
-  // Before entering Cruising the button leads to the entry step; after, to the profile.
-  const profile = card.getByRole('link', { name: /^(Mi perfil|Completa tu perfil)$/ });
-  await expect(profile).toHaveAttribute('href', /\/me$/);
   await expect(card.getByRole('link', { name: 'Mi cuenta' })).toHaveAttribute(
     'href',
     /\/(admin|portal)\/account$|^https?:\/\/account\./,
   );
   await expect(drawer.getByRole('link', { name: 'Iniciar sesión' })).toHaveCount(0);
-  // The profile is on the card, no longer in the list.
-  await expect(drawer.getByRole('link', { name: 'Perfil', exact: true })).toHaveCount(0);
-  await profile.click();
-  await expect(page).toHaveURL(`${base}/es/me`);
 });

@@ -161,7 +161,7 @@ describe('resolveLink', () => {
       url: 'https://example.com/a',
       internal: false,
     });
-    expect(resolveLink('https://swipe.codeqlick.com/', page, site)?.internal).toBe(false);
+    expect(resolveLink('https://citas.codeqlick.com/', page, site)?.internal).toBe(false);
   });
 
   it('skips anchors, mailto, other schemes, invalid and overlong addresses', () => {

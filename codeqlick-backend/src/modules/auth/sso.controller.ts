@@ -3,8 +3,6 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Public } from '../../common/decorators/public.decorator.js';
-import { Realm, RequestRealm } from '../../common/decorators/realm.decorator.js';
-import type { RealmName } from '../../common/realm.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { AppRequest } from '../../common/types/request.js';
 import type { AuthTokens } from './auth.service.js';
@@ -20,7 +18,6 @@ const PER_MINUTE = (limit: number) => ({ default: { limit, ttl: 60_000 } });
 
 /** Single sign-on between the account host and the other hosts (architecture 4.3, decision 108). */
 @ApiTags('auth')
-@Realm('ANY')
 @Controller('auth/sso')
 export class SsoController {
   constructor(private readonly sso: SsoService) {}
@@ -44,11 +41,10 @@ export class SsoController {
   @HttpCode(HttpStatus.OK)
   exchange(
     @Body({ schema: exchangeSsoCodeSchema }) body: ExchangeSsoCodeInput,
-    @RequestRealm() realm: RealmName,
     @Req() request: AppRequest,
   ): Promise<AuthTokens> {
     const userAgent = request.headers['user-agent'];
-    return this.sso.exchange(realm, body.client, body.code, body.codeVerifier, {
+    return this.sso.exchange(body.client, body.code, body.codeVerifier, {
       userAgent: typeof userAgent === 'string' ? userAgent : null,
       ip: request.ip ?? null,
     });

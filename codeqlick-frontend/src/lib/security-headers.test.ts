@@ -8,7 +8,6 @@ import {
   strictCsp,
   type CspContext,
 } from './security-headers';
-import { EXOCLICK_HOSTS } from './videochat-ads';
 import { WEBAPPS } from './webapps';
 
 const SITE = ['https://codeqlick.com', ...WEBAPPS.map((app) => `https://${app}.codeqlick.com`)];
@@ -65,34 +64,25 @@ describe('strictCsp', () => {
     }
   });
 
-  it('adds ExoClick only on the hosts with ads', () => {
-    for (const app of ['videochat', 'swipe']) {
+  it('allows no third party besides Turnstile, and no inline handlers', () => {
+    for (const app of [null, 'meetings', 'citas', 'cloud', 'account']) {
       const policy = parse(strictCsp(context(app), NONCE));
-      for (const directive of ['script-src', 'connect-src', 'frame-src']) {
-        expect(policy[directive]).toEqual(expect.arrayContaining(EXOCLICK_HOSTS));
-      }
-      expect(policy['img-src']).toContain('https:');
-      // Its click handlers are attributes; script elements still need the nonce.
-      expect(policy['script-src-attr']).toEqual(["'unsafe-inline'"]);
-    }
-    for (const app of [null, 'meetings', 'citas', 'cruising', 'cloud', 'account']) {
-      expect(strictCsp(context(app), NONCE)).not.toContain('exoclick');
-      expect(parse(strictCsp(context(app), NONCE))['script-src-attr']).toBeUndefined();
+      expect(policy['script-src-attr']).toBeUndefined();
+      expect(policy['script-src']).toEqual([
+        "'self'",
+        `'nonce-${NONCE}'`,
+        "'strict-dynamic'",
+        'https://challenges.cloudflare.com',
+      ]);
     }
   });
 
-  it('keeps images minimal: remote ones on the main host, the map tiles on Cruising', () => {
+  it('keeps images minimal: remote ones on the main host only', () => {
     expect(parse(strictCsp(context(null), NONCE))['img-src']).toEqual([
       "'self'",
       'data:',
       'blob:',
       'https:',
-    ]);
-    expect(parse(strictCsp(context('cruising'), NONCE))['img-src']).toEqual([
-      "'self'",
-      'data:',
-      'blob:',
-      'https://tile.openstreetmap.org',
     ]);
     for (const app of ['meetings', 'citas', 'cloud', 'account']) {
       expect(parse(strictCsp(context(app), NONCE))['img-src']).toEqual([
@@ -104,8 +94,8 @@ describe('strictCsp', () => {
   });
 
   it('adds sockets on another origin, and upgrades requests only over HTTPS', () => {
-    const local = context('videochat', {
-      origin: 'http://videochat.localhost:3000',
+    const local = context('meetings', {
+      origin: 'http://meetings.localhost:3000',
       sockets: ['ws://localhost:4000'],
     });
     const policy = parse(strictCsp(local, NONCE));
@@ -116,7 +106,7 @@ describe('strictCsp', () => {
 
 describe('previousCsp', () => {
   it('keeps inline scripts but everything else of the strict policy', () => {
-    const policy = parse(previousCsp(context('cruising')));
+    const policy = parse(previousCsp(context('citas')));
     expect(policy['script-src']).toEqual([
       "'self'",
       "'unsafe-inline'",
@@ -163,7 +153,7 @@ describe('permissionsPolicy', () => {
     );
 
   it('lets only the calling apps use the camera, the microphone and screen sharing', () => {
-    for (const app of ['videochat', 'meetings']) {
+    for (const app of ['meetings']) {
       expect(policy(app)).toMatchObject({
         camera: '(self)',
         microphone: '(self)',
@@ -173,12 +163,8 @@ describe('permissionsPolicy', () => {
     }
   });
 
-  it('lets only Cruising locate the device', () => {
-    expect(policy('cruising')).toMatchObject({ geolocation: '(self)', camera: '()' });
-  });
-
   it('turns everything off elsewhere but passkeys', () => {
-    for (const app of [null, 'citas', 'swipe', 'cloud', 'account']) {
+    for (const app of [null, 'citas', 'cloud', 'account']) {
       const entries = policy(app);
       expect(entries['publickey-credentials-get']).toBe('(self)');
       expect(entries['publickey-credentials-create']).toBe('(self)');

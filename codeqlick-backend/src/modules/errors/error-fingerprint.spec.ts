@@ -17,12 +17,12 @@ describe('error fingerprints', () => {
       '    at Array.map (<anonymous>)',
       '    at node:internal/process/task_queues:95:5',
       '    at render (/app/node_modules/react/index.js:10:2)',
-      '    at SwipeService.deck (/app/dist/modules/swipe/swipe.service.js:120:17)',
+      '    at MeetingsService.join (/app/dist/modules/meetings/meetings.service.js:120:17)',
     ].join('\n');
     // `Array.map (<anonymous>)` has no location, so it counts: its text is the frame.
     expect(topFrame(stack)).toBe('Array.map (<anonymous>)');
     expect(topFrame(stack.replace('    at Array.map (<anonymous>)\n', ''))).toBe(
-      'SwipeService.deck (/app/dist/modules/swipe/swipe.service.js',
+      'MeetingsService.join (/app/dist/modules/meetings/meetings.service.js',
     );
   });
 

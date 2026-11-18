@@ -6,14 +6,13 @@ import styles from '@/components/app/app.module.css';
 import { Logo } from '@/components/brand/Logo';
 import { Alert } from '@/components/ui/Alert';
 import { Card } from '@/components/ui/Card';
-import { resolveCruisingLocale } from '@/i18n/locale';
+import { resolveLocale } from '@/i18n/locale';
 import { isAccountHost } from '@/lib/account-host';
 import { createSsoCode } from '@/lib/api/auth';
 import { isApiError } from '@/lib/api/errors';
 import { getCurrentUser } from '@/lib/auth/session';
 import { callbackUrl, parseAuthorizeQuery } from '@/lib/sso';
-import { brandOfHost } from '@/lib/hosts';
-import { appsOfBrand } from '@/lib/webapps';
+import { WEBAPPS } from '@/lib/webapps';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -30,17 +29,16 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
  * renders a page once, as the action's answer, where it would call a route handler on its own.
  */
 export default async function AuthorizePage({ params, searchParams }: PageProps) {
-  const locale = resolveCruisingLocale((await params).locale);
+  const locale = resolveLocale((await params).locale);
   const incoming = await headers();
   const host = incoming.get('x-forwarded-host')?.split(',')[0]?.trim() || incoming.get('host');
   if (!isAccountHost(host) || !host) notFound();
-  const brand = brandOfHost(host);
 
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(await searchParams)) {
     if (typeof value === 'string') query.set(key, value);
   }
-  const authorize = parseAuthorizeQuery(query, host);
+  const authorize = parseAuthorizeQuery(query);
   if (!authorize) {
     const t = await getTranslations({ locale, namespace: 'AccountSite' });
     const tc = await getTranslations({ locale, namespace: 'Common' });
@@ -61,7 +59,7 @@ export default async function AuthorizePage({ params, searchParams }: PageProps)
   const self = `/${locale}/authorize?${query.toString()}`;
   const signIn = (): never => {
     if (!authorize.register) redirect(`/${locale}/login?next=${encodeURIComponent(self)}`);
-    const app = appsOfBrand(brand).find((name) => name === authorize.client);
+    const app = WEBAPPS.find((name) => name === authorize.client);
     redirect(`/${locale}/register?next=${encodeURIComponent(self)}${app ? `&app=${app}` : ''}`);
   };
 

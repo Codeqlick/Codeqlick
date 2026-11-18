@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import proxy from './proxy';
 
 /** A browser's navigation to `path` on `host`, with its own Accept-Language. */
@@ -11,54 +11,29 @@ function visit(host: string, path: string, language = 'en') {
   );
 }
 
-beforeEach(() => vi.stubEnv('NEOQLICK_URL', 'https://neoqlick.com'));
-afterEach(() => vi.unstubAllEnvs());
-
-describe('proxy: languages per host (decision 103)', () => {
-  it('redirects Cruising-only languages to English on the website (308)', async () => {
-    const response = await visit('codeqlick.com', '/fr/about?x=1');
-    expect(response.status).toBe(308);
-    expect(response.headers.get('location')).toBe('http://codeqlick.com/en/about?x=1');
-    const admin = await visit('codeqlick.com', '/de/admin');
-    expect(admin.status).toBe(308);
-    expect(admin.headers.get('location')).toBe('http://codeqlick.com/en/admin');
-  });
-
-  it('does the same on the other apps’ hosts', async () => {
-    const response = await visit('meetings.codeqlick.com', '/it/rules');
-    expect(response.status).toBe(308);
-    expect(response.headers.get('location')).toBe('http://meetings.codeqlick.com/en/rules');
-  });
-
-  it("serves Cruising's pages in its six languages", async () => {
-    const response = await visit('cruising.neoqlick.com', '/pt/rules');
-    expect(response.headers.get('location')).toBeNull();
-    expect(response.headers.get('x-middleware-rewrite')).toContain('/pt/cruising/rules');
-  });
-
-  it("sends the website's Cruising links to Cruising's host in their language", async () => {
-    const response = await visit('codeqlick.com', '/de/cruising/map');
-    expect(response.headers.get('location')).toBe('http://cruising.neoqlick.com/de/map');
-  });
-
-  it('picks the visitor’s language among the host’s own', async () => {
-    const cruising = await visit('cruising.neoqlick.com', '/', 'fr-FR,fr;q=0.9');
-    expect(cruising.headers.get('location')).toMatch(/\/fr$/);
-    // The website doesn't speak French: English.
-    const site = await visit('codeqlick.com', '/', 'fr-FR,fr;q=0.9');
-    expect(site.headers.get('location')).toMatch(/\/en$/);
+describe('proxy: languages', () => {
+  it('picks the visitor’s language among English and Spanish', async () => {
     const spanish = await visit('codeqlick.com', '/', 'es-ES,es;q=0.9');
     expect(spanish.headers.get('location')).toMatch(/\/es$/);
+    // Anything else: English.
+    const french = await visit('codeqlick.com', '/', 'fr-FR,fr;q=0.9');
+    expect(french.headers.get('location')).toMatch(/\/en$/);
+  });
+
+  it('serves an app host at its short addresses, in the page’s language', async () => {
+    const response = await visit('meetings.codeqlick.com', '/es/rooms');
+    expect(response.headers.get('location')).toBeNull();
+    expect(response.headers.get('x-middleware-rewrite')).toContain('/es/meetings/rooms');
   });
 });
 
 describe('proxy: single sign-on through the account host (decision 108)', () => {
   it('starts the flow from a client host’s sign-in page, with a host-only cookie', async () => {
-    const response = await visit('cruising.neoqlick.com', '/fr/login?next=/fr/me');
+    const response = await visit('meetings.codeqlick.com', '/es/login?next=/es/rooms');
     const location = new URL(response.headers.get('location')!);
-    expect(location.origin).toBe('http://account.neoqlick.com');
-    expect(location.pathname).toBe('/fr/authorize');
-    expect(location.searchParams.get('client')).toBe('cruising');
+    expect(location.origin).toBe('http://account.codeqlick.com');
+    expect(location.pathname).toBe('/es/authorize');
+    expect(location.searchParams.get('client')).toBe('meetings');
     expect(location.searchParams.get('code_challenge_method')).toBe('S256');
     const cookie = response.headers.get('set-cookie') ?? '';
     expect(cookie).toMatch(/^cq_sso_[A-Za-z0-9_-]{16}=/);
@@ -85,13 +60,13 @@ describe('proxy: single sign-on through the account host (decision 108)', () => 
     );
   });
 
-  it('serves the account pages at short addresses on the account host, in six languages', async () => {
-    const response = await visit('account.codeqlick.com', '/de/privacy');
+  it('serves the account pages at short addresses on the account host', async () => {
+    const response = await visit('account.codeqlick.com', '/es/privacy');
     // Signed out: the account's own sign-in page, coming back here.
     expect(response.headers.get('location')).toBe(
-      'http://account.codeqlick.com/de/login?next=%2Fde%2Faccount%2Fprivacy',
+      'http://account.codeqlick.com/es/login?next=%2Fes%2Faccount%2Fprivacy',
     );
-    const login = await visit('account.codeqlick.com', '/pt/login');
+    const login = await visit('account.codeqlick.com', '/es/login');
     expect(login.headers.get('location')).toBeNull();
   });
 });
@@ -153,7 +128,7 @@ describe('proxy: Content Security Policy (architecture 6.4)', () => {
   it('covers the account host: its nonce, and forms that go on to every client host', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('CSP_ENFORCE', 'true');
-    const response = await page('account.codeqlick.com', '/fr/login');
+    const response = await page('account.codeqlick.com', '/en/login');
     const policy = response.headers.get('content-security-policy')!;
     expect(forwarded(response)['x-nonce']).toBe(/'nonce-([^']+)'/.exec(policy)?.[1]);
     const formAction = /form-action ([^;]+)/.exec(policy)?.[1] ?? '';
@@ -174,23 +149,5 @@ describe('proxy: Content Security Policy (architecture 6.4)', () => {
       [1, 2].map(async () => forwarded(await page('codeqlick.com', '/en'))['x-nonce']),
     );
     expect(nonces[0]).not.toBe(nonces[1]);
-  });
-});
-
-describe('proxy: the 18+ apps left Codeqlick (architecture 4.18, decision 130)', () => {
-  it('redirects the old app hosts to Neoqlick, keeping path and query (301)', async () => {
-    const response = await visit('cruising.codeqlick.com', '/es/spots/el-parque?x=1');
-    expect(response.status).toBe(301);
-    expect(response.headers.get('location')).toBe(
-      'http://cruising.neoqlick.com/es/spots/el-parque?x=1',
-    );
-    const swipe = await visit('swipe.codeqlick.com', '/');
-    expect(swipe.status).toBe(301);
-    expect(swipe.headers.get('location')).toBe('http://swipe.neoqlick.com/');
-  });
-
-  it('redirects the website’s app addresses to Neoqlick’s hosts', async () => {
-    const response = await visit('codeqlick.com', '/en/videochat/rules');
-    expect(response.headers.get('location')).toBe('http://videochat.neoqlick.com/en/rules');
   });
 });

@@ -8,7 +8,6 @@ import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import {
   diskUsedPercent,
-  moderationWaiting,
   OVERVIEW_APPS,
   overviewWeekLabels,
   sumWeeks,
@@ -22,13 +21,10 @@ import { formatDateTime, formatMoney } from '@/lib/format';
 type PageProps = { params: Promise<{ locale: string }> };
 
 const APP_COLORS = [
-  'var(--color-brand)',
-  'var(--color-brand-dark)',
-  'var(--color-brand-light)',
+  'var(--color-fuchsia)',
+  'var(--color-fuchsia-dark)',
   'var(--color-ink)',
-  'var(--color-slate)',
   'var(--color-info)',
-  'var(--color-success)',
 ];
 
 /** Admin → Overview (architecture 4.17, decision 122): the whole platform, aggregates only. */
@@ -45,7 +41,6 @@ export default async function AdminOverviewPage({ params }: PageProps) {
   const money = (cents: number) => formatMoney(cents, revenue.currency, locale);
   const current = weeks.at(-1);
   const unpriced = unpricedSubscriptions(revenue);
-  const waiting = moderationWaiting(health.moderation);
 
   /** One weekly series as its own chart panel. */
   const single = (title: string, color: string, pick: (week: OverviewWeek) => number) => (
@@ -81,82 +76,6 @@ export default async function AdminOverviewPage({ params }: PageProps) {
     values: weeks.map((week) => week.apps[app]),
   }));
 
-  const { cruising, swipe, videochat } = health.moderation;
-  const queues = [
-    {
-      app: t('apps.cruising'),
-      what: t('moderation.spots'),
-      count: cruising.spots,
-      href: '/admin/cruising?tab=queue',
-    },
-    {
-      app: t('apps.cruising'),
-      what: t('moderation.reports'),
-      count: cruising.reports,
-      href: '/admin/cruising?tab=reports',
-    },
-    {
-      app: t('apps.cruising'),
-      what: t('moderation.media'),
-      count: cruising.media,
-      href: '/admin/cruising?tab=media',
-    },
-    {
-      app: t('apps.cruising'),
-      what: t('moderation.verifications'),
-      count: cruising.verifications,
-      href: '/admin/cruising?tab=verifications',
-    },
-    {
-      app: t('apps.cruising'),
-      what: t('moderation.takedowns'),
-      count: cruising.takedowns,
-      href: '/admin/cruising?tab=takedowns',
-    },
-    {
-      app: t('apps.swipe'),
-      what: t('moderation.photos'),
-      count: swipe.photos,
-      href: '/admin/swipe?tab=queue',
-    },
-    {
-      app: t('apps.swipe'),
-      what: t('moderation.reports'),
-      count: swipe.reports,
-      href: '/admin/swipe?tab=reports',
-    },
-    {
-      app: t('apps.swipe'),
-      what: t('moderation.verifications'),
-      count: swipe.verifications,
-      href: '/admin/swipe?tab=queue',
-    },
-    {
-      app: t('apps.swipe'),
-      what: t('moderation.takedowns'),
-      count: swipe.takedowns,
-      href: '/admin/swipe?tab=takedowns',
-    },
-    {
-      app: t('apps.videochat'),
-      what: t('moderation.reports'),
-      count: videochat.reports,
-      href: '/admin/videochat',
-    },
-    {
-      app: t('apps.videochat'),
-      what: t('moderation.appeals'),
-      count: videochat.appeals,
-      href: '/admin/videochat',
-    },
-    {
-      app: t('apps.videochat'),
-      what: t('moderation.verifications'),
-      count: videochat.verifications,
-      href: '/admin/videochat',
-    },
-  ];
-
   const purchaseWeeks = weeks
     .map((week, index) => ({ week, label: longLabels[index] }))
     .filter(({ week }) => week.purchases.count > 0);
@@ -185,7 +104,7 @@ export default async function AdminOverviewPage({ params }: PageProps) {
           {t('people.title')}
         </h2>
         <div className={styles.charts}>
-          {single(t('people.newChart'), 'var(--color-brand)', (w) => w.accounts.new)}
+          {single(t('people.newChart'), 'var(--color-fuchsia)', (w) => w.accounts.new)}
           {single(t('people.activeChart'), 'var(--color-ink)', (w) => w.accounts.active)}
           <section className={styles.panel}>
             <h3 className={styles.panelTitle}>{t('people.appsChart')}</h3>
@@ -268,7 +187,7 @@ export default async function AdminOverviewPage({ params }: PageProps) {
               {unpriced > 0 ? ` ${t('revenue.unpriced', { count: unpriced })}` : ''}
             </p>
           </section>
-          {single(t('revenue.purchasesChart'), 'var(--color-brand)', (w) => w.purchases.count)}
+          {single(t('revenue.purchasesChart'), 'var(--color-fuchsia)', (w) => w.purchases.count)}
           <section className={styles.panel}>
             <h3 className={styles.panelTitle}>{t('revenue.purchasesTable')}</h3>
             {purchaseWeeks.length === 0 ? (
@@ -317,12 +236,16 @@ export default async function AdminOverviewPage({ params }: PageProps) {
           })}
         </p>
         <div className={styles.charts}>
-          {single(t('activity.leads'), 'var(--color-brand)', (w) => w.leads)}
-          {single(t('activity.supportOpened'), 'var(--color-brand-dark)', (w) => w.support.opened)}
+          {single(t('activity.leads'), 'var(--color-fuchsia)', (w) => w.leads)}
+          {single(
+            t('activity.supportOpened'),
+            'var(--color-fuchsia-dark)',
+            (w) => w.support.opened,
+          )}
           {single(t('activity.supportClosed'), 'var(--color-slate)', (w) => w.support.closed)}
           {single(t('activity.deployments'), 'var(--color-ink)', (w) => w.deployments)}
-          {single(t('activity.siteChecks'), 'var(--color-brand-light)', (w) => w.siteChecks)}
-          {single(t('activity.newsletter'), 'var(--color-brand)', (w) => w.newsletter)}
+          {single(t('activity.siteChecks'), 'var(--color-fuchsia-light)', (w) => w.siteChecks)}
+          {single(t('activity.newsletter'), 'var(--color-fuchsia)', (w) => w.newsletter)}
         </div>
       </section>
 
@@ -369,34 +292,6 @@ export default async function AdminOverviewPage({ params }: PageProps) {
               </li>
             </ul>
             <p className={styles.muted}>{t('health.uptimeNote')}</p>
-          </section>
-          <section className={styles.panel}>
-            <h3 className={styles.panelTitle}>{t('health.moderation', { count: waiting })}</h3>
-            <div className={styles.tableWrap}>
-              <table className={`${styles.table} ${styles.tableCompact}`}>
-                <caption className="visually-hidden">
-                  {t('health.moderation', { count: waiting })}
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">{t('people.app')}</th>
-                    <th scope="col">{t('health.queue')}</th>
-                    <th scope="col">{t('health.waiting')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {queues.map((queue) => (
-                    <tr key={`${queue.app}-${queue.what}`}>
-                      <td>{queue.app}</td>
-                      <th scope="row">
-                        <Link href={queue.href}>{queue.what}</Link>
-                      </th>
-                      <td>{queue.count}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </section>
         </div>
       </section>

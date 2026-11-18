@@ -9,8 +9,8 @@
 # as the checkout's owner (cqadmin). Safe to run again: every step checks first.
 #   1. DNS: an A record meetings.codeqlick.com -> SITES_SERVER_IP, through OVH's API with the
 #      keys already in .env (the client-domains keys, with rights on /domain/zone/*).
-#   2. .env: MEETINGS_URL. Calls use the video chat's coturn (TURN_SECRET, TURN_URLS), so the
-#      video chat is set up first (deploy/setup-videochat.sh).
+#   2. .env: MEETINGS_URL. Calls use coturn (TURN_SECRET, TURN_URLS), set up first with
+#      deploy/setup-coturn.sh.
 #   3. The Nginx site and its Let's Encrypt certificate (once the DNS answers).
 #   4. A release (deploy.sh --no-pull), then checks that the page answers.
 set -Eeuo pipefail
@@ -47,7 +47,7 @@ resolved() { getent ahostsv4 "$HOST" | awk 'NR==1 { print $1 }'; }
 IP="$(setting SITES_SERVER_IP)"
 [ -n "$IP" ] || fail "SITES_SERVER_IP is missing in .env"
 [ -n "$(setting TURN_SECRET)" ] ||
-  echo "Warning: no TURN_SECRET in .env (run deploy/setup-videochat.sh first): calls behind strict networks will fail."
+  echo "Warning: no TURN_SECRET in .env (run deploy/setup-coturn.sh first): calls behind strict networks will fail."
 
 # --- 1. DNS -------------------------------------------------------------------------------------
 OVH_AK="$(setting OVH_APPLICATION_KEY)"

@@ -18,9 +18,7 @@ export function normalizeUsername(value: string): string {
 }
 
 /**
- * The account's unique username (architecture 6, "Username"). It is also the name the account
- * shows in Videochat and Swipe (owner's decision 2026-11-09): setting it updates the nickname of
- * the person's video chat profile (when they show one) and Swipe profile.
+ * The account's unique username (architecture 6, "Username").
  */
 @Injectable()
 export class UsernameService {
@@ -32,21 +30,18 @@ export class UsernameService {
   /** Why `userId` can't use a username, or null. */
   async problem(userId: string, username: string): Promise<UsernameProblem | null> {
     if (!USERNAME_PATTERN.test(username)) return 'invalid';
-    const caller = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true, realm: true },
-    });
     if (RESERVED_USERNAMES.has(username.replace(/[._]/g, ''))) {
       // Reserved names keep people from posing as the team; the team's own accounts may use them.
+      const caller = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
       if (caller?.role !== 'ADMIN') return 'reserved';
     }
-    // Usernames are unique per realm: the other user base's don't count (architecture 4.18).
-    const owner = caller
-      ? await this.prisma.user.findUnique({
-          where: { realm_username: { realm: caller.realm, username } },
-          select: { id: true },
-        })
-      : null;
+    const owner = await this.prisma.user.findUnique({
+      where: { username },
+      select: { id: true },
+    });
     return owner && owner.id !== userId ? 'taken' : null;
   }
 
@@ -66,22 +61,7 @@ export class UsernameService {
         throw new BadRequestException({ errors: [{ field, message: `Username ${problem}` }] });
       }
     }
-    const [updated] = await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id: userId }, data: { username } }),
-      ...(username === null
-        ? []
-        : [
-            // Shown in the apps as the account's username; a hidden video chat name stays hidden.
-            this.prisma.videochatProfile.updateMany({
-              where: { userId, nickname: { not: null } },
-              data: { nickname: username },
-            }),
-            this.prisma.swipeProfile.updateMany({
-              where: { userId },
-              data: { nickname: username },
-            }),
-          ]),
-    ]);
+    const updated = await this.prisma.user.update({ where: { id: userId }, data: { username } });
     await this.activity.record(toAuthUser(updated), {
       action: 'account.username_changed',
       targetId: user.id,

@@ -10,5 +10,3 @@ src/generated
 .git
 Dockerfile
 .dockerignore
-swipe-uploads
-cruising-uploads

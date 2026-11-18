@@ -5,7 +5,7 @@ import { homeForRole } from '@/lib/auth/session';
 import { ACCOUNT, isAccountHost } from '@/lib/account-host';
 import { publicPath, webappForHost, type Webapp } from '@/lib/webapps';
 
-/** The web app whose host this request came to (videochat.codeqlick.com → videochat), or null. */
+/** The web app whose host this request came to (meetings.codeqlick.com → meetings), or null. */
 export async function requestWebapp(): Promise<Webapp | null> {
   return webappForHost((await headers()).get('host'));
 }
@@ -26,7 +26,7 @@ export async function onAccountHost(): Promise<boolean> {
 }
 
 /**
- * A route path (`/{locale}/videochat/room`) as the short address on this app's host (`/{locale}/room`),
+ * A route path (`/{locale}/meetings/rooms`) as the short address on this app's host (`/{locale}/room`),
  * for redirects: a Server Action's redirect doesn't pass through the proxy's redirect of old addresses.
  */
 export async function appPath(path: string, locale: string): Promise<string> {

@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import type { RealmName } from '../../common/realm.js';
 import type { SsoCode, User } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
@@ -7,8 +6,6 @@ export interface CreateSsoCodeData {
   codeHash: string;
   userId: string;
   client: string;
-  /** The account's realm: the exchange checks it (architecture 4.18). */
-  realm: RealmName;
   codeChallenge: string;
   parentFamilyId: string;
   expiresAt: Date;
@@ -34,20 +31,12 @@ export class SsoRepository {
    * Spends the code with this hash for `client` at `now`, atomically: only one caller ever gets
    * `spent` for a code, and only while it is unused and unexpired.
    */
-  async spend(
-    codeHash: string,
-    client: string,
-    realm: RealmName,
-    now: Date,
-  ): Promise<SpentSsoCode> {
+  async spend(codeHash: string, client: string, now: Date): Promise<SpentSsoCode> {
     const code = await this.prisma.ssoCode.findUnique({
       where: { codeHash },
       include: { user: true },
     });
-    // A code of one realm never opens the other's client, even for the same client name.
-    if (!code || code.client !== client || code.realm !== realm || code.user.realm !== realm) {
-      return { status: 'invalid' };
-    }
+    if (!code || code.client !== client) return { status: 'invalid' };
     if (code.usedAt) return { status: 'reused', code };
     const spent = await this.prisma.ssoCode.updateMany({
       where: { id: code.id, usedAt: null, expiresAt: { gt: now } },

@@ -122,11 +122,11 @@ describe('Clients create their own account (e2e)', () => {
     await request(app.getHttpServer())
       .post('/v1/auth/register')
       .set('X-Forwarded-For', '203.0.113.23')
-      .send({ name: 'Eva', email, password, locale: 'en', acceptPrivacy: true, app: 'cloud' })
+      .send({ name: 'Eva', email, password, locale: 'en', acceptPrivacy: true, app: 'citas' })
       .expect(202);
     const text = to(email).at(-1)?.text ?? '';
     expect(text).toMatch(
-      /http:\/\/account\.localhost:3000\/en\/register\/confirm\?token=[\w-]+&app=cloud/,
+      /http:\/\/account\.localhost:3000\/en\/register\/confirm\?token=[\w-]+&app=citas/,
     );
     await request(app.getHttpServer())
       .post('/v1/auth/register')
@@ -140,15 +140,13 @@ describe('Clients create their own account (e2e)', () => {
       .post('/v1/auth/register/confirm')
       .send({ token })
       .expect(200);
-    const user = await prisma.user.findUniqueOrThrow({
-      where: { realm_email: { realm: 'CODEQLICK', email } },
-    });
-    expect(user.signupApp).toBe('cloud');
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+    expect(user.signupApp).toBe('citas');
     const shown = await request(app.getHttpServer())
       .get(`/v1/admin/users/${user.id}`)
       .set(auth)
       .expect(200);
-    expect(shown.body).toMatchObject({ kind: 'app', apps: ['cloud'], signupApp: 'cloud' });
+    expect(shown.body).toMatchObject({ kind: 'app', apps: ['citas'], signupApp: 'citas' });
   });
 
   it('tells clients apart from the people who use our web apps', async () => {
@@ -164,14 +162,14 @@ describe('Clients create their own account (e2e)', () => {
         },
       });
     const prepared = await make('prepared', { registeredAt: null });
-    const swiper = await make('swiper', { signupApp: 'swipe' });
+    const cloudUser = await make('cloud', { signupApp: 'cloud' });
     const host = await make('host');
     await prisma.meetingRoom.create({
       data: { code: `${tag.slice(0, 3)}-${tag.slice(3, 7)}-kin`, ownerId: host.id, title: 'x' },
     });
     const plain = await make('plain');
     // An app user who gets a proposal becomes a client, and keeps their app.
-    const both = await make('both', { signupApp: 'videochat' });
+    const both = await make('both', { signupApp: 'citas' });
     await prisma.proposal.create({
       data: { clientId: both.id, title: 'Web', summary: 'x', terms: 'x' },
     });
@@ -183,25 +181,25 @@ describe('Clients create their own account (e2e)', () => {
         .set(auth)
         .expect(200);
       const mine = (response.body.items as { id: string; kind: string; apps: string[] }[]).filter(
-        (item) => [prepared, swiper, host, plain, both].some((user) => user.id === item.id),
+        (item) => [prepared, cloudUser, host, plain, both].some((user) => user.id === item.id),
       );
       return Object.fromEntries(mine.map((item) => [item.id, item]));
     };
     const all = await list({});
     expect(all[prepared.id]).toMatchObject({ kind: 'client', apps: [] });
-    expect(all[swiper.id]).toMatchObject({ kind: 'app', apps: ['swipe'], signupApp: 'swipe' });
+    expect(all[cloudUser.id]).toMatchObject({ kind: 'app', apps: ['cloud'], signupApp: 'cloud' });
     expect(all[host.id]).toMatchObject({ kind: 'app', apps: ['meetings'], signupApp: null });
     expect(all[plain.id]).toMatchObject({ kind: 'none', apps: [] });
-    expect(all[both.id]).toMatchObject({ kind: 'client', apps: ['videochat'] });
+    expect(all[both.id]).toMatchObject({ kind: 'client', apps: ['citas'] });
 
     expect(Object.keys(await list({ kind: 'client' })).toSorted()).toEqual(
       [prepared.id, both.id].toSorted(),
     );
     expect(Object.keys(await list({ kind: 'app' })).toSorted()).toEqual(
-      [swiper.id, host.id].toSorted(),
+      [cloudUser.id, host.id].toSorted(),
     );
     expect(Object.keys(await list({ kind: 'none' }))).toEqual([plain.id]);
-    expect(Object.keys(await list({ app: 'videochat' }))).toEqual([both.id]);
+    expect(Object.keys(await list({ app: 'citas' }))).toEqual([both.id]);
     await request(server).get('/v1/admin/users').query({ kind: 'other' }).set(auth).expect(400);
   });
 
@@ -228,9 +226,7 @@ describe('Clients create their own account (e2e)', () => {
     expect(drafted.body.client).toMatchObject({ created: true, registered: false });
     // Preparing it sends nobody anything, and nobody can sign in to it.
     expect(to(lead).length).toBe(before);
-    const placeholder = await prisma.user.findUniqueOrThrow({
-      where: { realm_email: { realm: 'CODEQLICK', email: lead } },
-    });
+    const placeholder = await prisma.user.findUniqueOrThrow({ where: { email: lead } });
     expect(placeholder.registeredAt).toBeNull();
 
     // Sending the proposal carries the invitation instead of the portal link.

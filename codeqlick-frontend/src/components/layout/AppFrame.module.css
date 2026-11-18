@@ -59,6 +59,6 @@
 }
 
 .link:hover {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   text-decoration: underline;
 }

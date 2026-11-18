@@ -6,7 +6,6 @@ import type { Duplex } from 'node:stream';
  * takes its own path and leaves the others alone; a path nobody serves is dropped.
  */
 export const WS_PATHS = {
-  videochat: '/v1/videochat/ws',
   meetings: '/v1/meetings/ws',
 } as const;
 

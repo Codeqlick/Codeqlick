@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import type { RealmName } from '../../common/realm.js';
-import { isSsoClientOf, type SsoClient } from '../../common/sso-clients.js';
+import type { SsoClient } from '../../common/sso-clients.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { AuthRepository } from './auth.repository.js';
 import { AuthService, hashRefreshToken, type AuthTokens, type ClientInfo } from './auth.service.js';
@@ -60,17 +59,11 @@ export class SsoService {
       throw new UnauthorizedException('Account not available');
     }
 
-    // Only a client of the account's own realm (architecture 4.18).
-    if (!isSsoClientOf(account.realm, client)) {
-      throw new BadRequestException('This application belongs to another account type');
-    }
-
     const code = randomBytes(32).toString('base64url');
     await this.codes.create({
       codeHash: hashRefreshToken(code),
       userId: user.id,
       client,
-      realm: account.realm,
       codeChallenge,
       parentFamilyId: family.familyId,
       expiresAt: new Date(now.getTime() + SSO_CODE_TTL_SECONDS * 1000),
@@ -80,15 +73,13 @@ export class SsoService {
 
   /** Spends a code with its verifier: tokens for a new session family of `client`. */
   async exchange(
-    realm: RealmName,
     client: SsoClient,
     code: string,
     codeVerifier: string,
     info: ClientInfo = {},
     now = new Date(),
   ): Promise<AuthTokens> {
-    if (!isSsoClientOf(realm, client)) throw new BadRequestException(INVALID_CODE);
-    const result = await this.codes.spend(hashRefreshToken(code), client, realm, now);
+    const result = await this.codes.spend(hashRefreshToken(code), client, now);
     if (result.status === 'reused') {
       // A code comes back only if it leaked: end the session it gave (RFC 6749, 4.1.2).
       this.logger.warn(`Single sign-on code reused for client ${client}`);

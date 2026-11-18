@@ -27,14 +27,14 @@ describe('Tabs (links)', () => {
       <Tabs
         label="Moderation"
         items={[
-          { href: '/admin/swipe?tab=queue', label: 'Queue', current: true },
-          { href: '/admin/swipe?tab=reports', label: 'Reports' },
+          { href: '/admin/users?kind=app', label: 'Queue', current: true },
+          { href: '/admin/users?kind=client', label: 'Reports' },
         ]}
       />,
     );
     expect(html).toMatch(/^<nav aria-label="Moderation"><ul class="[^"]*segmented[^"]*">/);
-    expect(html).toContain('<a href="/admin/swipe?tab=queue" class="tab" aria-current="page">');
-    expect(html).toContain('<a href="/admin/swipe?tab=reports" class="tab">Reports</a>');
+    expect(html).toContain('<a href="/admin/users?kind=app" class="tab" aria-current="page">');
+    expect(html).toContain('<a href="/admin/users?kind=client" class="tab">Reports</a>');
     expect(html.match(/aria-current/g)).toHaveLength(1);
     // Links stay links: no tab roles to pretend otherwise.
     expect(html).not.toContain('role="tab');

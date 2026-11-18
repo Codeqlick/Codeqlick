@@ -38,7 +38,7 @@ describe('internalTarget', () => {
       '/en/website-check/0b5e6f2a-1c3d-4e5f-8a9b-0c1d2e3f4a5b',
       '/es/basic-website/request/preview/bar-pepe/buy',
       '/en/portal/projects/123',
-      '/es/videochat/room',
+      '/es/cloud/console/x',
       '/avatar/abc.webp',
       '/api/stats/x',
       '/demos/restaurant/logo.png',

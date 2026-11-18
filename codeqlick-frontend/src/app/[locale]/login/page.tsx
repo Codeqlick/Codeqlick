@@ -10,13 +10,11 @@ import { Alert } from '@/components/ui/Alert';
 import { Card } from '@/components/ui/Card';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
-import { resolveCruisingLocale } from '@/i18n/locale';
+import { resolveLocale } from '@/i18n/locale';
 import { getCurrentUser, safeNextPath } from '@/lib/auth/session';
 import { homeAfterSignIn, onAccountHost, shortNext } from '@/lib/webapp-request';
 import { siteLocale } from '@/i18n/routing';
 import { env } from '@/lib/env';
-import { turnstileSiteKey } from '@/lib/turnstile';
-import { requestBrand } from '@/lib/request-brand';
 import { firstParam } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
 import { loginAction, passkeyLoginAction, passkeyLoginOptionsAction } from './actions';
@@ -34,7 +32,7 @@ type PageProps = {
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const locale = resolveCruisingLocale((await params).locale);
+  const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Login' });
   return pageMetadata({
     locale,
@@ -46,18 +44,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function LoginPage({ params, searchParams }: PageProps) {
-  const locale = resolveCruisingLocale((await params).locale);
+  const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Login' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
 
   const user = await getCurrentUser();
   const query = await searchParams;
   const accountHost = await onAccountHost();
-  const neoqlick = (await requestBrand()) === 'neoqlick';
-  const siteKey = turnstileSiteKey(neoqlick ? 'neoqlick' : 'codeqlick', {
-    codeqlick: env.TURNSTILE_SITE_KEY,
-    neoqlick: env.TURNSTILE_SITE_KEY_NEOQLICK,
-  });
   if (user) {
     redirect(
       (await shortNext(safeNextPath(firstParam(query.next), locale), locale)) ??
@@ -97,7 +90,9 @@ export default async function LoginPage({ params, searchParams }: PageProps) {
               autoComplete="current-password"
               required
             />
-            {siteKey ? <Turnstile siteKey={siteKey} locale={locale} /> : null}
+            {env.TURNSTILE_SITE_KEY ? (
+              <Turnstile siteKey={env.TURNSTILE_SITE_KEY} locale={locale} />
+            ) : null}
             <SubmitButton block pendingLabel={t('submitting')}>
               {t('submit')}
             </SubmitButton>
@@ -130,10 +125,7 @@ export default async function LoginPage({ params, searchParams }: PageProps) {
         </Card>
         {/* On the account host, "back" is the website (its own home needs a session). */}
         {accountHost ? (
-          <a
-            href={`${neoqlick ? (env.NEOQLICK_URL ?? env.SITE_URL) : env.SITE_URL}/${neoqlick ? locale : siteLocale(locale)}`}
-            className={styles.back}
-          >
+          <a href={`${env.SITE_URL}/${siteLocale(locale)}`} className={styles.back}>
             ← {t('backToSite')}
           </a>
         ) : (

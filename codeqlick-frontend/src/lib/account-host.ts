@@ -7,16 +7,8 @@
  * On its host `/{locale}/…` is the route `/{locale}/account/…` (like a web app's host); the sign-in
  * pages are served as they are.
  */
-import { routing } from '@/i18n/routing';
-import { isCruisingOnlyLocale, localeOf } from './locales';
-import { brandOfHost } from './hosts';
-import {
-  NEOQLICK_APPS,
-  SITE_SECTIONS,
-  appsOfBrand,
-  webappForHost,
-  type WebappRoute,
-} from './webapps';
+import { localeOf } from './locales';
+import { SITE_SECTIONS, WEBAPPS, webappForHost, type WebappRoute } from './webapps';
 
 /** The account host's first label, and its pages' route folder (`app/[locale]/account`). */
 export const ACCOUNT = 'account';
@@ -56,7 +48,7 @@ export function isAccountHost(host: string | null | undefined): boolean {
 
 /**
  * The main site's host next to any of its hosts: `account.codeqlick.com` and
- * `cruising.codeqlick.com` → `codeqlick.com`; `www.codeqlick.com` → `codeqlick.com`.
+ * `meetings.codeqlick.com` → `codeqlick.com`; `www.codeqlick.com` → `codeqlick.com`.
  */
 export function mainHostOf(host: string): string {
   if (isAccountHost(host)) return host.slice(ACCOUNT.length + 1);
@@ -65,7 +57,7 @@ export function mainHostOf(host: string): string {
   return host.replace(/^www\./, '');
 }
 
-/** The account host next to any host of the platform: `cruising.codeqlick.com` → `account.codeqlick.com`. */
+/** The account host next to any host of the platform: `meetings.codeqlick.com` → `account.codeqlick.com`. */
 export function accountHostFor(host: string): string {
   return `${ACCOUNT}.${mainHostOf(host)}`;
 }
@@ -81,8 +73,7 @@ export function isIpHost(host: string): boolean {
  * - the sign-in pages and single sign-on's pages are served as they are;
  * - the old addresses with the folder's name (`/{locale}/account/…`) go to the short ones, on
  *   navigations (`redirectOld`);
- * - the website's sections and the apps go to the main host (which sends apps on to theirs), in
- *   English when the language is one only Cruising speaks;
+ * - the website's sections and the apps go to the main host (which sends apps on to theirs);
  * - the account pages: `/{locale}/security` is the route `/{locale}/account/security`; anything
  *   else is left to the account routes too (their 404).
  */
@@ -106,17 +97,8 @@ export function routeAccount(
     if (!redirectOld) return { action: 'pass' };
     return { action: 'redirect', to: `/${locale}${rest.slice(ACCOUNT.length + 1)}` };
   }
-  if (
-    SITE_SECTIONS.includes(section) ||
-    appsOfBrand(brandOfHost(host)).some((app) => app === section) ||
-    // The 18+ apps' old addresses: the main host sends them on to Neoqlick (architecture 4.18).
-    (brandOfHost(host) === 'codeqlick' && NEOQLICK_APPS.some((app) => app === section))
-  ) {
-    const path =
-      section !== 'cruising' && isCruisingOnlyLocale(locale)
-        ? `/${routing.defaultLocale}${rest}`
-        : pathname;
-    return { action: 'redirect', to: `${protocol}//${mainHostOf(host)}${path}` };
+  if (SITE_SECTIONS.includes(section) || WEBAPPS.some((app) => app === section)) {
+    return { action: 'redirect', to: `${protocol}//${mainHostOf(host)}${pathname}` };
   }
   return { action: 'rewrite', to: `/${locale}/${ACCOUNT}${rest === '/' ? '' : rest}` };
 }

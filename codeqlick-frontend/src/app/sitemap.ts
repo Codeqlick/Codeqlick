@@ -4,17 +4,12 @@ import { connection } from 'next/server';
 import { SERVICE_SLUGS } from '@/components/content/services';
 import { localSeoPaths } from '@/content/local-seo';
 import { SITE_LOCALES } from '@/i18n/routing';
-import { listCruisingSitemap } from '@/lib/api/cruising';
 import { listPortfolio } from '@/lib/api/portfolio';
 import { listPosts } from '@/lib/api/posts';
 import { getCalculator } from '@/lib/api/calculator';
 import { getBookingSlots } from '@/lib/api/bookings';
 import { legalOwner } from '@/lib/env';
 import { absoluteUrl } from '@/lib/seo';
-import { appLocales } from '@/lib/locales';
-import { env, neoqlickLegalOwner } from '@/lib/env';
-import { classifyHost } from '@/lib/hosts';
-import { routing } from '@/i18n/routing';
 import { webappForHost } from '@/lib/webapps';
 import { WEBAPP_PUBLIC_PATHS, webappUrl } from '@/lib/webapp-seo';
 
@@ -58,53 +53,15 @@ async function contentPaths(): Promise<{ path: string; lastModified?: string }[]
   }
 }
 
-/** Cruising's spots, and the country and city pages that list them (short addresses on its host). */
-async function cruisingPaths(): Promise<{ path: string; lastModified?: string }[]> {
-  try {
-    const items = await listCruisingSitemap();
-    const places = new Map<string, string>();
-    for (const item of items) {
-      const country = `/places/${item.countryCode.toLowerCase()}`;
-      places.set(country, item.updatedAt);
-      places.set(`${country}/${item.citySlug}`, item.updatedAt);
-    }
-    return [
-      ...items.map((item) => ({ path: `/spots/${item.slug}`, lastModified: item.updatedAt })),
-      ...[...places].map(([path, lastModified]) => ({ path, lastModified })),
-    ];
-  } catch {
-    return [];
-  }
-}
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Generated per request: a build-time sitemap has no API to read the content slugs from.
   await connection();
-  const host = (await headers()).get('host');
-  // Neoqlick's portal: its home and legal pages in six languages (architecture 4.18).
-  if (classifyHost(host).kind === 'portal' && env.NEOQLICK_URL) {
-    const paths = neoqlickLegalOwner ? ['', '/legal', '/privacy', '/terms'] : [''];
-    const url = (locale: string, path: string) => `${env.NEOQLICK_URL}/${locale}${path}`;
-    return paths.flatMap((path) =>
-      routing.locales.map((locale) => ({
-        url: url(locale, path),
-        priority: path === '' ? 1 : 0.4,
-        alternates: {
-          languages: Object.fromEntries(routing.locales.map((l) => [l, url(l, path)])),
-        },
-      })),
-    );
-  }
-  const app = webappForHost(host);
+  const app = webappForHost((await headers()).get('host'));
   const appPaths = app ? WEBAPP_PUBLIC_PATHS[app] : undefined;
   // A web app's host that is meant for search lists only its own public pages.
   if (app && appPaths) {
-    const entries: { path: string; lastModified?: string }[] = [
-      ...appPaths.map((path) => ({ path })),
-      ...(app === 'cruising' ? await cruisingPaths() : []),
-    ];
-    // Cruising's host lists its six languages, the others English and Spanish (decision 103).
-    const locales = appLocales(app);
+    const entries: { path: string; lastModified?: string }[] = appPaths.map((path) => ({ path }));
+    const locales = SITE_LOCALES;
     return entries.flatMap(({ path, lastModified }) =>
       locales.map((locale) => ({
         url: webappUrl(app, locale, path),

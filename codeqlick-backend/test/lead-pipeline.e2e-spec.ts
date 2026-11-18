@@ -43,9 +43,7 @@ describe('Lead pipeline (e2e)', () => {
 
   afterAll(async () => {
     if (prisma) {
-      const client = await prisma.user.findUnique({
-        where: { realm_email: { realm: 'CODEQLICK', email: leadEmail } },
-      });
+      const client = await prisma.user.findUnique({ where: { email: leadEmail } });
       if (client) await prisma.clientProject.deleteMany({ where: { clientId: client.id } });
       await prisma.lead.deleteMany({ where: { email: leadEmail } });
       await prisma.user.deleteMany({ where: { email: { in: [admin.email, leadEmail] } } });

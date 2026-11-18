@@ -17,9 +17,6 @@ function user(over: Partial<UserWithUsage> = {}, count: Partial<typeof counts> =
     registeredAt: new Date(),
     memberOfId: null,
     signupApp: null,
-    videochatProfile: null,
-    swipeProfile: null,
-    cruisingProfile: null,
     ...over,
     _count: { ...counts, ...count },
   } as UserWithUsage;
@@ -34,13 +31,13 @@ describe('account kind', () => {
     expect(kindOf(user({ registeredAt: null }))).toBe('client');
     expect(kindOf(user({ memberOfId: 'a' }))).toBe('client');
     expect(kindOf(user({}, { proposals: 1 }))).toBe('client');
-    expect(kindOf(user({ signupApp: 'swipe' }, { clientProjects: 1 }))).toBe('client');
+    expect(kindOf(user({ signupApp: 'citas' }, { clientProjects: 1 }))).toBe('client');
   });
 
   it('is an app user when it only signed up from or uses our web apps', () => {
-    const swiper = user({ signupApp: 'swipe', videochatProfile: { userId: 'a' } });
-    expect(kindOf(swiper)).toBe('app');
-    expect(appsOf(swiper)).toEqual(['videochat', 'swipe']);
+    const booker = user({ signupApp: 'cloud' }, { meetingRooms: 1 });
+    expect(kindOf(booker)).toBe('app');
+    expect(appsOf(booker)).toEqual(['meetings', 'cloud']);
     expect(kindOf(user({}, { bookingPages: 2 }))).toBe('app');
     expect(kindOf(user())).toBe('none');
   });

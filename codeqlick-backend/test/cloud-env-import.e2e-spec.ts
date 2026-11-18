@@ -264,9 +264,7 @@ describe('Codeqlick Cloud: importing a .env file (e2e)', () => {
 
     // ── A MEMBER can't import; a token of the team can.
     const team = await prisma.cloudTeam.findUniqueOrThrow({ where: { slug: teamSlug } });
-    const mateRow = await prisma.user.findUniqueOrThrow({
-      where: { realm_email: { realm: 'CODEQLICK', email: mate.email } },
-    });
+    const mateRow = await prisma.user.findUniqueOrThrow({ where: { email: mate.email } });
     await prisma.cloudMember.create({
       data: {
         teamId: team.id,
