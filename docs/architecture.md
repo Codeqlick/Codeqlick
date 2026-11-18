@@ -1015,7 +1015,7 @@ Owner's request (2026-11-17): one page in Admin that shows how the whole platfor
 
 ### 4.19 Security check (`modules/security-checks`)
 
-Owner's decision (2026-11-18): **Codeqlick Security** is a new division that builds security products (protection like Cloudflare's, and autonomous tools). Its product 1 is this free, public Security check of any domain, and it is also a lead magnet like the website check (4.12). Status: backend built; website pages follow.
+Owner's decision (2026-11-18): **Codeqlick Security** is a new division that builds security products (protection like Cloudflare's, and autonomous tools). Its product 1 is this free, public Security check of any domain, and it is also a lead magnet like the website check (4.12). Status: built (API, the `/security-check` pages, the report and the admin list).
 
 **Principle:** anything beyond reading public information needs proof that the person owns the domain. This check never goes beyond reading, so it needs no proof: it makes only the requests a browser, a mail server or a resolver makes on its own. It does **not** probe paths for exposed files (`/.env`, `/.git`, admin panels), send payloads, guess credentials or scan ports. Only the homepage, `/.well-known/security.txt` and the domain's DNS records are requested. Active tests (ports, exposed files, vulnerability scanning) are a later product that requires verified ownership; it is not specified here.
 
