@@ -2,18 +2,29 @@ name: Security
 
 # Secrets, code patterns, vulnerable dependencies, misconfiguration and images (architecture section 9,
 # decision 142). Three independent jobs, so one finding doesn't hide the others. Runs on every pull
-# request and push to main (all paths), every Monday and by hand. The tools are the open-source CLIs,
+# request (all paths), push to main touching the apps (see `on`), every Monday and by hand. The tools are the open-source CLIs,
 # run as containers pinned by version and digest: no service, no account, no token, nothing uploaded.
 on:
   pull_request:
   push:
     branches: [main]
+    # The paths that trigger the app CI plus the scanners' own inputs, so a docs-only commit runs no
+    # Security run and no Deploy. Pull requests run on every path: the check is required.
+    paths:
+      - 'codeqlick-backend/**'
+      - 'codeqlick-frontend/**'
+      - 'codeqlick-sites/**'
+      - '.github/workflows/**'
+      - '**/Dockerfile'
+      - 'docker-compose*.yml'
+      - '.gitleaks.toml'
+      - '.trivyignore.yaml'
   schedule:
     - cron: '0 6 * * 1'
   workflow_dispatch:
 
 concurrency:
-  group: security-${{ github.ref }}
+  group: security-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   # Only pull requests: cancelling a run on main would count as a failed CI run of that commit.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
@@ -23,6 +34,8 @@ permissions:
 env:
   GITLEAKS_IMAGE: zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
   SEMGREP_IMAGE: semgrep/semgrep:1.186.0@sha256:6e1b04340e60e910fbb4ddbf3c857ab0918f064417ad5ac530014ccb3cf8c8f1
+  # Fallbacks for the vulnerability database: the default registry rate-limits shared runners (429).
+  TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db:2,mirror.gcr.io/aquasec/trivy-db:2,ghcr.io/aquasecurity/trivy-db:2
   TRIVY_IMAGE: aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb
 
 jobs:
@@ -50,9 +63,8 @@ jobs:
           range=""
           if [ "$EVENT" = "pull_request" ]; then
             range="$PR_BASE..$PR_HEAD"
-          elif [ "$EVENT" = "push" ] && [ "${PUSH_BEFORE#0000000}" != "$PUSH_BEFORE" ]; then
-            range=""
-          elif [ "$EVENT" = "push" ]; then
+          elif [ "$EVENT" = "push" ] && ! printf '%s' "$PUSH_BEFORE" | grep -Eq '^0+$' \
+            && git cat-file -e "$PUSH_BEFORE^{commit}" 2> /dev/null; then
             range="$PUSH_BEFORE..$PUSH_AFTER"
           fi
           echo "Commit range: ${range:-full history}"
@@ -95,7 +107,9 @@ jobs:
             --config p/typescript --config p/nodejs --config p/react --config p/nextjs \
             --config p/docker --config p/github-actions --config p/secrets \
             --metrics=off --sarif-output=/out/semgrep.sarif
-          blocking=$(jq '[.runs[].results[]? | select(.level == "error")] | length' "$RUNNER_TEMP/out/semgrep.sarif")
+          # Semgrep's SARIF results carry no `level`: the severity is on the rule's default configuration.
+          blocking=$(jq '([.runs[].tool.driver.rules[]? | {key: .id, value: (.defaultConfiguration.level // "warning")}] | from_entries) as $lv
+            | [.runs[].results[]? | select((.level // $lv[.ruleId // ""]) == "error")] | length' "$RUNNER_TEMP/out/semgrep.sarif")
           echo "Blocking findings (ERROR): $blocking"
           [ "$blocking" -eq 0 ] || {
             echo "::error::Semgrep found $blocking ERROR finding(s); see the job summary"
@@ -128,6 +142,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/out" "$RUNNER_TEMP/trivy-cache"
           docker run --rm -v "$GITHUB_WORKSPACE:/src:ro" -v "$RUNNER_TEMP/out:/out" \
             -v "$RUNNER_TEMP/trivy-cache:/root/.cache" "$TRIVY_IMAGE" fs \
+            --db-repository "$TRIVY_DB_REPOSITORY" \
             --scanners vuln,misconfig --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
             --ignorefile /src/.trivyignore.yaml --format sarif --output /out/trivy-fs.sarif /src
 
@@ -137,14 +152,17 @@ jobs:
           # The images compose builds in production (backend, frontend, site builder), built here
           # from the same Dockerfiles and not pushed. Every image is scanned before the step fails.
           status=0
+          mkdir -p "$RUNNER_TEMP/images"
           for app in backend frontend sites; do
-            docker build --quiet --tag "cq-scan/$app" "./codeqlick-$app" > /dev/null
-            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            docker build --quiet --tag "cq-scan/$app" "./codeqlick-$app" > /dev/null || { status=1; continue; }
+            docker save --output "$RUNNER_TEMP/images/$app.tar" "cq-scan/$app" || { status=1; continue; }
+            docker run --rm -v "$RUNNER_TEMP/images:/images:ro" \
               -v "$GITHUB_WORKSPACE/.trivyignore.yaml:/.trivyignore.yaml:ro" \
               -v "$RUNNER_TEMP/out:/out" -v "$RUNNER_TEMP/trivy-cache:/root/.cache" "$TRIVY_IMAGE" image \
+              --db-repository "$TRIVY_DB_REPOSITORY" --input "/images/$app.tar" \
               --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
-              --ignorefile /.trivyignore.yaml --format sarif --output "/out/trivy-image-$app.sarif" \
-              "cq-scan/$app" || status=1
+              --ignorefile /.trivyignore.yaml --format sarif --output "/out/trivy-image-$app.sarif" || status=1
+            rm -f "$RUNNER_TEMP/images/$app.tar"
           done
           exit "$status"
 

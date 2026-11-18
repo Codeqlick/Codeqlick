@@ -1,6 +1,7 @@
 # Trivy exceptions (architecture section 9, decision 142). One entry per finding, each with a
 # statement (the reason) and an expiry: once `expired_at` has passed the entry stops applying and the
-# scan fails again. Empty for now: every finding present when the scan was introduced was fixed.
+# scan fails again (`expired_at` at most 90 days ahead). Empty for now: every finding present when the
+# scan was introduced was fixed in the images or the lockfiles.
 #
 # vulnerabilities:
 #   - id: CVE-0000-00000

@@ -1,7 +1,7 @@
 name: Deploy
 
 # Releases `main` to the VPS once its CI has passed. Backend, Frontend, E2E and Sites only run when the
-# apps changed; Security runs on every push. Each one finishing triggers this, and it deploys when no
+# apps changed; Security runs on the same pushes plus those touching workflows, Dockerfiles or Compose files. Each one finishing triggers this, and it deploys when no
 # CI run of that commit failed or is still running (the last one to finish does the release). Run it by hand to redeploy.
 on:
   workflow_run:
