@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
+import { getImageProps } from 'next/image';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { BASIC_FAQ_KEYS, Faq } from '@/components/content/Faq';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +20,17 @@ type PageProps = { params: Promise<{ locale: string }> };
  * website" (`general`) is offered in the request only.
  */
 const DEMOS = SITE_PRESETS.filter((key) => key !== 'general');
+function demoImage(key: string) {
+  const { props } = getImageProps({
+    src: `/demos/${key}.jpg`,
+    alt: '',
+    width: 1200,
+    height: 750,
+    sizes: '(max-width: 760px) 100vw, 33vw',
+  });
+  return props;
+}
+
 const STEPS = ['tell', 'preview', 'adjust', 'live'] as const;
 /** The online request (architecture 8.2). */
 const REQUEST_HREF = '/basic-website/request';
@@ -76,14 +87,9 @@ export default async function BasicWebsitePage({ params }: PageProps) {
           <ul className={styles.demos}>
             {DEMOS.map((key) => (
               <li key={key} className={styles.demo}>
-                <Image
-                  src={`/demos/${key}.jpg`}
-                  alt=""
-                  width={1200}
-                  height={750}
-                  sizes="(max-width: 760px) 100vw, 33vw"
-                  className={styles.cover}
-                />
+                {/* Server-rendered <img>: next/image would hydrate seven client components. */}
+                {/* oxlint-disable-next-line next/no-img-element */}
+                <img {...demoImage(key)} alt="" className={styles.cover} />
                 <div className={styles.demoText}>
                   <h3 className={styles.demoName}>{t(`demos.${key}.name`)}</h3>
                   <p className={styles.demoKind}>{t(`demos.${key}.kind`)}</p>
