@@ -148,8 +148,14 @@ jobs:
           CHROME_PATH=$(node -e "console.log(require('@playwright/test').chromium.executablePath())")
           export CHROME_PATH
           status=0
-          npx lhci autorun --config=lighthouserc.desktop.json || status=1
-          npx lhci autorun --config=lighthouserc.mobile.json || status=1
+          for preset in desktop mobile; do
+            npx lhci autorun --config=lighthouserc.$preset.json || status=1
+            # Keep each preset's assertion results next to its reports (the next run overwrites them).
+            mkdir -p lighthouse-reports/$preset
+            if [ -f .lighthouseci/assertion-results.json ]; then
+              cp .lighthouseci/assertion-results.json lighthouse-reports/$preset/
+            fi
+          done
           exit $status
 
       - name: Keep Lighthouse reports

@@ -10,17 +10,22 @@ import { WEBAPPS } from '../src/lib/webapps';
  */
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
-/** Rule ids allowed to fail on one page, keyed by the page's path (e.g. `/es/work`). Ideally empty. */
+/**
+ * Rule ids allowed to fail on one page, keyed by host + path (e.g. `localhost/es/work`,
+ * `account.localhost/es/login`), so an exception never covers more than one page. Ideally empty.
+ */
 const EXCEPTIONS: Record<string, { rule: string; reason: string }[]> = {};
 
 const LOCALES = ['es', 'en'] as const;
 
-async function scan(page: Page, key: string) {
+async function scan(page: Page, label: string) {
   await page.waitForLoadState('networkidle');
+  const { hostname, pathname } = new URL(page.url());
+  const pageKey = `${hostname}${pathname}`;
   let builder = new AxeBuilder({ page }).withTags(TAGS);
   // Next's dev indicator only exists in the dev server, never in the production build.
   if (!process.env.CI) builder = builder.exclude('nextjs-portal');
-  const allowed = (EXCEPTIONS[key] ?? []).map((exception) => exception.rule);
+  const allowed = (EXCEPTIONS[pageKey] ?? []).map((exception) => exception.rule);
   if (allowed.length) builder = builder.disableRules(allowed);
   const { violations } = await builder.analyze();
   const report = violations
@@ -31,7 +36,8 @@ async function scan(page: Page, key: string) {
         `\n    ${violation.helpUrl}`,
     )
     .join('\n');
-  if (violations.length) throw new Error(`Accessibility violations on ${key}:\n${report}`);
+  if (violations.length)
+    throw new Error(`Accessibility violations on ${label} (${pageKey}):\n${report}`);
 }
 
 async function scanPath(page: Page, path: string, base = '') {
@@ -45,7 +51,72 @@ function appUrl(app: string, baseURL: string | undefined): string {
   return url.origin;
 }
 
+const BODY = {
+  en: [
+    '## Shipping small',
+    'Small changes are *easy* to review and **easy** to undo. See [our contact page](/en/contact).',
+    '### What we do',
+    '- Review every change',
+    '- Deploy on merge',
+    '- Watch the errors',
+    '```sh\nnpx @codeqlick/cli deploy\n```',
+    'Run `deploy` and you are done.',
+  ].join('\n\n'),
+  es: [
+    '## Entregar en pequeño',
+    'Los cambios pequeños son *fáciles* de revisar y **fáciles** de deshacer. Mira [nuestro contacto](/es/contact).',
+    '### Qué hacemos',
+    '- Revisar cada cambio',
+    '- Desplegar al fusionar',
+    '- Vigilar los errores',
+    '```sh\nnpx @codeqlick/cli deploy\n```',
+    'Ejecuta `deploy` y listo.',
+  ].join('\n\n'),
+};
+
 test.describe('public site', () => {
+  // A published post with real-looking content (headings, list, link, code), removed afterwards.
+  const postSlug = `e2e-a11y-post-${runTag()}`;
+  let postId: string;
+
+  test.beforeAll(async ({ playwright }) => {
+    const request = await playwright.request.newContext();
+    const base = process.env.E2E_BASE_URL ?? 'http://localhost:3001';
+    const res = await request.post(`${API_URL}/admin/posts`, {
+      headers: adminHeaders(),
+      data: {
+        slug: postSlug,
+        status: 'PUBLISHED',
+        publishedAt: new Date(Date.now() - 86_400_000).toISOString(),
+        coverImageUrl: `${base}/og-image.png`,
+        newsletter: false,
+        translations: [
+          {
+            locale: 'en',
+            title: 'Shipping small',
+            excerpt: 'Why small changes win.',
+            content: BODY.en,
+          },
+          {
+            locale: 'es',
+            title: 'Entregar en pequeño',
+            excerpt: 'Por qué ganan los cambios pequeños.',
+            content: BODY.es,
+          },
+        ],
+      },
+    });
+    expect(res.ok(), `Creating the post: ${res.status()} ${await res.text()}`).toBeTruthy();
+    postId = ((await res.json()) as { id: string }).id;
+    await request.dispose();
+  });
+
+  test.afterAll(async ({ playwright }) => {
+    const request = await playwright.request.newContext();
+    await request.delete(`${API_URL}/admin/posts/${postId}`, { headers: adminHeaders() });
+    await request.dispose();
+  });
+
   for (const locale of LOCALES) {
     for (const path of ['', '/basic-website', '/work', '/blog', '/contact', '/privacy', '/legal']) {
       test(`/${locale}${path}`, async ({ page }) => {
@@ -53,12 +124,8 @@ test.describe('public site', () => {
       });
     }
 
-    test(`/${locale}/blog/<first post>`, async ({ page }) => {
-      await page.goto(`/${locale}/blog`);
-      const post = page.locator(`a[href^="/${locale}/blog/"]`).first();
-      test.skip((await post.count()) === 0, 'No published post to scan');
-      const href = (await post.getAttribute('href'))!;
-      await scanPath(page, href);
+    test(`/${locale}/blog/<post>`, async ({ page }) => {
+      await scanPath(page, `/${locale}/blog/${postSlug}`);
     });
   }
 });
@@ -119,17 +186,25 @@ test.describe('client portal', () => {
         locale: 'es',
       },
     });
-    expect(user.ok()).toBeTruthy();
+    expect(user.ok(), `Creating the client: ${user.status()} ${await user.text()}`).toBeTruthy();
     const clientId = ((await user.json()) as { id: string }).id;
     const project = await request.post(`${API_URL}/admin/projects`, {
       headers: admin,
       data: { clientId, name: `Tienda ${tag}`, phase: 'DESIGN', progress: 30 },
     });
+    expect(
+      project.ok(),
+      `Creating the project: ${project.status()} ${await project.text()}`,
+    ).toBeTruthy();
     const projectId = ((await project.json()) as { id: string }).id;
-    await request.post(`${API_URL}/admin/projects/${projectId}/updates`, {
+    const update = await request.post(`${API_URL}/admin/projects/${projectId}/updates`, {
       headers: admin,
       data: { title: 'Propuesta de portada', body: 'Dos opciones.', requestApproval: true },
     });
+    expect(
+      update.ok(),
+      `Creating the update: ${update.status()} ${await update.text()}`,
+    ).toBeTruthy();
     const token = await apiLogin(request, client);
     signIn = (context, baseURL) =>
       context.addCookies([{ name: 'cq_at', value: token, url: baseURL, httpOnly: true }]);
