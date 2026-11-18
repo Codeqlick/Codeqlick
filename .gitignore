@@ -47,3 +47,7 @@ playwright-report/
 
 # Managed client sites built locally by site-builder
 /.sites/
+
+# Lighthouse CI reports (codeqlick-frontend)
+lighthouse-reports/
+.lighthouseci/
