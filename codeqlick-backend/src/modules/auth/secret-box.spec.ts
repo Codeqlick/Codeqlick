@@ -12,8 +12,8 @@ describe('SecretBox', () => {
   it('rejects a truncated authentication tag', () => {
     const parts = box.seal('JBSWY3DPEHPK3PXP').split('.');
     parts[2] = Buffer.from(parts[2]!, 'base64url').subarray(0, 12).toString('base64url');
-    expect(() => box.open(parts.join('.'))).toThrow();
+    expect(() => box.open(parts.join('.'))).toThrow(/Unknown format/);
     parts[2] = '';
-    expect(() => box.open(parts.join('.'))).toThrow();
+    expect(() => box.open(parts.join('.'))).toThrow(/Unknown format/);
   });
 });
