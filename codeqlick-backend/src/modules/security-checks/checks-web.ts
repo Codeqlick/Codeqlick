@@ -314,7 +314,8 @@ export function cookieProblems(
   return { session, other };
 }
 
-const VERSIONED = /\d+\.\d+/;
+/** "Has a version number": linear on any input (a header value can be long). */
+const VERSIONED = /\d\.\d/;
 
 function headerChecks(input: SecurityInputs): CheckResult[] {
   const { page } = input.web;

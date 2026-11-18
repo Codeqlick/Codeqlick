@@ -81,6 +81,18 @@ describe('hostile pages are read in bounded time', () => {
   it('a pattern with nested quantifiers never runs, many patterns stay fast', () => {
     expect(pattern('(a+)+$')).toBeNull();
     expect(pattern('(.*)*x')).toBeNull();
+    for (const risky of [
+      '(a|aa)+',
+      '((a+))+',
+      '(\\d|\\d\\d)+$',
+      '(?:a|a)*',
+      '(a?a?)+',
+      '(\\w+\\s?)+',
+      '(a{1,5}){1,5}',
+    ]) {
+      expect(pattern(risky)).toBeNull();
+    }
+    expect(pattern('jquery(\\.min)?\\.js')).toBeInstanceOf(RegExp);
     expect(pattern('(a)\\1')).toBeNull();
     expect(pattern('a'.repeat(300))).toBeNull();
     expect(pattern('jquery-(§§version§§)\\.js')).toBeInstanceOf(RegExp);

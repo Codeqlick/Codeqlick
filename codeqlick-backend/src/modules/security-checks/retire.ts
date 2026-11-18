@@ -83,8 +83,11 @@ export const storedRetireSchema = z.object({
 const VERSION = '[0-9][0-9a-z._-]{0,30}?';
 /** Longest pattern accepted from the downloaded data. */
 const MAX_PATTERN_CHARS = 200;
-/** A group that holds a quantifier and is itself quantified (`(a+)+`, `(.*)*`): catastrophic. */
-const NESTED_QUANTIFIER = /\([^)]*[+*}][^)]*\)[+*{]/;
+/**
+ * Any group repeated with `+`, `*` or `{…}` (`(a+)+`, `(a|aa)+`, `(a?a?)+`): such groups are where
+ * catastrophic backtracking comes from, and none of Retire.js's patterns needs one (`)?` is kept).
+ */
+const NESTED_QUANTIFIER = /\)[+*{]/;
 /** A back-reference (`\1`). */
 const BACKREFERENCE = /\\[1-9]/;
 /** Longest script URL and file name matched; longer ones are skipped. */
