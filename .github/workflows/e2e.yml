@@ -29,7 +29,7 @@ jobs:
   e2e:
     name: Browser flows
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
 
     services:
       postgres:
@@ -137,6 +137,35 @@ jobs:
         env:
           CI: 'true'
         run: npm run test:e2e
+
+      # Lighthouse CI (architecture 9) on the same production build, CSP enforced: the desktop
+      # preset, then the mobile one, three runs per page (the median counts). It drives the
+      # Chromium Playwright just installed (CHROME_PATH). A failed budget fails the job; reports go
+      # to lighthouse-reports/ on disk only (no temporary public storage).
+      - name: Lighthouse
+        working-directory: codeqlick-frontend
+        run: |
+          CHROME_PATH=$(node -e "console.log(require('@playwright/test').chromium.executablePath())")
+          export CHROME_PATH
+          status=0
+          for preset in desktop mobile; do
+            npx lhci autorun --config=lighthouserc.$preset.json || status=1
+            # Keep each preset's assertion results next to its reports (the next run overwrites them).
+            mkdir -p lighthouse-reports/$preset
+            if [ -f .lighthouseci/assertion-results.json ]; then
+              cp .lighthouseci/assertion-results.json lighthouse-reports/$preset/
+            fi
+          done
+          exit $status
+
+      - name: Keep Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lighthouse-reports
+          path: codeqlick-frontend/lighthouse-reports/
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Keep the report and server logs
         if: failure()
