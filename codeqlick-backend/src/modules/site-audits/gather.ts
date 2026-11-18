@@ -1,6 +1,6 @@
 import type { AuditInputs } from './site-audit-checks.js';
 import { sitemapsIn } from './site-audit-checks.js';
-import { safeFetch, type FetchedPage } from './safe-fetch.js';
+import { safeFetch, type FetchedPage } from '../../common/safe-fetch.js';
 
 /** TLS errors that mean the certificate itself is wrong (the page is then read without checking it). */
 const CERTIFICATE_ERRORS =

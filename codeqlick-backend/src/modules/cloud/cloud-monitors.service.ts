@@ -12,7 +12,7 @@ import { toApiLocale } from '../../common/schemas/common.schemas.js';
 import type { CloudMonitor, CloudMonitorStatus } from '../../generated/prisma/client.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { MailService } from '../mail/mail.service.js';
-import { assertCheckableUrl, safeFetch } from '../site-audits/safe-fetch.js';
+import { assertCheckableUrl, safeFetch } from '../../common/safe-fetch.js';
 import type { CloudCtx } from './cloud-caller.js';
 import { cloudMonitorEmail } from './cloud-emails.js';
 import {

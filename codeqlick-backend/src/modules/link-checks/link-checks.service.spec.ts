@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 // The sites the external links point at: what they answer is up to the test (no network).
 const requested = vi.hoisted(() => [] as string[]);
-vi.mock('../site-audits/safe-fetch.js', async (original) => {
-  const actual = await original<typeof import('../site-audits/safe-fetch.js')>();
+vi.mock('../../common/safe-fetch.js', async (original) => {
+  const actual = await original<typeof import('../../common/safe-fetch.js')>();
   return {
     ...actual,
     safeFetch: vi.fn(async (url: string) => {

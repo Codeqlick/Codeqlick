@@ -11,7 +11,7 @@ import type { CloudNotifyChannel, Prisma } from '../../generated/prisma/client.j
 import { AppConfigService } from '../../config/app-config.service.js';
 import { SecretBox } from '../auth/secret-box.js';
 import { MailService } from '../mail/mail.service.js';
-import { safePost } from '../site-audits/safe-fetch.js';
+import { safePost } from '../../common/safe-fetch.js';
 import type { CloudCtx } from './cloud-caller.js';
 import { cloudBuildEmail, cloudChannelOffEmail } from './cloud-emails.js';
 import { CloudNotificationsRepository } from './cloud-notifications.repository.js';

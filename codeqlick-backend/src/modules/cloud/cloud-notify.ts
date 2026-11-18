@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import type { ApiLocale } from '../../common/schemas/common.schemas.js';
 import type { CloudNotifyKind } from '../../generated/prisma/client.js';
-import { assertCheckableUrl } from '../site-audits/safe-fetch.js';
+import { assertCheckableUrl } from '../../common/safe-fetch.js';
 import type { Category, CheckId } from '../site-audits/site-audit-checks.js';
 import { CATEGORY_NAMES, CHECK_TEXTS } from '../site-audits/site-audit-texts.js';
 import type { Drop } from './cloud-production-checks.js';

@@ -9,8 +9,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 // The external sites the links point at: what they answer is up to the test (no network). The
 // address checks stay the real ones.
 const fetched = vi.hoisted(() => [] as { url: string; method?: string; userAgent?: string }[]);
-vi.mock('../src/modules/site-audits/safe-fetch.js', async (original) => {
-  const actual = await original<typeof import('../src/modules/site-audits/safe-fetch.js')>();
+vi.mock('../src/common/safe-fetch.js', async (original) => {
+  const actual = await original<typeof import('../src/common/safe-fetch.js')>();
   return {
     ...actual,
     safeFetch: vi.fn((url: string, options: { method?: string; userAgent?: string } = {}) => {
