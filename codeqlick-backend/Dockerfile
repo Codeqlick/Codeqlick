@@ -34,7 +34,10 @@ RUN DATABASE_URL=postgresql://build:build@localhost:5432/build npx prisma genera
 FROM node:24-alpine AS prod-deps
 WORKDIR /app
 COPY package*.json .npmrc ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev \
+  # TypeScript is only an optional peer of Prisma and Nest Swagger (neither needs it at runtime), but
+  # npm still installs it, and its native compiler (a Go binary) would ship in the image.
+  && rm -rf node_modules/typescript node_modules/@typescript
 
 # ---- Runtime stage -------------------------------------------------------------------------
 FROM node:24-alpine AS runtime
