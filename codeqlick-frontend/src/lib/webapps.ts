@@ -45,6 +45,7 @@ export const SITE_SECTIONS = [
   'portal',
   'privacy',
   'security',
+  'security-check',
   'services',
   'terms',
   'website-check',

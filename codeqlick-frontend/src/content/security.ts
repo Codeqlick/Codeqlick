@@ -54,7 +54,9 @@ Si sigues estas reglas, no emprenderemos acciones legales contra ti por tu inves
 - Te contamos qué vamos a hacer y te avisamos cuando esté arreglado.
 - Si quieres, te damos las gracias por tu nombre en esta página.
 
-También publicamos este contacto en [/.well-known/security.txt](/.well-known/security.txt).`,
+También publicamos este contacto en [/.well-known/security.txt](/.well-known/security.txt).
+
+¿Quieres revisar tu propio dominio? Pasa el [Security check gratuito](/es/security-check) de Codeqlick Security.`,
 };
 
 const en: SecurityPage = {
@@ -100,5 +102,7 @@ If you follow these rules, we won't take legal action against you for your resea
 - We tell you what we will do and let you know when it's fixed.
 - If you want, we thank you by name on this page.
 
-This contact is also published at [/.well-known/security.txt](/.well-known/security.txt).`,
+This contact is also published at [/.well-known/security.txt](/.well-known/security.txt).
+
+Want to check your own domain? Run the [free Security check](/en/security-check) from Codeqlick Security.`,
 };

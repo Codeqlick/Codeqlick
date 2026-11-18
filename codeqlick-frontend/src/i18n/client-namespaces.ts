@@ -12,6 +12,7 @@ export const BASE_CLIENT_NAMESPACES = [
   'Error',
   'LocaleSwitcher',
   'Newsletter',
+  'SecurityCheck',
   'WebsiteCheck',
 ] as const;
 
