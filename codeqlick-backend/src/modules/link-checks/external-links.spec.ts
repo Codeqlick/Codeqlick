@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { FetchOptions } from '../site-audits/safe-fetch.js';
+import type { FetchOptions } from '../../common/safe-fetch.js';
 import {
   checkExternalLink,
   forEachHostSerially,

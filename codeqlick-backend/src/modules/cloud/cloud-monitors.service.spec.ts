@@ -12,8 +12,8 @@ import { createMonitorSchema, updateMonitorSchema } from './cloud.schemas.js';
 
 // What the checked site answers is up to each test (real fetching refuses test addresses).
 const site = vi.hoisted(() => ({ status: 200, body: '', truncated: false }));
-vi.mock('../site-audits/safe-fetch.js', async (original) => {
-  const actual = await original<typeof import('../site-audits/safe-fetch.js')>();
+vi.mock('../../common/safe-fetch.js', async (original) => {
+  const actual = await original<typeof import('../../common/safe-fetch.js')>();
   return {
     ...actual,
     safeFetch: vi.fn((url: string) =>
@@ -31,7 +31,7 @@ vi.mock('../site-audits/safe-fetch.js', async (original) => {
     ),
   };
 });
-const { safeFetch } = await import('../site-audits/safe-fetch.js');
+const { safeFetch } = await import('../../common/safe-fetch.js');
 
 const now = new Date('2026-11-14T12:00:00Z');
 const ctx = {} as CloudCtx;

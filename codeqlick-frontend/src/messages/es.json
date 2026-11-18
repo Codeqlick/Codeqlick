@@ -66,7 +66,8 @@
     "explore": "Estudio",
     "clients": "Clientes",
     "contactTitle": "Hablemos",
-    "websiteCheck": "Revisión gratuita de tu web"
+    "websiteCheck": "Revisión gratuita de tu web",
+    "securityCheck": "Security check gratuito"
   },
   "Home": {
     "hero": {
@@ -440,7 +441,8 @@
       "mobile": "Una app móvil",
       "design": "Diseño",
       "support": "Mantenimiento o mejoras",
-      "not-sure": "Aún no lo sé"
+      "not-sure": "Aún no lo sé",
+      "security": "Seguridad"
     }
   },
   "Validation": {
@@ -935,7 +937,8 @@
       "sites": "Webs",
       "previews": "Vistas previas",
       "cloud": "Cloud",
-      "newsletter": "Boletín"
+      "newsletter": "Boletín",
+      "securityChecks": "Security checks"
     },
     "dashboard": {
       "title": "Panel",
@@ -1873,6 +1876,23 @@
       "tooMany": "Demasiadas búsquedas seguidas. Espera un momento y vuelve a intentarlo.",
       "failed": "La búsqueda ha fallado. Inténtalo de nuevo.",
       "expired": "Tu sesión ha caducado. Recarga la página para volver a entrar."
+    },
+    "securityChecks": {
+      "title": "Security checks",
+      "status": "Estado",
+      "domain": "Dominio",
+      "grade": "Nota",
+      "requested": "Pedido",
+      "links": "Abrir",
+      "report": "Informe",
+      "lead": "Lead",
+      "emptyTitle": "Aún no hay Security checks",
+      "emptyBody": "Las revisiones pedidas en /security-check aparecerán aquí.",
+      "statuses": {
+        "PENDING": "En curso",
+        "DONE": "Hecho",
+        "FAILED": "Fallido"
+      }
     }
   },
   "Sessions": {
@@ -5593,6 +5613,103 @@
       "monitors": "Webs de clientes caídas",
       "monitorsValue": "{down} de {watched}",
       "uptimeNote": "El monitor del servidor no guarda historial, así que aquí no se muestra la disponibilidad de codeqlick.com; avisa al equipo por email cuando la web cae."
+    }
+  },
+  "SecurityCheck": {
+    "metaTitle": "Security check gratuito de tu dominio | Codeqlick Security",
+    "metaDescription": "Revisa tu dominio gratis: HTTPS y certificado, cabeceras de seguridad, tu página, DNS y protección del correo. Pruebas pasivas e informe con nota en tu correo en un minuto.",
+    "eyebrow": "Codeqlick Security",
+    "title": "Security check gratuito de tu dominio",
+    "lead": "Escribe tu dominio y leemos lo que muestra a cualquiera: su HTTPS y certificado, las cabeceras de seguridad que envía, la página de inicio y sus registros DNS y de correo. Recibes una nota de A+ a F, qué arreglar primero y cómo, y el informe en tu correo.",
+    "groupsTitle": "Qué revisamos",
+    "groups": {
+      "https": {
+        "title": "HTTPS y certificado",
+        "body": "Conexión segura, validez y caducidad del certificado, versiones de TLS y HSTS."
+      },
+      "headers": {
+        "title": "Cabeceras de seguridad",
+        "body": "Content Security Policy, inclusión en marcos, tipo de contenido, referrer, permisos y cookies."
+      },
+      "page": {
+        "title": "Tu página",
+        "body": "Contenido inseguro, scripts de terceros sin integridad, librerías con vulnerabilidades conocidas y formularios."
+      },
+      "dnsEmail": {
+        "title": "DNS y correo",
+        "body": "SPF, DMARC, DKIM, DNSSEC, CAA y MTA-STS, para que nadie se haga pasar por ti por correo."
+      },
+      "securityTxt": {
+        "title": "security.txt",
+        "body": "Si publicas cómo avisarte de una vulnerabilidad (RFC 9116)."
+      }
+    },
+    "passiveNote": "Son pruebas pasivas: solo leemos información pública, como haría un navegador o un servidor de correo. No escaneamos puertos, no buscamos archivos ocultos ni intentamos entrar. Una buena nota significa que no encontramos problemas en estas pruebas, no que tu web sea segura: no vemos tu código, tus servidores ni tus cuentas.",
+    "faqTitle": "Preguntas",
+    "faq": {
+      "safe": {
+        "question": "¿Es seguro revisar mi dominio?",
+        "answer": "Sí. Hacemos unas pocas peticiones normales a tu página de inicio y leemos tus registros DNS, como cualquier visitante o servidor de correo. No se cambia nada en tu web."
+      },
+      "secure": {
+        "question": "¿Una A+ significa que mi web es segura?",
+        "answer": "No. Significa que estas pruebas pasivas no encontraron problemas. La seguridad también depende de tu código, tus servidores, las actualizaciones y las contraseñas, que una revisión desde fuera no puede ver."
+      },
+      "ownership": {
+        "question": "¿Tengo que ser el dueño del dominio?",
+        "answer": "No, porque solo leemos información pública. Enviaremos el informe al correo que nos des."
+      },
+      "after": {
+        "question": "¿Qué hacéis con mi correo?",
+        "answer": "Te enviamos el informe y podemos escribirte una vez sobre él. Guardamos la revisión 180 días. Mira la política de privacidad para más detalles."
+      }
+    },
+    "form": {
+      "domain": "Tu dominio",
+      "domainHint": "Solo el dominio, como tuweb.com. Una dirección web también vale.",
+      "domainPlaceholder": "tuweb.com",
+      "email": "Tu correo electrónico",
+      "emailHint": "Enviaremos el informe ahí.",
+      "name": "Tu nombre",
+      "acceptPrivacy": "Acepto que uséis mis datos para enviarme el informe y responderme, como explica la <link>política de privacidad</link>.",
+      "honeypot": "Deja este campo vacío",
+      "submit": "Revisar mi dominio",
+      "sending": "Enviando…",
+      "sent": "Recibido. Tendrás el informe en tu correo en unos minutos.",
+      "error": "Revisa el formulario, por favor.",
+      "rateLimited": "Has pedido muchas revisiones seguidas. Espera un poco y vuelve a intentarlo.",
+      "failed": "No hemos podido pedir la revisión. Inténtalo de nuevo en un momento."
+    },
+    "reportMetaTitle": "Informe de tu Security check",
+    "report": {
+      "back": "Revisar otro dominio",
+      "pendingTitle": "Revisando {host}…",
+      "pendingBody": "Tarda cerca de un minuto; esta página se actualiza sola. También te enviaremos el informe por correo.",
+      "failedTitle": "No hemos podido revisar {host}",
+      "failedFallback": "No hemos podido completar la revisión.",
+      "tryAgain": "Volver a intentarlo",
+      "contact": "Escríbenos",
+      "gradeLabel": "Nota {grade}, puntuación {score} sobre 100",
+      "tone": {
+        "good": "{host} tiene una base sólida",
+        "fair": "{host} tiene carencias que conviene cerrar",
+        "poor": "{host} necesita atención"
+      },
+      "summary": "{count, plural, =0 {Nada que arreglar ni mejorar} one {# punto que arreglar o mejorar} other {# puntos que arreglar o mejorar}} · Revisado el {date}",
+      "groupsLabel": "Puntos a revisar por área",
+      "toReviewShort": "por revisar",
+      "howToFix": "Cómo arreglarlo:",
+      "passedSummary": "{count, plural, one {# prueba superada} other {# pruebas superadas}}",
+      "status": {
+        "pass": "Superada",
+        "warn": "Mejorar",
+        "fail": "Arreglar ya",
+        "info": "Para tu información"
+      },
+      "ctaTitle": "¿Quieres que lo arreglemos?",
+      "ctaBody": "Codeqlick Security puede arreglar lo que ha encontrado este informe y vigilarlo. Cuéntanos de tu web y te decimos cómo y cuánto costaría, sin compromiso.",
+      "ctaContact": "Habla con Codeqlick Security",
+      "contactMessage": "Hola, he pasado el Security check a {domain} (nota {grade}, {score}/100) y me gustaría ayuda para arreglar lo que ha encontrado."
     }
   }
 }

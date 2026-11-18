@@ -3,7 +3,7 @@ import type { AppConfigService } from '../../config/app-config.service.js';
 import type { SiteAudit } from '../../generated/prisma/client.js';
 import type { LeadsService } from '../leads/leads.service.js';
 import type { MailService } from '../mail/mail.service.js';
-import { assertCheckableUrl, isPublicAddress, UnsafeUrlError } from './safe-fetch.js';
+import { assertCheckableUrl, isPublicAddress, UnsafeUrlError } from '../../common/safe-fetch.js';
 import { runChecks, scoreOf, type AuditInputs, type CheckResult } from './site-audit-checks.js';
 import { checkText, failureText } from './site-audit-texts.js';
 import type { SiteAuditsRepository } from './site-audits.repository.js';

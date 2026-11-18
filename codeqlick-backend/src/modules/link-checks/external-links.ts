@@ -1,4 +1,4 @@
-import { safeFetch, type FetchedPage, type FetchOptions } from '../site-audits/safe-fetch.js';
+import { safeFetch, type FetchedPage, type FetchOptions } from '../../common/safe-fetch.js';
 import { classifyError, classifyResponse, type CheckOutcome } from './link-status.js';
 
 /** How the check introduces itself to the sites it visits. */

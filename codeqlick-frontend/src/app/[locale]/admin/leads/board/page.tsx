@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { resolveLocale } from '@/i18n/locale';
 import { adminListLeads } from '@/lib/api/leads';
 import { LOST_REASONS, type LeadStatus } from '@/lib/api/types';
-import { BUDGET_VALUES, PROJECT_TYPES } from '@/lib/contact-options';
+import { BUDGET_VALUES, LEAD_PROJECT_TYPES } from '@/lib/contact-options';
 import { moveLeadAction } from './actions';
 
 /** The sales process; spam stays in the list only. */
@@ -56,7 +56,7 @@ export default async function LeadBoardPage({ params }: { params: Promise<{ loca
             string
           >,
           budgets: Object.fromEntries(BUDGET_VALUES.map((value) => [value, tb(value)])),
-          projectTypes: Object.fromEntries(PROJECT_TYPES.map((value) => [value, tpt(value)])),
+          projectTypes: Object.fromEntries(LEAD_PROJECT_TYPES.map((value) => [value, tpt(value)])),
           hints: Object.fromEntries(COLUMNS.map((status) => [status, t(`boardHints.${status}`)])),
           lostReasons: Object.fromEntries(LOST_REASONS.map((reason) => [reason, tr(reason)])),
           lostWithoutReason: t('lostWithoutReason'),

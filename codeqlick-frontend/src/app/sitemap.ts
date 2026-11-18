@@ -19,6 +19,7 @@ const STATIC_PATHS = [
   '/basic-website',
   '/basic-website/request',
   '/website-check',
+  '/security-check',
   ...Object.values(SERVICE_SLUGS).map((slug) => `/services/${slug}`),
   // The local service pages and the web design hub (decision 121).
   ...localSeoPaths(),

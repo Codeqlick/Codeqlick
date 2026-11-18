@@ -117,8 +117,39 @@ test.describe('public site', () => {
     await request.dispose();
   });
 
+  // A Security check's report (pending or failed: the API runs it for real) to scan too.
+  let securityCheckId: string | undefined;
+  test.beforeAll(async ({ playwright }) => {
+    const request = await playwright.request.newContext();
+    const tag = runTag();
+    const res = await request.post(`${API_URL}/security-checks`, {
+      data: {
+        domain: `e2e-a11y-${tag}.codeqlick.com`,
+        email: `e2e-a11y-sec-${tag}@codeqlick.test`,
+        locale: 'es',
+        acceptPrivacy: true,
+      },
+    });
+    if (res.ok()) securityCheckId = ((await res.json()) as { id: string }).id;
+    await request.dispose();
+  });
+
   for (const locale of LOCALES) {
-    for (const path of ['', '/basic-website', '/work', '/blog', '/contact', '/privacy', '/legal']) {
+    test(`/${locale}/security-check/<id>`, async ({ page }) => {
+      test.skip(!securityCheckId, 'The API did not accept the check (rate limit)');
+      await scanPath(page, `/${locale}/security-check/${securityCheckId}`);
+    });
+
+    for (const path of [
+      '',
+      '/basic-website',
+      '/work',
+      '/blog',
+      '/contact',
+      '/security-check',
+      '/privacy',
+      '/legal',
+    ]) {
       test(`/${locale}${path}`, async ({ page }) => {
         await scanPath(page, `/${locale}${path}`);
       });
@@ -163,6 +194,11 @@ test.describe('admin panel', () => {
     test(`/${locale}/admin`, async ({ page, context, baseURL }) => {
       await asAdmin(context, baseURL!);
       await scanPath(page, `/${locale}/admin`);
+    });
+
+    test(`/${locale}/admin/security-checks`, async ({ page, context, baseURL }) => {
+      await asAdmin(context, baseURL!);
+      await scanPath(page, `/${locale}/admin/security-checks`);
     });
   }
 });

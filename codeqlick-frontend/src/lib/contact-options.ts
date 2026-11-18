@@ -7,6 +7,10 @@
 export const PROJECT_TYPES = ['web', 'custom', 'mobile', 'design', 'support', 'not-sure'] as const;
 export type ProjectType = (typeof PROJECT_TYPES)[number];
 
+/** Every `projectType` a lead can carry: the form's plus `security` (the free Security check). */
+export const LEAD_PROJECT_TYPES = [...PROJECT_TYPES, 'security'] as const;
+export type LeadProjectType = (typeof LEAD_PROJECT_TYPES)[number];
+
 /**
  * Budget ranges the form used to ask for; older leads still carry them, so the admin panel keeps
  * their labels (Contact.budgets).

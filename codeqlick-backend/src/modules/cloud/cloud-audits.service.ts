@@ -15,7 +15,7 @@ import { pageToSkipTake, paginate, type Paginated } from '../../common/types/pag
 import type { CloudAudit, CloudAuditKind } from '../../generated/prisma/client.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { gather } from '../site-audits/gather.js';
-import { assertCheckableUrl } from '../site-audits/safe-fetch.js';
+import { assertCheckableUrl } from '../../common/safe-fetch.js';
 import { runChecks, scoreOf, type CheckId } from '../site-audits/site-audit-checks.js';
 import { failureText } from '../site-audits/site-audit-texts.js';
 import {

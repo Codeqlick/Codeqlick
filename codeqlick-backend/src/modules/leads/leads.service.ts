@@ -233,7 +233,7 @@ export class LeadsService {
   }
 
   /**
-   * A lead from a free website check (architecture 4.12): the check's own emails are the
+   * A lead from a free website check (architecture 4.12) or Security check (4.19): the check's own emails are the
    * acknowledgement and the team's notification, so none of the contact form's are sent.
    */
   async createQuietly(input: {
@@ -242,12 +242,14 @@ export class LeadsService {
     company: string;
     message: string;
     locale: ApiLocale;
+    /** `security` for the free Security check (architecture 4.19). */
+    projectType?: 'web' | 'security';
   }): Promise<{ id: string }> {
     const row = await this.repository.create({
       name: input.name,
       email: input.email.trim().toLowerCase(),
       company: input.company,
-      projectType: 'web',
+      projectType: input.projectType ?? 'web',
       message: input.message,
       locale: toDbLocale(input.locale),
     });

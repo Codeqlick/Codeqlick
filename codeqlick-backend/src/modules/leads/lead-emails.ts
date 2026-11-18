@@ -9,6 +9,7 @@ const PROJECT_TYPES: Record<string, string> = {
   mobile: 'A mobile app',
   design: 'Design',
   support: 'Maintenance or improvements',
+  security: 'Security',
   'not-sure': 'Not sure yet',
 };
 

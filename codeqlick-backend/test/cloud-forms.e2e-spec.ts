@@ -23,8 +23,8 @@ const posts = vi.hoisted(
   () => [] as Array<{ url: string; body: string; headers: Record<string, string> }>,
 );
 const answer = vi.hoisted(() => ({ status: 200 }));
-vi.mock('../src/modules/site-audits/safe-fetch.js', async (original) => {
-  const actual = await original<typeof import('../src/modules/site-audits/safe-fetch.js')>();
+vi.mock('../src/common/safe-fetch.js', async (original) => {
+  const actual = await original<typeof import('../src/common/safe-fetch.js')>();
   return {
     ...actual,
     safePost: vi.fn((url: string, body: string, headers: Record<string, string>) => {

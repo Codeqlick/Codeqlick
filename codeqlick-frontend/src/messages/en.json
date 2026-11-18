@@ -66,7 +66,8 @@
     "explore": "Studio",
     "clients": "Clients",
     "contactTitle": "Let's talk",
-    "websiteCheck": "Free website check"
+    "websiteCheck": "Free website check",
+    "securityCheck": "Free Security check"
   },
   "Home": {
     "hero": {
@@ -440,7 +441,8 @@
       "mobile": "A mobile app",
       "design": "Design",
       "support": "Maintenance or improvements",
-      "not-sure": "Not sure yet"
+      "not-sure": "Not sure yet",
+      "security": "Security"
     }
   },
   "Validation": {
@@ -935,7 +937,8 @@
       "sites": "Websites",
       "previews": "Previews",
       "cloud": "Cloud",
-      "newsletter": "Newsletter"
+      "newsletter": "Newsletter",
+      "securityChecks": "Security checks"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -1873,6 +1876,23 @@
       "tooMany": "Too many searches in a short time. Wait a moment and try again.",
       "failed": "The search failed. Please try again.",
       "expired": "Your session has expired. Reload the page to sign in again."
+    },
+    "securityChecks": {
+      "title": "Security checks",
+      "status": "Status",
+      "domain": "Domain",
+      "grade": "Grade",
+      "requested": "Requested",
+      "links": "Open",
+      "report": "Report",
+      "lead": "Lead",
+      "emptyTitle": "No Security checks",
+      "emptyBody": "Checks asked for on /security-check will appear here.",
+      "statuses": {
+        "PENDING": "Running",
+        "DONE": "Done",
+        "FAILED": "Failed"
+      }
     }
   },
   "Sessions": {
@@ -5593,6 +5613,103 @@
       "monitors": "Client sites down",
       "monitorsValue": "{down} of {watched}",
       "uptimeNote": "The server monitor keeps no history, so codeqlick.com's uptime isn't shown here; it emails the team when the site is down."
+    }
+  },
+  "SecurityCheck": {
+    "metaTitle": "Free Security check of your domain | Codeqlick Security",
+    "metaDescription": "Check your domain for free: HTTPS and certificate, security headers, your page, DNS and email protection. Passive checks, a graded report in your inbox in about a minute.",
+    "eyebrow": "Codeqlick Security",
+    "title": "Free Security check of your domain",
+    "lead": "Type your domain and we'll read what it shows to anyone: its HTTPS and certificate, the security headers it sends, the home page, and its DNS and email records. You get a grade from A+ to F, what to fix first and how, and the report in your inbox.",
+    "groupsTitle": "What we check",
+    "groups": {
+      "https": {
+        "title": "HTTPS and certificate",
+        "body": "Secure connection, certificate validity and expiry, TLS versions and HSTS."
+      },
+      "headers": {
+        "title": "Security headers",
+        "body": "Content Security Policy, framing, content type, referrer, permissions and cookies."
+      },
+      "page": {
+        "title": "Your page",
+        "body": "Insecure content, third-party scripts without integrity, known-vulnerable libraries and forms."
+      },
+      "dnsEmail": {
+        "title": "DNS and email",
+        "body": "SPF, DMARC, DKIM, DNSSEC, CAA and MTA-STS, so nobody can pass as you by email."
+      },
+      "securityTxt": {
+        "title": "security.txt",
+        "body": "Whether you publish how to report a vulnerability to you (RFC 9116)."
+      }
+    },
+    "passiveNote": "These are passive checks: we only read public information, like a browser or a mail server would. We don't scan ports, look for hidden files or try to break in. A good grade means we found no issues in these checks, not that your site is secure: we can't see your code, servers or accounts.",
+    "faqTitle": "Questions",
+    "faq": {
+      "safe": {
+        "question": "Is it safe to check my domain?",
+        "answer": "Yes. We make a few ordinary requests to your home page and read your DNS records, as any visitor or mail server does. Nothing is changed on your site."
+      },
+      "secure": {
+        "question": "Does an A+ mean my site is secure?",
+        "answer": "No. It means these passive checks found no issues. Security also depends on your code, servers, updates and passwords, which a check from outside can't see."
+      },
+      "ownership": {
+        "question": "Do I need to own the domain?",
+        "answer": "No, because we only read public information. We'll email the report to the address you give us."
+      },
+      "after": {
+        "question": "What happens with my email?",
+        "answer": "We send you the report and may write to you about it once. We keep the check for 180 days. See the privacy policy for details."
+      }
+    },
+    "form": {
+      "domain": "Your domain",
+      "domainHint": "Just the domain, like yourwebsite.com. A web address works too.",
+      "domainPlaceholder": "yourwebsite.com",
+      "email": "Your email",
+      "emailHint": "We'll send the report there.",
+      "name": "Your name",
+      "acceptPrivacy": "I agree to you using my details to send me the report and answer me, as the <link>privacy policy</link> explains.",
+      "honeypot": "Leave this field empty",
+      "submit": "Check my domain",
+      "sending": "Sending…",
+      "sent": "Got it. You'll have the report in your inbox in a few minutes.",
+      "error": "Please check the form.",
+      "rateLimited": "You've asked for many checks in a row. Wait a little and try again.",
+      "failed": "We couldn't ask for the check. Please try again in a moment."
+    },
+    "reportMetaTitle": "Your Security check report",
+    "report": {
+      "back": "Check another domain",
+      "pendingTitle": "Checking {host}…",
+      "pendingBody": "It takes about a minute; this page updates itself. We'll also email you the report.",
+      "failedTitle": "We couldn't check {host}",
+      "failedFallback": "We couldn't complete the check.",
+      "tryAgain": "Try again",
+      "contact": "Write to us",
+      "gradeLabel": "Grade {grade}, score {score} out of 100",
+      "tone": {
+        "good": "{host} has a solid baseline",
+        "fair": "{host} has gaps worth closing",
+        "poor": "{host} needs attention"
+      },
+      "summary": "{count, plural, =0 {Nothing to fix or improve} one {# point to fix or improve} other {# points to fix or improve}} · Checked on {date}",
+      "groupsLabel": "Points to review by area",
+      "toReviewShort": "to review",
+      "howToFix": "How to fix:",
+      "passedSummary": "{count, plural, one {# check passed} other {# checks passed}}",
+      "status": {
+        "pass": "Passed",
+        "warn": "Improve",
+        "fail": "Fix now",
+        "info": "For your information"
+      },
+      "ctaTitle": "Want us to fix it?",
+      "ctaBody": "Codeqlick Security can fix what this report found and keep an eye on it. Tell us about your site and we'll tell you how and what it would cost, no strings attached.",
+      "ctaContact": "Talk to Codeqlick Security",
+      "contactMessage": "Hi, I ran the Security check on {domain} (grade {grade}, {score}/100) and I would like help fixing what it found."
     }
   }
 }

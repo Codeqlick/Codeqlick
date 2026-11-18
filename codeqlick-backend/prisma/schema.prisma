@@ -100,56 +100,56 @@ model User {
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  sessions                   Session[]
-  passkeys                   Passkey[]
-  webauthnChallenges         WebAuthnChallenge[]
-  ssoCodes                   SsoCode[]
-  passwordResets             PasswordResetToken[]
-  emailChanges               EmailChangeToken[]
-  clientProjects             ClientProject[]
-  posts                      Post[]
-  projectUpdates             ProjectUpdate[]             @relation("ProjectUpdateAuthor")
-  approvedUpdates            ProjectUpdate[]             @relation("ProjectUpdateApprover")
-  updateComments             ProjectUpdateComment[]
-  leadsConverted             Lead[]                      @relation("LeadClient")
-  leadsAdded                 Lead[]                      @relation("LeadCreator")
-  tickets                    SupportTicket[]
-  ticketMessages             TicketMessage[]
-  ticketFiles                TicketAttachment[]
-  proposals                  Proposal[]                  @relation("ProposalClient")
-  proposalsMade              Proposal[]                  @relation("ProposalAuthor")
-  timeEntries                TimeEntry[]
-  credentials                ProjectCredential[]
-  siteRevisions              ManagedSiteRevision[]
-  siteNewsPosts              SiteNewsPost[]
-  postRevisions              PostRevision[]
-  portfolioRevisions         PortfolioRevision[]
+  sessions                 Session[]
+  passkeys                 Passkey[]
+  webauthnChallenges       WebAuthnChallenge[]
+  ssoCodes                 SsoCode[]
+  passwordResets           PasswordResetToken[]
+  emailChanges             EmailChangeToken[]
+  clientProjects           ClientProject[]
+  posts                    Post[]
+  projectUpdates           ProjectUpdate[]           @relation("ProjectUpdateAuthor")
+  approvedUpdates          ProjectUpdate[]           @relation("ProjectUpdateApprover")
+  updateComments           ProjectUpdateComment[]
+  leadsConverted           Lead[]                    @relation("LeadClient")
+  leadsAdded               Lead[]                    @relation("LeadCreator")
+  tickets                  SupportTicket[]
+  ticketMessages           TicketMessage[]
+  ticketFiles              TicketAttachment[]
+  proposals                Proposal[]                @relation("ProposalClient")
+  proposalsMade            Proposal[]                @relation("ProposalAuthor")
+  timeEntries              TimeEntry[]
+  credentials              ProjectCredential[]
+  siteRevisions            ManagedSiteRevision[]
+  siteNewsPosts            SiteNewsPost[]
+  postRevisions            PostRevision[]
+  portfolioRevisions       PortfolioRevision[]
   /// A person of a client company: they see and act on the account of `memberOf` (the company's
   /// main client account), which owns the projects, requests and proposals.
-  memberOfId                 String?                     @map("member_of_id") @db.Uuid
-  memberOf                   User?                       @relation("ClientTeam", fields: [memberOfId], references: [id], onDelete: Cascade)
-  members                    User[]                      @relation("ClientTeam")
-  projectFiles               ProjectFile[]
-  invoicesUploaded           ProjectInvoice[]
-  activity                   ActivityLog[]
-  leadReplies                LeadReply[]
-  meetingRooms               MeetingRoom[]
-  bookingPages               BookingPage[]
-  appointments               Appointment[]
-  cloudMemberships           CloudMember[]
-  cloudInvitesSent           CloudInvite[]
-  cloudTokens                CloudToken[]
-  cloudDeviceCodes           CloudDeviceCode[]
-  cloudDeployments           CloudDeployment[]
-  cloudCommentThreads        CloudCommentThread[]        @relation("CloudCommentThreadCreator")
-  cloudCommentsResolved      CloudCommentThread[]        @relation("CloudCommentThreadResolver")
-  cloudComments              CloudComment[]
-  cloudProductionLocks       CloudProject[]              @relation("CloudProductionLockedBy")
-  cloudBypassTokens          CloudProject[]              @relation("CloudBypassCreator")
-  cloudEvents                CloudEvent[]
-  cloudDeployHooks           CloudDeployHook[]
-  cloudStatusNotices         CloudStatusNotice[]
-  cloudStatusNoticeUpdates   CloudStatusNoticeUpdate[]
+  memberOfId               String?                   @map("member_of_id") @db.Uuid
+  memberOf                 User?                     @relation("ClientTeam", fields: [memberOfId], references: [id], onDelete: Cascade)
+  members                  User[]                    @relation("ClientTeam")
+  projectFiles             ProjectFile[]
+  invoicesUploaded         ProjectInvoice[]
+  activity                 ActivityLog[]
+  leadReplies              LeadReply[]
+  meetingRooms             MeetingRoom[]
+  bookingPages             BookingPage[]
+  appointments             Appointment[]
+  cloudMemberships         CloudMember[]
+  cloudInvitesSent         CloudInvite[]
+  cloudTokens              CloudToken[]
+  cloudDeviceCodes         CloudDeviceCode[]
+  cloudDeployments         CloudDeployment[]
+  cloudCommentThreads      CloudCommentThread[]      @relation("CloudCommentThreadCreator")
+  cloudCommentsResolved    CloudCommentThread[]      @relation("CloudCommentThreadResolver")
+  cloudComments            CloudComment[]
+  cloudProductionLocks     CloudProject[]            @relation("CloudProductionLockedBy")
+  cloudBypassTokens        CloudProject[]            @relation("CloudBypassCreator")
+  cloudEvents              CloudEvent[]
+  cloudDeployHooks         CloudDeployHook[]
+  cloudStatusNotices       CloudStatusNotice[]
+  cloudStatusNoticeUpdates CloudStatusNoticeUpdate[]
 
   @@map("users")
 }
@@ -337,13 +337,14 @@ model Lead {
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  replies   LeadReply[]
-  client    User?          @relation("LeadClient", fields: [clientId], references: [id], onDelete: SetNull)
-  createdBy User?          @relation("LeadCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  proposal  Proposal?      @relation(fields: [proposalId], references: [id], onDelete: SetNull)
-  bookings  Booking[]
-  purchases SitePurchase[]
-  audits    SiteAudit[]
+  replies        LeadReply[]
+  client         User?           @relation("LeadClient", fields: [clientId], references: [id], onDelete: SetNull)
+  createdBy      User?           @relation("LeadCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  proposal       Proposal?       @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  bookings       Booking[]
+  purchases      SitePurchase[]
+  audits         SiteAudit[]
+  securityChecks SecurityCheck[]
 
   @@index([status, createdAt])
   @@map("leads")
@@ -1578,6 +1579,42 @@ model SiteAudit {
 }
 
 enum SiteAuditStatus {
+  PENDING
+  DONE
+  FAILED
+}
+
+/// A free Security check of a domain (architecture 4.19).
+model SecurityCheck {
+  id         String              @id @default(uuid()) @db.Uuid
+  /// Lower-case host name, no scheme.
+  domain     String
+  name       String?
+  email      String
+  locale     Locale
+  status     SecurityCheckStatus @default(PENDING)
+  /// 0–100, once DONE.
+  score      Int?
+  /// A+ … F, once DONE.
+  grade      String?
+  /// Each check's id, status and values, and the Retire.js data's fetch time.
+  result     Json?
+  /// Why it failed (English), when FAILED.
+  error      String?
+  leadId     String?             @map("lead_id") @db.Uuid
+  finishedAt DateTime?           @map("finished_at") @db.Timestamptz(3)
+  createdAt  DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([email, createdAt])
+  @@index([domain, createdAt])
+  @@index([status, createdAt])
+  @@map("security_checks")
+}
+
+enum SecurityCheckStatus {
   PENDING
   DONE
   FAILED
