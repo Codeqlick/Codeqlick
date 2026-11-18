@@ -269,7 +269,7 @@ describe('raw DNS query', () => {
       // Right server address, but the reply comes from another port than the one asked.
       await expect(
         rawQuery('127.0.0.1', 'example.com', 1, { port: port + 1, timeoutMs: 200 }),
-      ).rejects.toThrow();
+      ).rejects.toThrow('DNS timeout');
     } finally {
       server.close();
     }
