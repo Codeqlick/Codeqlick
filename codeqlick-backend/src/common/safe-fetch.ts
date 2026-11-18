@@ -89,6 +89,19 @@ function safeLookup(hostname: string, options: { all?: boolean }, callback: Look
   });
 }
 
+/**
+ * The public address a connection to `hostname` may use (the Security check's TLS handshakes,
+ * architecture 4.19): every address the name resolves to must be public, the first is returned.
+ */
+export function resolvePublicAddress(hostname: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    safeLookup(hostname, {}, (error, address) => {
+      if (error) return reject(error);
+      resolve(typeof address === 'string' ? address : address[0]!.address);
+    });
+  });
+}
+
 export interface FetchOptions {
   timeoutMs?: number;
   /** Most bytes of the (decompressed) body read; the rest is dropped and `truncated` set. */
