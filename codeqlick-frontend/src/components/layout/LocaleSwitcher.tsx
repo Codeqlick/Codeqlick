@@ -38,7 +38,7 @@ export function LocaleSwitcher({
             lang={l}
             className={[styles.option, active ? styles.active : ''].filter(Boolean).join(' ')}
             aria-current={active ? 'true' : undefined}
-            aria-label={t(l)}
+            aria-label={`${l} – ${t(l)}`}
           >
             {l}
           </Link>

@@ -308,7 +308,6 @@ export function AdminSearch({ locale, labels }: { locale: string; labels: AdminS
       <button
         type="button"
         className={styles.trigger}
-        aria-label={labels.button}
         aria-haspopup="dialog"
         aria-keyshortcuts="Control+K Meta+K"
         onClick={() => {
