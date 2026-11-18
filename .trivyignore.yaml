@@ -1,0 +1,12 @@
+# Trivy exceptions (architecture section 9, decision 142). One entry per finding, each with a
+# statement (the reason) and an expiry: once `expired_at` has passed the entry stops applying and the
+# scan fails again. Empty for now: every finding present when the scan was introduced was fixed.
+#
+# vulnerabilities:
+#   - id: CVE-0000-00000
+#     paths:
+#       - codeqlick-backend/package-lock.json
+#     statement: Why it cannot be reached or fixed yet
+#     expired_at: 2026-12-31
+vulnerabilities: []
+misconfigurations: []

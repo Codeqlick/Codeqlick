@@ -1,0 +1,165 @@
+name: Security
+
+# Secrets, code patterns, vulnerable dependencies, misconfiguration and images (architecture section 9,
+# decision 142). Three independent jobs, so one finding doesn't hide the others. Runs on every pull
+# request and push to main (all paths), every Monday and by hand. The tools are the open-source CLIs,
+# run as containers pinned by version and digest: no service, no account, no token, nothing uploaded.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.ref }}
+  # Only pull requests: cancelling a run on main would count as a failed CI run of that commit.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  GITLEAKS_IMAGE: zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+  SEMGREP_IMAGE: semgrep/semgrep:1.186.0@sha256:6e1b04340e60e910fbb4ddbf3c857ab0918f064417ad5ac530014ccb3cf8c8f1
+  TRIVY_IMAGE: aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb
+
+jobs:
+  gitleaks:
+    name: Gitleaks (secrets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Scan
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_AFTER: ${{ github.sha }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          # A pull request scans the commits it adds; a push to main the commits it brings; the weekly
+          # and manual runs the whole history.
+          range=""
+          if [ "$EVENT" = "pull_request" ]; then
+            range="$PR_BASE..$PR_HEAD"
+          elif [ "$EVENT" = "push" ] && [ "${PUSH_BEFORE#0000000}" != "$PUSH_BEFORE" ]; then
+            range=""
+          elif [ "$EVENT" = "push" ]; then
+            range="$PUSH_BEFORE..$PUSH_AFTER"
+          fi
+          echo "Commit range: ${range:-full history}"
+          set -- git /repo --config /repo/.gitleaks.toml --redact --exit-code 1 \
+            --report-format sarif --report-path /out/gitleaks.sarif
+          [ -z "$range" ] || set -- "$@" --log-opts="$range"
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo:ro" -v "$RUNNER_TEMP/out:/out" \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo \
+            "$GITLEAKS_IMAGE" "$@"
+
+      - name: Summary
+        if: always()
+        run: .github/scripts/sarif-summary.sh "Gitleaks" "$RUNNER_TEMP/out/gitleaks.sarif"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: gitleaks-sarif
+          path: ${{ runner.temp }}/out/gitleaks.sarif
+          retention-days: 30
+          if-no-files-found: ignore
+
+  semgrep:
+    name: Semgrep (code)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Scan
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          # One scan reports every severity; only ERROR findings block (checked below), WARNING and
+          # INFO stay in the report. The registry rulesets are fetched now; nothing is sent back.
+          docker run --rm -v "$GITHUB_WORKSPACE:/src:ro" -v "$RUNNER_TEMP/out:/out" -w /src \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/src \
+            "$SEMGREP_IMAGE" semgrep scan \
+            --config p/typescript --config p/nodejs --config p/react --config p/nextjs \
+            --config p/docker --config p/github-actions --config p/secrets \
+            --metrics=off --sarif-output=/out/semgrep.sarif
+          blocking=$(jq '[.runs[].results[]? | select(.level == "error")] | length' "$RUNNER_TEMP/out/semgrep.sarif")
+          echo "Blocking findings (ERROR): $blocking"
+          [ "$blocking" -eq 0 ] || {
+            echo "::error::Semgrep found $blocking ERROR finding(s); see the job summary"
+            exit 1
+          }
+
+      - name: Summary
+        if: always()
+        run: .github/scripts/sarif-summary.sh "Semgrep" "$RUNNER_TEMP/out/semgrep.sarif"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: semgrep-sarif
+          path: ${{ runner.temp }}/out/semgrep.sarif
+          retention-days: 30
+          if-no-files-found: ignore
+
+  trivy:
+    name: Trivy (dependencies, configuration, images)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Dependencies and configuration (filesystem)
+        run: |
+          mkdir -p "$RUNNER_TEMP/out" "$RUNNER_TEMP/trivy-cache"
+          docker run --rm -v "$GITHUB_WORKSPACE:/src:ro" -v "$RUNNER_TEMP/out:/out" \
+            -v "$RUNNER_TEMP/trivy-cache:/root/.cache" "$TRIVY_IMAGE" fs \
+            --scanners vuln,misconfig --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+            --ignorefile /src/.trivyignore.yaml --format sarif --output /out/trivy-fs.sarif /src
+
+      - name: Production images
+        if: always()
+        run: |
+          # The images compose builds in production (backend, frontend, site builder), built here
+          # from the same Dockerfiles and not pushed. Every image is scanned before the step fails.
+          status=0
+          for app in backend frontend sites; do
+            docker build --quiet --tag "cq-scan/$app" "./codeqlick-$app" > /dev/null
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+              -v "$GITHUB_WORKSPACE/.trivyignore.yaml:/.trivyignore.yaml:ro" \
+              -v "$RUNNER_TEMP/out:/out" -v "$RUNNER_TEMP/trivy-cache:/root/.cache" "$TRIVY_IMAGE" image \
+              --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+              --ignorefile /.trivyignore.yaml --format sarif --output "/out/trivy-image-$app.sarif" \
+              "cq-scan/$app" || status=1
+          done
+          exit "$status"
+
+      - name: Summary
+        if: always()
+        run: |
+          .github/scripts/sarif-summary.sh "Trivy: dependencies and configuration" "$RUNNER_TEMP/out/trivy-fs.sarif"
+          for app in backend frontend sites; do
+            .github/scripts/sarif-summary.sh "Trivy: $app image" "$RUNNER_TEMP/out/trivy-image-$app.sarif"
+          done
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: trivy-sarif
+          path: ${{ runner.temp }}/out/trivy-*.sarif
+          retention-days: 30
+          if-no-files-found: ignore

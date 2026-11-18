@@ -1,0 +1,39 @@
+# Gitleaks configuration (architecture section 9, decision 142).
+# Extends the default rules; a rule is never disabled. Every allowlist entry below names one
+# known dummy value in one place and says why it is not a secret.
+title = "Codeqlick"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Dummy JWT secret of the CI test stacks: it only signs tokens of throwaway databases"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^\.github/workflows/(backend|e2e)\.yml$''']
+regexes = ['''JWT_ACCESS_SECRET: ci-dummy-secret-[0-9a-f]+''']
+regexTarget = "match"
+
+[[allowlists]]
+description = "Fixed 32-character key of the IndexNow route's unit test (made up, not the derived production key)"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^codeqlick-frontend/src/app/indexnow-key\.txt/route\.test\.ts$''']
+regexes = ['''KEY = '0123456789abcdef0123456789abcdef\'''']
+regexTarget = "match"
+
+[[allowlists]]
+description = "Made-up deploy-hook token used to test that URL tokens are redacted from logs"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^codeqlick-backend/src/(common/redact-path|config/logger)\.spec\.ts$''']
+regexes = ['''token = 'cqd_AbCdEfGh1234567890abcdefghijklmnopqrstuvw\'''']
+regexTarget = "match"
+
+[[allowlists]]
+description = "Malformed token ('not-a-token') in the unsubscribe E2E test of the invalid-link page"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^codeqlick-frontend/e2e/unsubscribe\.spec\.ts$''']
+regexes = ['''token=bm90LWEtdG9rZW4\.bm9wZQ''']
+regexTarget = "match"
