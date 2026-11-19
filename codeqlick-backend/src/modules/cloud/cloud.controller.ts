@@ -40,6 +40,7 @@ import {
   configCheckSchema,
   compareQuerySchema,
   createDomainSchema,
+  updateDomainSchema,
   createProjectSchema,
   createTeamSchema,
   createTokenSchema,
@@ -65,6 +66,7 @@ import {
   userCodeParamSchema,
   type CompareQuery,
   type CreateDomainInput,
+  type UpdateDomainInput,
   type CreateProjectInput,
   type CreateTeamInput,
   type CreateTokenInput,
@@ -629,6 +631,17 @@ export class CloudController {
     @Param({ schema: domainParamSchema }) params: DomainParam,
   ): Promise<DomainView> {
     return this.domains.check(ctx, params.id, params.domainId);
+  }
+
+  /** The Surface monitor's switch (decision 144). */
+  @Patch('projects/:id/domains/:domainId')
+  @CloudApi()
+  setDomain(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: domainParamSchema }) params: DomainParam,
+    @Body({ schema: updateDomainSchema }) body: UpdateDomainInput,
+  ): Promise<DomainView> {
+    return this.domains.setSurfaceMonitor(ctx, params.id, params.domainId, body);
   }
 
   @Delete('projects/:id/domains/:domainId')

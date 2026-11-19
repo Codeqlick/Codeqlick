@@ -22,6 +22,8 @@ import {
   monitorEvent,
   monitorPayload,
   payload,
+  surfaceChangedEvent,
+  surfaceChangedPayload,
   signature,
   summary,
   testEvent,
@@ -35,6 +37,7 @@ import {
 } from './cloud-notify.js';
 import type { Drop } from './cloud-production-checks.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
+import type { SurfaceChange } from './cloud-surface.js';
 import { CloudProjectsService } from './cloud-projects.service.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 import type { CreateChannelInput, UpdateChannelInput } from './cloud.schemas.js';
@@ -561,6 +564,56 @@ export class CloudNotificationsService {
       this.logger.error(
         `Project ${projectId}: website-check notifications failed: ${String(failure)}`,
       );
+    }
+  }
+
+  /**
+   * Tells a project's Slack, Discord and webhook channels with monitor alerts that the Surface
+   * monitor found changes on a domain (decision 144). Called in the background by the Surface
+   * service; never throws. Email channels never get it.
+   */
+  async surfaceChanged(
+    projectId: string,
+    found: {
+      domain: string;
+      domainId: string;
+      scan: { id: string; score: number | null; grade: string | null; createdAt: Date };
+      previous: { id: string; score: number | null; grade: string | null; createdAt: Date };
+      changes: SurfaceChange[];
+    },
+  ): Promise<void> {
+    try {
+      const project = await this.repository.project(projectId);
+      if (!project) return;
+      const channels = (await this.repository.list(project.id)).filter(
+        (c) => c.enabled && c.monitorAlerts,
+      );
+      const ref = (row: typeof found.scan) => ({
+        id: row.id,
+        score: row.score,
+        grade: row.grade,
+        createdAt: row.createdAt.toISOString(),
+      });
+      for (const channel of channels) {
+        if (channel.kind === 'EMAIL') continue;
+        const locale: ApiLocale = channel.locale === 'es' ? 'es' : 'en';
+        const event = surfaceChangedEvent({
+          project,
+          domain: { name: found.domain },
+          scan: ref(found.scan),
+          previous: ref(found.previous),
+          changes: found.changes,
+          consoleUrl: `${this.config.cloudUrl}/${locale}/console/${project.team.slug}/${project.slug}/domains/${found.domainId}/security?scan=${found.scan.id}`,
+        });
+        const { error } = await this.post(
+          channel,
+          event.event,
+          surfaceChangedPayload(channel.kind, event, locale),
+        );
+        await this.recordDelivery(channel, error, project);
+      }
+    } catch (failure) {
+      this.logger.error(`Project ${projectId}: surface notifications failed: ${String(failure)}`);
     }
   }
 

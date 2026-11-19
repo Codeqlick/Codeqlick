@@ -16,7 +16,14 @@ import type { SecurityCheck } from '../../generated/prisma/client.js';
 import { LeadsService } from '../leads/leads.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
 import { registrableDomain } from './checks-web.js';
-import { DomainNotFoundError, gatherInputs, networkProbes, USER_AGENT } from './gather.js';
+import {
+  DomainNotFoundError,
+  gatherInputs,
+  networkProbes,
+  ScanTimeoutError,
+  SURFACE_USER_AGENT,
+  USER_AGENT,
+} from './gather.js';
 import { parseRetire, type RetireRepository } from './retire.js';
 import { runChecks } from './run-checks.js';
 import {
@@ -26,7 +33,8 @@ import {
   reportUrl,
   type CheckForEmail,
 } from './security-check-emails.js';
-import { gradeChecks } from './security-check-score.js';
+import { gradeChecks, type Grade } from './security-check-score.js';
+import { buildSnapshot, type SurfaceSnapshot } from './security-snapshot.js';
 import { checkText, failureText, GROUP_NAMES, FAILURE_TIMEOUT } from './security-check-texts.js';
 import {
   CHECK_GROUP,
@@ -105,6 +113,27 @@ export interface AdminSecurityCheck {
   grade: string | null;
   leadId: string | null;
   createdAt: string;
+}
+
+/** What `scan` returns (the Surface monitor, architecture 4.13, decision 144). */
+export interface ScanResult {
+  checks: CheckResult[];
+  score: number;
+  grade: Grade;
+  snapshot: SurfaceSnapshot;
+}
+
+/** A promise that rejects with a `ScanTimeoutError` when `signal` aborts; `stop` detaches it. */
+function rejectOnAbort(signal: AbortSignal): { promise: Promise<never>; stop: () => void } {
+  const detach = new AbortController();
+  const promise = new Promise<never>((_, reject) => {
+    const fire = () => reject(new ScanTimeoutError(FAILURE_TIMEOUT));
+    if (signal.aborted) fire();
+    else signal.addEventListener('abort', fire, { once: true, signal: detach.signal });
+  });
+  // Nobody may be waiting when it rejects late.
+  promise.catch(() => undefined);
+  return { promise, stop: () => detach.abort() };
 }
 
 /** Worst first: fix now, improve, for your information, passed. */
@@ -189,8 +218,9 @@ export class SecurityChecksService implements OnApplicationBootstrap, OnApplicat
     domain: string,
     retire: RetireRepository | null,
     signal: AbortSignal,
-  ) => Promise<SecurityInputs> = (domain, retire, signal) =>
-    gatherInputs(domain, retire, networkProbes(signal));
+    userAgent?: string,
+  ) => Promise<SecurityInputs> = (domain, retire, signal, userAgent) =>
+    gatherInputs(domain, retire, networkProbes(signal, userAgent));
   /** Replaced in tests: the Retire.js repository's JSON. */
   fetchRetireJson: () => Promise<unknown> = async () => {
     const file = await safeFetch(RETIRE_URL, {
@@ -338,6 +368,28 @@ export class SecurityChecksService implements OnApplicationBootstrap, OnApplicat
     if (this.retireCache) return this.retireCache;
     const stored = await this.repository.retireData();
     return stored ? this.remember(stored.data, stored.fetchedAt) : null;
+  }
+
+  /**
+   * One run of the checks on `domain` for the Surface monitor (decision 144): no row, lead or email,
+   * nothing counted in the public limits, the monitor's own user agent. Uses the Retire.js data the
+   * service keeps and never fetches it. Aborting `signal` stops every request and rejects with a
+   * `ScanTimeoutError`; a name with no records rejects with `DomainNotFoundError`.
+   */
+  async scan(domain: string, signal: AbortSignal): Promise<ScanResult> {
+    const retire = await this.currentRetire().catch(() => null);
+    const abortion = rejectOnAbort(signal);
+    try {
+      const inputs = await Promise.race([
+        this.gather(domain, retire?.repository ?? null, signal, SURFACE_USER_AGENT),
+        abortion.promise,
+      ]);
+      const checks = runChecks(inputs);
+      const { score, grade } = gradeChecks(checks);
+      return { checks, score, grade, snapshot: buildSnapshot(inputs) };
+    } finally {
+      abortion.stop();
+    }
   }
 
   /** Checks the domain, stores the result, makes the lead and sends the emails. Never throws. */

@@ -200,6 +200,10 @@ export const domainNameSchema = z
 export const createDomainSchema = z.object({ name: domainNameSchema });
 export type CreateDomainInput = z.infer<typeof createDomainSchema>;
 
+/** `PATCH /cloud/projects/:id/domains/:domainId`: the Surface monitor's switch (decision 144). */
+export const updateDomainSchema = z.object({ surfaceMonitor: z.boolean() });
+export type UpdateDomainInput = z.infer<typeof updateDomainSchema>;
+
 export const domainParamSchema = z.object({ id: z.uuid(), domainId: z.uuid() });
 export type DomainParam = z.infer<typeof domainParamSchema>;
 

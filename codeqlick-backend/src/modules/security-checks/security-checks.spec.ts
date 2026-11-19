@@ -37,6 +37,7 @@ const GOOD_TLS: TlsInputs = {
   authorized: true,
   authError: null,
   validTo: new Date('2027-03-01T00:00:00Z'),
+  issuer: "Let's Encrypt",
   tls10: false,
   tls11: false,
 };
@@ -48,6 +49,7 @@ const GOOD_DNS: DnsInputs = {
   dmarc: ['v=DMARC1; p=reject; rua=mailto:d@acme.com'],
   dkim: ['google'],
   caa: ['0 letsencrypt.org'],
+  ns: ['ns1.acme.com'],
   mtaSts: { txt: ['v=STSv1; id=1'], policy: 'version: STSv1\nmode: enforce\nmx: mx.acme.com' },
   tlsRpt: ['v=TLSRPTv1; rua=mailto:t@acme.com'],
   dnssec: { ad: true, hasDs: true },

@@ -91,6 +91,8 @@ export interface UsageView {
   storageBytes: number;
   deploymentsLastHour: number;
   members: number;
+  /** Domains with the Surface monitor on, against `limits.surfaceDomains` (decision 144). */
+  surfaceDomains: number;
   /** Each limited measure against the plan; the console's banner reads it (decision 54). */
   meters: Meter[];
 }
@@ -543,9 +545,10 @@ export class CloudTeamsService {
     const membership = await this.access(ctx, slug);
     const teamId = membership.teamId;
     const plan = membership.team.plan;
-    const [projects, members, usage] = await Promise.all([
+    const [projects, members, surfaceDomains, usage] = await Promise.all([
       this.repository.countProjects(teamId),
       this.repository.countMembers(teamId),
+      this.repository.countSurfaceDomains(teamId),
       this.usageMeters.measure(teamId),
     ]);
     const limits = this.limits(plan);
@@ -556,6 +559,7 @@ export class CloudTeamsService {
       storageBytes: usage.storage,
       deploymentsLastHour: usage.deploymentsPerHour,
       members,
+      surfaceDomains,
       meters: buildMeters(limits, usage),
     };
   }

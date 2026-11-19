@@ -179,6 +179,12 @@ export default async function CloudTeamPage({ params }: PageProps) {
               {of(usage.members, usage.limits.membersPerTeam)}
             </span>
           </div>
+          <div className={styles.meter}>
+            <span className={styles.small}>{t('team.surfaceDomains')}</span>
+            <span className={styles.meterValue}>
+              {of(usage.surfaceDomains, usage.limits.surfaceDomains)}
+            </span>
+          </div>
         </div>
       </section>
 

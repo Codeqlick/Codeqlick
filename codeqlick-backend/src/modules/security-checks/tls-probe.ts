@@ -10,6 +10,7 @@ interface Handshake {
   authorized: boolean;
   authError: string | null;
   validTo: Date | null;
+  issuer: string | null;
 }
 
 /** One normal client handshake with `domain` on port 443 at the (public) address given. */
@@ -45,7 +46,10 @@ function handshake(
     socket.once('secureConnect', () => {
       const certificate = socket.getPeerCertificate();
       const validTo = certificate?.valid_to ? new Date(certificate.valid_to) : null;
+      const rawIssuer: unknown = certificate?.issuer?.O;
+      const issuer = Array.isArray(rawIssuer) ? rawIssuer[0] : rawIssuer;
       finish(null, {
+        issuer: typeof issuer === 'string' && issuer.trim() !== '' ? issuer.trim() : null,
         protocol: socket.getProtocol(),
         cipher: socket.getCipher()?.name ?? null,
         authorized: socket.authorized,
@@ -108,6 +112,7 @@ export async function probeTls(
     authorized: main?.authorized ?? false,
     authError: main?.authError ?? (main ? null : HANDSHAKE_FAILED),
     validTo: main?.validTo ?? null,
+    issuer: main?.issuer ?? null,
     tls10,
     tls11,
   };

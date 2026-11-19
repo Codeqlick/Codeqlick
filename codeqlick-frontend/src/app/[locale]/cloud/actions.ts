@@ -58,6 +58,7 @@ import {
   replaceCloudFormKey,
   renameCloudProject,
   setCloudProductionChecks,
+  setCloudSurfaceMonitor,
   renameCloudTeam,
   reportCloudPage,
   revokeCloudInvite,
@@ -653,6 +654,31 @@ export async function addDomainAction(
   }
   refresh(lang, path);
   return { status: 'success' };
+}
+
+/** Switches the Surface monitor of a domain on or off (admins; decision 144). */
+export async function saveSurfaceMonitorAction(
+  locale: string,
+  path: string,
+  id: string,
+  domainId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.surface' });
+  try {
+    await setCloudSurfaceMonitor(id, domainId, formBoolean(formData, 'surfaceMonitor'));
+  } catch (error) {
+    // 409: the domain is not verified yet, or the team's limit is reached (the API says which).
+    if (isApiError(error) && error.status === 409) {
+      const verify = /verify/i.test(error.detail ?? '');
+      return { status: 'error', message: t(verify ? 'verifyFirst' : 'limitReached') };
+    }
+    return failure(lang, error);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('saved') };
 }
 
 export async function checkDomainAction(formData: FormData): Promise<void> {

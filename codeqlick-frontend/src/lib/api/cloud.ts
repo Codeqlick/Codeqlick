@@ -4,6 +4,7 @@ import { clientHeaders } from '@/lib/auth/refresh';
 import { type CloudEventFilters, type CorsRuleInput, cloudEventFiltersQuery } from '@/lib/cloud';
 import { env } from '@/lib/env';
 import { apiFetch } from './client';
+import type { SecurityCheckReport } from './security-checks';
 import { authHeader } from './projects';
 import type { Paginated } from './types';
 
@@ -47,6 +48,8 @@ export type CloudLimits = {
   domainsPerProject: number;
   membersPerTeam: number;
   tokensPerPerson: number;
+  /** Domains a team can monitor (decision 144). */
+  surfaceDomains: number;
 };
 
 export type CloudUsageMeterKey =
@@ -67,6 +70,8 @@ export type CloudUsage = {
   storageBytes: number;
   deploymentsLastHour: number;
   members: number;
+  /** Domains with the Surface monitor on. */
+  surfaceDomains: number;
   /** Missing from an API older than the usage alerts. */
   meters?: CloudUsageMeter[];
 };
@@ -186,6 +191,76 @@ export type CloudDomain = {
   verifiedAt: string | null;
   checkedAt: string | null;
   lastError: string | null;
+  /** The Surface monitor (decision 144); `surfaceNextAt` is null while it is off. */
+  surfaceMonitor: boolean;
+  surfaceNextAt: string | null;
+  surfaceLast: SurfaceScanSummary | null;
+};
+
+export type SurfaceScanError = 'not_found' | 'timeout' | 'error';
+
+export type SurfaceScanSummary = {
+  id: string;
+  status: 'DONE' | 'FAILED';
+  error: SurfaceScanError | null;
+  score: number | null;
+  grade: string | null;
+  /** Changes against the previous successful scan; 0 for a failed one. */
+  changes: number;
+  createdAt: string;
+};
+
+/** Ids and values only: the console writes the text in the reader's language. */
+export type SurfaceChange =
+  | { kind: 'check'; id: string; from: 'pass' | 'warn'; to: 'warn' | 'fail' }
+  | { kind: 'cert_expiry'; threshold: 30 | 14 | 7; days: number }
+  | { kind: 'cert_issuer'; from: string; to: string }
+  | {
+      kind: 'records';
+      record: 'mx' | 'spf' | 'dmarc' | 'caa' | 'mta-sts' | 'ns' | 'dnssec';
+      added: string[];
+      removed: string[];
+      /** Values left out after the first 10. */
+      more?: number;
+    }
+  | { kind: 'libs'; added: string[]; more?: number };
+
+export type SurfaceScan = {
+  id: string;
+  domain: { id: string; name: string };
+  project: { slug: string; name: string };
+  status: 'DONE' | 'FAILED';
+  error: SurfaceScanError | null;
+  /** The reason of a failed scan, in the requested language. */
+  failure: string | null;
+  score: number | null;
+  grade: string | null;
+  groups: SecurityCheckReport['groups'];
+  snapshot: {
+    dns: {
+      mx: string[] | null;
+      spf: string[] | null;
+      dmarc: string[] | null;
+      caa: string[] | null;
+      mtaSts: string[] | null;
+      ns: string[] | null;
+      dnssec: 'signed' | 'unsigned' | null;
+    };
+    cert: { issuer: string | null; expires: string | null; days: number | null };
+  } | null;
+  changes: SurfaceChange[];
+  /** Null: this scan is the baseline. */
+  previous: { id: string; grade: string | null; score: number | null; createdAt: string } | null;
+  createdAt: string;
+};
+
+export type CloudSurface = {
+  domain: { id: string; name: string };
+  enabled: boolean;
+  nextAt: string | null;
+  last: SurfaceScanSummary | null;
+  /** The newest 30, newest first. */
+  scans: SurfaceScanSummary[];
 };
 
 export type CloudMembers = {
@@ -506,6 +581,19 @@ export const checkCloudDomain = (id: string, domainId: string) =>
     ...write,
     method: 'POST',
   });
+
+export const setCloudSurfaceMonitor = (id: string, domainId: string, surfaceMonitor: boolean) =>
+  apiFetch<CloudDomain>(`/cloud/projects/${id}/domains/${domainId}`, {
+    ...write,
+    method: 'PATCH',
+    body: { surfaceMonitor },
+  });
+
+export const getCloudSurface = (id: string, domainId: string) =>
+  apiFetch<CloudSurface>(`/cloud/projects/${id}/domains/${domainId}/surface`, auth);
+
+export const getCloudSurfaceScan = (id: string, locale: 'en' | 'es') =>
+  apiFetch<SurfaceScan>(`/cloud/surface-scans/${id}`, { ...auth, query: { locale } });
 
 export const removeCloudDomain = (id: string, domainId: string) =>
   apiFetch<void>(`/cloud/projects/${id}/domains/${domainId}`, { ...write, method: 'DELETE' });

@@ -14,6 +14,8 @@ export interface TlsInputs {
   /** Node's reason when not (`CERT_HAS_EXPIRED`, `ERR_TLS_CERT_ALTNAME_INVALID`, …). */
   authError: string | null;
   validTo: Date | null;
+  /** The organisation (`O`) of the certificate's issuer; null when not known. Surface monitor only. */
+  issuer: string | null;
   /** The server accepted a TLS 1.0 / 1.1 handshake (null: the probe couldn't try). */
   tls10: boolean | null;
   tls11: boolean | null;
@@ -56,7 +58,10 @@ export interface DnsInputs {
   /** Common selectors with a record. */
   dkim: string[];
   caa: string[] | null;
-  mtaSts: { txt: string[]; policy: string | null };
+  /** The name servers; null: the lookup failed. Read for the Surface monitor only. */
+  ns: string[] | null;
+  /** `failed`: the `_mta-sts` TXT lookup itself failed (so `txt` says nothing). */
+  mtaSts: { txt: string[]; policy: string | null; failed?: boolean };
   tlsRpt: string[] | null;
   /** `ad`: the validating resolver set the AD flag; null fields: the resolver didn't answer. */
   dnssec: { ad: boolean | null; hasDs: boolean | null };

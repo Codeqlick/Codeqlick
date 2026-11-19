@@ -49,6 +49,8 @@ export interface CloudLimits {
   statusSubscribers: number;
   /** Emails to status page subscribers an hour (decision 105). */
   statusEmailsPerHour: number;
+  /** Domains with the Surface monitor on per team (decision 144). */
+  surfaceDomains: number;
 }
 
 const MB = 1024 * 1024;
@@ -91,6 +93,7 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     configBytes: 64 * 1024,
     statusSubscribers: 500,
     statusEmailsPerHour: 1000,
+    surfaceDomains: 5,
   },
   PRO: {
     teamsOwned: 3,
@@ -128,6 +131,7 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     configBytes: 256 * 1024,
     statusSubscribers: 5000,
     statusEmailsPerHour: 10_000,
+    surfaceDomains: 25,
   },
 };
 

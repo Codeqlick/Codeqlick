@@ -25,6 +25,7 @@ const ROWS = [
   'deploymentBytes',
   'membersPerTeam',
   'domainsPerProject',
+  'surfaceDomains',
   'buildsPerMonth',
   'buildMinutes',
   'formSubmissionsPerMonth',
