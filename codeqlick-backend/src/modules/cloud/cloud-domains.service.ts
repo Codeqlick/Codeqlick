@@ -13,9 +13,12 @@ import type { CloudDomain } from '../../generated/prisma/client.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { CloudCtx } from './cloud-caller.js';
 import { CloudRepository } from './cloud.repository.js';
-import type { CreateDomainInput } from './cloud.schemas.js';
+import type { CreateDomainInput, UpdateDomainInput } from './cloud.schemas.js';
 import { CloudStorage } from './cloud.storage.js';
 import { CloudProjectsService } from './cloud-projects.service.js';
+import { nextSurfaceScan } from './cloud-surface.js';
+import { CloudSurfaceRepository } from './cloud-surface.repository.js';
+import { CloudSurfaceService, type SurfaceScanSummary } from './cloud-surface.service.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 
 export interface DomainView {
@@ -26,6 +29,12 @@ export interface DomainView {
   verifiedAt: string | null;
   checkedAt: string | null;
   lastError: string | null;
+  /** The Surface monitor (decision 144). */
+  surfaceMonitor: boolean;
+  /** The next scan; null while the monitor is off. */
+  surfaceNextAt: string | null;
+  /** The newest scan, for the Domains tab. */
+  surfaceLast: SurfaceScanSummary | null;
 }
 
 /** The outside world a domain check looks at; replaced in tests. */
@@ -98,6 +107,8 @@ export class CloudDomainsService implements OnApplicationBootstrap, OnApplicatio
     private readonly projects: CloudProjectsService,
     private readonly teams: CloudTeamsService,
     private readonly storage: CloudStorage,
+    private readonly surface: CloudSurfaceService,
+    private readonly surfaceRepository: CloudSurfaceRepository,
     private readonly lookup: CloudDns,
     private readonly config: AppConfigService,
   ) {}
@@ -113,7 +124,9 @@ export class CloudDomainsService implements OnApplicationBootstrap, OnApplicatio
 
   async list(ctx: CloudCtx, projectId: string): Promise<DomainView[]> {
     const { project } = await this.projects.project(ctx, projectId);
-    return (await this.repository.domains(project.id)).map((d) => this.view(d, project.slug));
+    const rows = await this.repository.domains(project.id);
+    const last = await this.surface.lastScans(rows, project.teamId);
+    return rows.map((d) => this.view(d, project.slug, last.get(d.id) ?? null));
   }
 
   async add(ctx: CloudCtx, projectId: string, input: CreateDomainInput): Promise<DomainView> {
@@ -151,7 +164,63 @@ export class CloudDomainsService implements OnApplicationBootstrap, OnApplicatio
     const { project } = await this.projects.project(ctx, projectId);
     const row = await this.repository.findDomain(project.id, domainId);
     if (!row) throw new NotFoundException('Domain not found');
-    return this.view(await this.checkOne(row, project.slug), project.slug);
+    const checked = await this.checkOne(row, project.slug);
+    const last = await this.surface.lastScans([checked], project.teamId);
+    return this.view(checked, project.slug, last.get(checked.id) ?? null);
+  }
+
+  /**
+   * Switches a domain's Surface monitor (ADMIN, decision 144). On needs ownership proved (not
+   * PENDING) and a free place in the team's `surfaceDomains`; it sets the next run to the domain's
+   * next daily slot. Off clears it.
+   */
+  async setSurfaceMonitor(
+    ctx: CloudCtx,
+    projectId: string,
+    domainId: string,
+    input: UpdateDomainInput,
+  ): Promise<DomainView> {
+    const { project, membership } = await this.projects.project(ctx, projectId, 'ADMIN');
+    const row = await this.repository.findDomain(project.id, domainId);
+    if (!row) throw new NotFoundException('Domain not found');
+    let updated: CloudDomain = row;
+    if (input.surfaceMonitor !== row.surfaceMonitor) {
+      let changed: boolean;
+      if (input.surfaceMonitor) {
+        const limit = this.teams.limits(membership.team.plan).surfaceDomains;
+        const outcome = await this.surfaceRepository.enable(
+          project.teamId,
+          project.id,
+          row.id,
+          limit,
+          nextSurfaceScan(row.id, new Date()),
+        );
+        if (!outcome.ok) {
+          if (outcome.reason === 'missing') throw new NotFoundException('Domain not found');
+          if (outcome.reason === 'pending') throw new ConflictException('Verify the domain first');
+          throw new ConflictException(`A team can monitor at most ${limit} domains`);
+        }
+        updated = outcome.domain;
+        changed = outcome.changed;
+      } else {
+        changed = await this.surfaceRepository.disable(row.id);
+        updated = { ...row, surfaceMonitor: false, surfaceNextAt: null };
+      }
+      // A concurrent request that already made the change records the event, not this one.
+      if (changed) {
+        await this.teams.record(
+          ctx,
+          project.teamId,
+          input.surfaceMonitor
+            ? 'domain.surface_monitor_enabled'
+            : 'domain.surface_monitor_disabled',
+          row.name,
+          { project: project.slug },
+        );
+      }
+    }
+    const last = await this.surface.lastScans([updated], project.teamId);
+    return this.view(updated, project.slug, last.get(updated.id) ?? null);
   }
 
   async remove(ctx: CloudCtx, projectId: string, domainId: string): Promise<void> {
@@ -194,6 +263,9 @@ export class CloudDomainsService implements OnApplicationBootstrap, OnApplicatio
           state: 'PENDING',
           checkedAt: now,
           lastError: `The TXT record ${verificationName(row.name)} wasn't found yet`,
+          // A PENDING domain is not monitored (decision 144).
+          surfaceMonitor: false,
+          surfaceNextAt: null,
         });
       }
       verifiedAt = now;
@@ -218,7 +290,7 @@ export class CloudDomainsService implements OnApplicationBootstrap, OnApplicatio
     });
   }
 
-  view(row: CloudDomain, slug: string): DomainView {
+  view(row: CloudDomain, slug: string, surfaceLast: SurfaceScanSummary | null = null): DomainView {
     const subdomain = row.name.split('.').length > 2;
     const hosting = this.config.cloudHosting?.domain ?? 'codeqlick.app';
     const pointed = row.state === 'LIVE';
@@ -240,6 +312,9 @@ export class CloudDomainsService implements OnApplicationBootstrap, OnApplicatio
       verifiedAt: row.verifiedAt?.toISOString() ?? null,
       checkedAt: row.checkedAt?.toISOString() ?? null,
       lastError: row.lastError,
+      surfaceMonitor: row.surfaceMonitor,
+      surfaceNextAt: row.surfaceMonitor ? (row.surfaceNextAt?.toISOString() ?? null) : null,
+      surfaceLast,
     };
   }
 }

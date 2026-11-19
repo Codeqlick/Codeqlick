@@ -1884,6 +1884,7 @@ model CloudProject {
   protectionBypassCreatedBy User?                 @relation("CloudBypassCreator", fields: [protectionBypassCreatedById], references: [id], onDelete: SetNull)
   deployments               CloudDeployment[]     @relation("CloudDeployments")
   domains                   CloudDomain[]
+  surfaceScans              SurfaceScan[]
   reports                   CloudReport[]
   forms                     CloudForm[]
   envVars                   CloudEnvVar[]
@@ -1952,14 +1953,52 @@ model CloudDomain {
   verifiedAt        DateTime?        @map("verified_at") @db.Timestamptz(3)
   checkedAt         DateTime?        @map("checked_at") @db.Timestamptz(3)
   lastError         String?          @map("last_error") @db.VarChar(300)
+  /// The Surface monitor (decision 144): a daily passive scan of this domain, opt-in.
+  surfaceMonitor    Boolean          @default(false) @map("surface_monitor")
+  /// The next scan; null while the monitor is off. The slot itself is computed, never stored.
+  surfaceNextAt     DateTime?        @map("surface_next_at") @db.Timestamptz(3)
   createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  project CloudProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      CloudProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  surfaceScans SurfaceScan[]
 
   @@index([projectId])
   @@index([state, checkedAt])
+  @@index([surfaceMonitor, surfaceNextAt])
   @@map("cloud_domains")
+}
+
+/// One scan of the Surface monitor (decision 144); kept 90 days. Changes are computed from two
+/// scans, never stored.
+model SurfaceScan {
+  id        String            @id @default(uuid()) @db.Uuid
+  domainId  String            @map("domain_id") @db.Uuid
+  projectId String            @map("project_id") @db.Uuid
+  /// The team that owned the project at the time; a transfer leaves the scans with the source.
+  teamId    String            @map("team_id") @db.Uuid
+  status    SurfaceScanStatus
+  /// `not_found`, `timeout` or `error`, when FAILED.
+  error     String?           @db.VarChar(20)
+  score     Int?
+  grade     String?           @db.VarChar(2)
+  /// `[{ id, status, values }]` of every check; no texts.
+  result    Json
+  /// What is compared between scans (DNS record sets, certificate issuer and expiry).
+  snapshot  Json
+  createdAt DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  domain  CloudDomain  @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  project CloudProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([domainId, createdAt])
+  @@index([createdAt])
+  @@map("surface_scans")
+}
+
+enum SurfaceScanStatus {
+  DONE
+  FAILED
 }
 
 /// Everything that changed in a team, newest first in the console; kept 365 days.

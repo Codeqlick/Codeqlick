@@ -863,6 +863,49 @@ export function cloudProductionCheckEmail(input: {
   };
 }
 
+/** The Surface monitor found changes on a domain (decision 144): to the team's owners and admins. */
+export function cloudSurfaceChangesEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  domain: string;
+  project: string;
+  /** One plain line per change (`changeText`). */
+  lines: string[];
+  grade: string | null;
+  previousGrade: string | null;
+  scanUrl: string;
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  const intro = es
+    ? `El monitor de superficie ha detectado ${input.lines.length === 1 ? 'un cambio' : `${input.lines.length} cambios`} en ${input.domain} (proyecto ${input.project}) desde el análisis anterior.`
+    : `The Surface monitor found ${input.lines.length === 1 ? 'a change' : `${input.lines.length} changes`} on ${input.domain} (project ${input.project}) since the previous scan.`;
+  return {
+    to: input.to,
+    subject: es ? `Cambios de seguridad en ${input.domain}` : `Security changes on ${input.domain}`,
+    ...renderEmail(
+      {
+        locale: input.locale,
+        preheader: intro.slice(0, 120),
+        title: es ? 'Cambios de seguridad en tu dominio' : 'Security changes on your domain',
+        intro: [intro],
+        details: [
+          ...input.lines.map((line, index): [string, string] => [String(index + 1), line]),
+          [es ? 'Nota' : 'Grade', `${input.previousGrade ?? '-'} → ${input.grade ?? '-'}`],
+        ],
+        button: { label: es ? 'Ver el análisis' : 'See the scan', url: input.scanUrl },
+        outro: [
+          es
+            ? 'Un cambio hecho a propósito también avisa: este correo solo dice qué ha cambiado.'
+            : 'A change you made on purpose is reported too: this email only says what changed.',
+        ],
+        signoff: [],
+      },
+      input.siteUrl,
+    ),
+  };
+}
+
 /** "Confirm your subscription to <page>": the double opt-in link of a status page (decision 105). */
 export function cloudStatusConfirmEmail(input: {
   to: string;

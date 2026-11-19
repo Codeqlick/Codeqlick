@@ -13,6 +13,8 @@ export interface DnsClient {
   txt(name: string): Promise<string[] | null>;
   mx(name: string): Promise<Array<{ exchange: string; priority: number }> | null>;
   caa(name: string): Promise<string[] | null>;
+  /** The name servers of `name`; null: the lookup failed; []: it has none. */
+  ns(name: string): Promise<string[] | null>;
   /** Whether the name has any address, MX, NS, TXT or CNAME at all; null: couldn't tell. */
   exists(name: string): Promise<boolean | null>;
   /** The AD flag of the validating resolver's answer for the `A` record, and a DS record. */
@@ -161,6 +163,10 @@ export function createDnsClient(signal?: AbortSignal): DnsClient {
         ) ?? null
       );
     },
+    async ns(name) {
+      const found = await attempt(() => resolver.resolveNs(name));
+      return found === 'empty' ? [] : found;
+    },
     async exists(name) {
       const lookups = await Promise.all([
         attempt(() => resolver.resolve4(name)),
@@ -231,10 +237,11 @@ export async function readDns(
   dns: DnsClient,
   fetchPolicy: (domain: string) => Promise<string | null>,
 ): Promise<DnsInputs> {
-  const [txt, mx, caa, dmarc, mtaStsTxt, tlsRpt, dnssec, ...dkimTxt] = await Promise.all([
+  const [txt, mx, caa, ns, dmarc, mtaStsTxt, tlsRpt, dnssec, ...dkimTxt] = await Promise.all([
     dns.txt(domain),
     dns.mx(domain),
     dns.caa(domain),
+    dns.ns(domain),
     dns.txt(`_dmarc.${domain}`),
     dns.txt(`_mta-sts.${domain}`),
     dns.txt(`_smtp._tls.${domain}`),
@@ -256,7 +263,12 @@ export async function readDns(
       (dkimTxt[index] ?? []).some((text) => /v=DKIM1|p=/i.test(text)),
     ),
     caa,
-    mtaSts: { txt: stsTxt, policy: stsTxt.length > 0 ? await fetchPolicy(domain) : null },
+    ns,
+    mtaSts: {
+      txt: stsTxt,
+      policy: stsTxt.length > 0 ? await fetchPolicy(domain) : null,
+      ...(mtaStsTxt === null ? { failed: true } : {}),
+    },
     tlsRpt,
     dnssec,
   };

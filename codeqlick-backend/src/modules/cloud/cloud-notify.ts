@@ -5,6 +5,7 @@ import { assertCheckableUrl } from '../../common/safe-fetch.js';
 import type { Category, CheckId } from '../site-audits/site-audit-checks.js';
 import { CATEGORY_NAMES, CHECK_TEXTS } from '../site-audits/site-audit-texts.js';
 import type { Drop } from './cloud-production-checks.js';
+import { boundChange, changeShortText, type SurfaceChange } from './cloud-surface.js';
 
 /**
  * Build notifications' messages (architecture 4.13 "Build notifications", decisions 43 and 63):
@@ -552,6 +553,88 @@ export function auditDroppedPayload(
           title: `📉 ${e.project.name} · ${title}`.slice(0, 256),
           url: e.consoleUrl,
           description: auditDroppedSummary(e, locale).slice(0, 4000),
+          color: 0xf79009,
+          timestamp: e.sentAt,
+        },
+      ],
+    });
+  }
+  return JSON.stringify(e);
+}
+
+// ── Surface monitor changes (decision 144) ───────────────────────────────────────────────────
+
+type ScanRef = { id: string; score: number | null; grade: string | null; createdAt: string };
+
+/** What a Slack, Discord or webhook channel is told when the Surface monitor finds changes. */
+export interface SurfaceChangedEvent {
+  event: 'surface.changed';
+  project: { slug: string; name: string };
+  domain: { name: string };
+  scan: ScanRef;
+  previous: ScanRef;
+  /** Ids and values, no texts. */
+  changes: SurfaceChange[];
+  consoleUrl: string;
+  sentAt: string;
+}
+
+export function surfaceChangedEvent(input: {
+  project: { slug: string; name: string };
+  domain: { name: string };
+  scan: ScanRef;
+  previous: ScanRef;
+  changes: SurfaceChange[];
+  consoleUrl: string;
+  now?: Date;
+}): SurfaceChangedEvent {
+  return {
+    event: 'surface.changed',
+    project: { slug: input.project.slug, name: input.project.name },
+    domain: { name: input.domain.name },
+    scan: input.scan,
+    previous: input.previous,
+    changes: input.changes.map(boundChange),
+    consoleUrl: input.consoleUrl,
+    sentAt: (input.now ?? new Date()).toISOString(),
+  };
+}
+
+/** The one line of a change set in `locale`; `strong` marks the project's name, `plain` the rest. */
+export function surfaceChangedSummary(
+  e: SurfaceChangedEvent,
+  locale: ApiLocale,
+  strong: (text: string) => string = (text) => text,
+  plain: (text: string) => string = (text) => text,
+): string {
+  const es = locale === 'es';
+  const lines = e.changes.map((change) => changeShortText(change, locale)).join(', ');
+  const head = es ? 'cambios de seguridad en' : 'security changes on';
+  return `${strong(e.project.name)} · ${head} ${plain(e.domain.name)} (${e.changes.length}): ${plain(lines)}`;
+}
+
+/** The body of a change set posted to a channel of `kind` (JSON). */
+export function surfaceChangedPayload(
+  kind: Exclude<CloudNotifyKind, 'EMAIL'>,
+  e: SurfaceChangedEvent,
+  locale: ApiLocale,
+): string {
+  const label = locale === 'es' ? 'Ver el análisis' : 'See the scan';
+  if (kind === 'SLACK') {
+    const text = `🛡️ ${surfaceChangedSummary(e, locale, (t) => `*${slackEscape(t)}*`, slackEscape)}`;
+    return JSON.stringify({ text: `${text}\n<${e.consoleUrl}|${label}>`, unfurl_links: false });
+  }
+  if (kind === 'DISCORD') {
+    const title = locale === 'es' ? 'Cambios de seguridad' : 'Security changes';
+    return JSON.stringify({
+      username: 'Codeqlick Cloud',
+      // Project names and records are people's words: never let them ping anyone.
+      allowed_mentions: { parse: [] },
+      embeds: [
+        {
+          title: `🛡️ ${e.domain.name} · ${title}`.slice(0, 256),
+          url: e.consoleUrl,
+          description: surfaceChangedSummary(e, locale).slice(0, 4000),
           color: 0xf79009,
           timestamp: e.sentAt,
         },

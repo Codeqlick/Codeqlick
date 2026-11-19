@@ -148,6 +148,12 @@ export class CloudTransferRepository {
           },
         });
 
+        // Decision 144: the Surface monitor is switched off too; the scans stay with this team.
+        await tx.cloudDomain.updateMany({
+          where: { projectId: input.projectId },
+          data: { surfaceMonitor: false, surfaceNextAt: null },
+        });
+
         // Monitors tied to the project, with their checks, events and heartbeat URLs.
         for (const monitor of state.monitors) {
           await tx.cloudMonitor.update({

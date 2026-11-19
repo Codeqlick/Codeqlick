@@ -4190,7 +4190,8 @@
         "errorTitle": "You have reached your plan's limits",
         "item": "{label}: {used} of {limit} ({percent} %)",
         "link": "See usage"
-      }
+      },
+      "surfaceDomains": "Monitored domains"
     },
     "project": {
       "tabs": {
@@ -5043,8 +5044,8 @@
       "formsLoadErrorNew": "The project's forms couldn't be loaded: a new channel gets all forms; edit it later to choose some.",
       "formsEmail": "Email notifications can't carry form submissions: forms already email their own recipients. Choose Slack, Discord or webhook.",
       "formsTooMany": "Choose up to 20 forms.",
-      "onMonitors": "Monitor alerts and website-check drops",
-      "onMonitorsNew": "Monitor alerts and website-check drops (Slack, Discord or webhook)",
+      "onMonitors": "Monitor alerts, website-check drops and security changes",
+      "onMonitorsNew": "Monitor alerts, website-check drops and security changes (Slack, Discord or webhook)",
       "onMonitorsHint": "Only monitors tied to this project alert here. The people chosen on each monitor still get their email.",
       "monitorAlertsEmail": "Monitor alerts go to Slack, Discord or a webhook: monitors already email the people chosen on them.",
       "newTitle": "New notification",
@@ -5193,7 +5194,8 @@
         "monitorsPerTeam": "Monitors",
         "analyticsEventsPerMonth": "Analytics events a month",
         "kvKeysPerProject": "KV keys per project",
-        "kvBytesPerProject": "KV size per project"
+        "kvBytesPerProject": "KV size per project",
+        "surfaceDomains": "Monitored domains"
       }
     },
     "databases": {
@@ -5395,6 +5397,77 @@
       "reopen": "Reopen",
       "openOnPreview": "Open on the preview",
       "comment": "Comment"
+    },
+    "surface": {
+      "title": "Security monitor",
+      "pageTitle": "Security monitor",
+      "on": "On",
+      "off": "Off",
+      "label": "Watch this domain's security every day",
+      "hint": "Runs the passive checks of the Security check once a day and alerts the team when something gets worse.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Saved.",
+      "adminsOnly": "Only team admins can change this.",
+      "link": "Security",
+      "gradeBadge": "Grade {grade}",
+      "failedBadge": "Failed",
+      "lastScan": "Last scan: {when}",
+      "next": "Next scan: {when} (Madrid time)",
+      "first": "The first scan runs on {when} (Madrid time) and sets the baseline.",
+      "limitReached": "Your team has reached the plan's limit of monitored domains. Switch another one off or upgrade the plan.",
+      "verifyFirst": "Verify the domain first.",
+      "passiveNote": "Only passive checks run: a scan visits the homepage and security.txt, makes three TLS handshakes and reads DNS.",
+      "olderNotice": "You are looking at an older scan.",
+      "seeLatest": "See the latest",
+      "emptyTitle": "No scans yet",
+      "emptyOff": "The monitor is off for this domain, so nothing has been scanned.",
+      "turnOn": "Turn it on in Domains",
+      "scanTitle": "Scan of {when}",
+      "gradeLabel": "Grade {grade}, score {score} out of 100",
+      "previous": "Previous scan: grade {grade}, {score}/100 ({when})",
+      "baseline": "This scan is the baseline: later scans are compared with it.",
+      "failedTitle": "This scan couldn't be completed",
+      "failedNote": "Failed scans are not compared with others and send no alert.",
+      "failedReasons": {
+        "not_found": "The domain didn't answer or doesn't resolve.",
+        "timeout": "The scan took too long and was stopped.",
+        "error": "Something unexpected happened during the scan."
+      },
+      "changesTitle": "Changes since the previous scan",
+      "changesBaseline": "Nothing to compare with yet.",
+      "changesNone": "No changes.",
+      "changes": {
+        "check": "{title}: {from} → {to}",
+        "certExpiry": "The certificate expires in {days, plural, one {# day} other {# days}} (threshold: {threshold} days)",
+        "certIssuer": "Certificate issuer changed: {from} → {to}",
+        "records": "{record} changed",
+        "libs": "{count, plural, one {# new vulnerable library} other {# new vulnerable libraries}}"
+      },
+      "status": {
+        "pass": "Passed",
+        "warn": "Improve",
+        "fail": "Fix now"
+      },
+      "records": {
+        "mx": "MX records",
+        "spf": "SPF record",
+        "dmarc": "DMARC record",
+        "caa": "CAA records",
+        "mta-sts": "MTA-STS record",
+        "ns": "Name servers",
+        "dnssec": "DNSSEC"
+      },
+      "removed": "Removed:",
+      "added": "Added:",
+      "historyTitle": "History",
+      "historyCaption": "The last 30 scans, newest first",
+      "date": "Date",
+      "grade": "Grade",
+      "result": "Result",
+      "changesBadge": "{count, plural, one {# change} other {# changes}}",
+      "steady": "No changes",
+      "more": "+{count} more"
     }
   },
   "AdminCloud": {

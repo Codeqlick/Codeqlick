@@ -64,6 +64,7 @@ import { TransferProject } from './TransferProject';
 import { NotificationsTab } from './NotificationsTab';
 import { ProductionChecksCard, ProductionChecksSummary } from './ProductionChecks';
 import { ProtectionCard, ProtectionLock } from './ProtectionCard';
+import { SurfaceMonitorRow } from './SurfaceMonitor';
 
 const TABS = [
   'deployments',
@@ -242,6 +243,9 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           locale={locale}
           projectId={project.id}
           path={path}
+          teamSlug={team.slug}
+          projectSlug={project.slug}
+          admin={admin}
           protection={project.protection}
         />
       ) : null}
@@ -594,11 +598,17 @@ async function Domains({
   locale,
   projectId,
   path,
+  teamSlug,
+  projectSlug,
+  admin,
   protection,
 }: {
   locale: AppLocale;
   projectId: string;
   path: string;
+  teamSlug: string;
+  projectSlug: string;
+  admin: boolean;
   protection: ProtectionMode;
 }) {
   const t = await getTranslations({ locale, namespace: 'Cloud' });
@@ -674,6 +684,17 @@ async function Domains({
                     </table>
                   </div>
                 </>
+              ) : null}
+              {domain.state !== 'PENDING' ? (
+                <SurfaceMonitorRow
+                  locale={locale}
+                  domain={domain}
+                  projectId={projectId}
+                  path={path}
+                  teamSlug={teamSlug}
+                  projectSlug={projectSlug}
+                  admin={admin}
+                />
               ) : null}
               <div className={appUi.actions}>
                 {domain.checkedAt ? (

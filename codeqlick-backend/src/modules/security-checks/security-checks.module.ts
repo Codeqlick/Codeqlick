@@ -11,5 +11,8 @@ import { SecurityChecksService } from './security-checks.service.js';
   imports: [LeadsModule],
   controllers: [SecurityChecksController, AdminSecurityChecksController],
   providers: [SecurityChecksService, SecurityChecksRepository],
+  // The Surface monitor (Cloud) finds the service through `ModuleRef` with `strict: false`, which
+  // doesn't need this export; it is here to document that the service is used outside the module.
+  exports: [SecurityChecksService],
 })
 export class SecurityChecksModule {}

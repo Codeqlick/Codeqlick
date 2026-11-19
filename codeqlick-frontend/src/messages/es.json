@@ -4190,7 +4190,8 @@
         "errorTitle": "Has alcanzado los límites de tu plan",
         "item": "{label}: {used} de {limit} ({percent} %)",
         "link": "Ver el uso"
-      }
+      },
+      "surfaceDomains": "Dominios vigilados"
     },
     "project": {
       "tabs": {
@@ -5043,8 +5044,8 @@
       "formsLoadErrorNew": "No se han podido cargar los formularios del proyecto: un aviso nuevo recibe todos; edítalo después para elegir algunos.",
       "formsEmail": "Los avisos por email no pueden llevar envíos de formularios: los formularios ya avisan por email a sus destinatarios. Elige Slack, Discord o webhook.",
       "formsTooMany": "Elige hasta 20 formularios.",
-      "onMonitors": "Avisos de monitores y bajadas de la revisión web",
-      "onMonitorsNew": "Avisos de monitores y bajadas de la revisión web (Slack, Discord o webhook)",
+      "onMonitors": "Avisos de monitores, bajadas de la revisión web y cambios de seguridad",
+      "onMonitorsNew": "Avisos de monitores, bajadas de la revisión web y cambios de seguridad (Slack, Discord o webhook)",
       "onMonitorsHint": "Solo avisan aquí los monitores vinculados a este proyecto. Las personas elegidas en cada monitor siguen recibiendo su email.",
       "monitorAlertsEmail": "Los avisos de monitores van a Slack, Discord o un webhook: los monitores ya envían un email a las personas elegidas en ellos.",
       "newTitle": "Nuevo aviso",
@@ -5193,7 +5194,8 @@
         "monitorsPerTeam": "Monitores",
         "analyticsEventsPerMonth": "Eventos de analítica al mes",
         "kvKeysPerProject": "Claves KV por proyecto",
-        "kvBytesPerProject": "Tamaño KV por proyecto"
+        "kvBytesPerProject": "Tamaño KV por proyecto",
+        "surfaceDomains": "Dominios vigilados"
       }
     },
     "databases": {
@@ -5395,6 +5397,77 @@
       "reopen": "Reabrir",
       "openOnPreview": "Abrir en la vista previa",
       "comment": "Comentar"
+    },
+    "surface": {
+      "title": "Monitor de seguridad",
+      "pageTitle": "Monitor de seguridad",
+      "on": "Activo",
+      "off": "Desactivado",
+      "label": "Vigilar la seguridad de este dominio cada día",
+      "hint": "Pasa cada día las comprobaciones pasivas del Security check y avisa al equipo cuando algo empeora.",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "saved": "Guardado.",
+      "adminsOnly": "Solo los administradores del equipo pueden cambiarlo.",
+      "link": "Seguridad",
+      "gradeBadge": "Nota {grade}",
+      "failedBadge": "Fallido",
+      "lastScan": "Último análisis: {when}",
+      "next": "Próximo análisis: {when} (hora de Madrid)",
+      "first": "El primer análisis se hará el {when} (hora de Madrid) y fijará el punto de partida.",
+      "limitReached": "Tu equipo ha llegado al límite de dominios vigilados de su plan. Desactiva otro o mejora el plan.",
+      "verifyFirst": "Verifica primero el dominio.",
+      "passiveNote": "Solo se hacen comprobaciones pasivas: un análisis visita la página de inicio y security.txt, hace tres conexiones TLS y consulta el DNS.",
+      "olderNotice": "Estás viendo un análisis anterior.",
+      "seeLatest": "Ver el último",
+      "emptyTitle": "Todavía no hay análisis",
+      "emptyOff": "El monitor está desactivado en este dominio, así que no se ha analizado nada.",
+      "turnOn": "Actívalo en Dominios",
+      "scanTitle": "Análisis del {when}",
+      "gradeLabel": "Nota {grade}, puntuación {score} sobre 100",
+      "previous": "Análisis anterior: nota {grade}, {score}/100 ({when})",
+      "baseline": "Este análisis es el punto de partida: los siguientes se comparan con él.",
+      "failedTitle": "No se ha podido completar este análisis",
+      "failedNote": "Los análisis fallidos no se comparan con otros ni envían avisos.",
+      "failedReasons": {
+        "not_found": "El dominio no ha respondido o no se resuelve.",
+        "timeout": "El análisis tardó demasiado y se detuvo.",
+        "error": "Ha pasado algo inesperado durante el análisis."
+      },
+      "changesTitle": "Cambios desde el análisis anterior",
+      "changesBaseline": "Todavía no hay nada con lo que comparar.",
+      "changesNone": "Sin cambios.",
+      "changes": {
+        "check": "{title}: {from} → {to}",
+        "certExpiry": "El certificado caduca en {days, plural, one {# día} other {# días}} (umbral: {threshold} días)",
+        "certIssuer": "Ha cambiado el emisor del certificado: {from} → {to}",
+        "records": "Ha cambiado: {record}",
+        "libs": "{count, plural, one {# librería vulnerable nueva} other {# librerías vulnerables nuevas}}"
+      },
+      "status": {
+        "pass": "Correcto",
+        "warn": "Mejorar",
+        "fail": "Corregir ya"
+      },
+      "records": {
+        "mx": "Registros MX",
+        "spf": "Registro SPF",
+        "dmarc": "Registro DMARC",
+        "caa": "Registros CAA",
+        "mta-sts": "Registro MTA-STS",
+        "ns": "Servidores de nombres",
+        "dnssec": "DNSSEC"
+      },
+      "removed": "Quitado:",
+      "added": "Añadido:",
+      "historyTitle": "Historial",
+      "historyCaption": "Los últimos 30 análisis, del más reciente al más antiguo",
+      "date": "Fecha",
+      "grade": "Nota",
+      "result": "Resultado",
+      "changesBadge": "{count, plural, one {# cambio} other {# cambios}}",
+      "steady": "Sin cambios",
+      "more": "+{count} más"
     }
   },
   "AdminCloud": {

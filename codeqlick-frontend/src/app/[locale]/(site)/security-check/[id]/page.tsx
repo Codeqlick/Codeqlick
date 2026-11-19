@@ -8,11 +8,8 @@ import { Card } from '@/components/ui/Card';
 import { resolveLocale } from '@/i18n/locale';
 import { Link } from '@/i18n/navigation';
 import { isNotFound } from '@/lib/api/errors';
-import {
-  getSecurityCheckOrBusy,
-  type SecurityCheckReport,
-  type SecurityCheckStatus,
-} from '@/lib/api/security-checks';
+import { getSecurityCheckOrBusy, type SecurityCheckReport } from '@/lib/api/security-checks';
+import { gradeTone, pointsToFix, SecurityFindings } from '../SecurityFindings';
 import styles from '../security-check.module.css';
 import site from '../../site.module.css';
 
@@ -20,18 +17,12 @@ type PageProps = { params: Promise<{ locale: string; id: string }> };
 type Translate = Awaited<ReturnType<typeof getTranslations<'SecurityCheck'>>>;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const MARKS: Record<SecurityCheckStatus, string> = { pass: '✓', warn: '!', fail: '✕', info: 'i' };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'SecurityCheck' });
   // A report is someone's own: never in search results.
   return { title: t('reportMetaTitle'), robots: { index: false, follow: false } };
-}
-
-function toneOf(grade: string | null): 'good' | 'fair' | 'poor' {
-  if (grade === 'A+' || grade === 'A' || grade === 'B') return 'good';
-  return grade === 'C' || grade === 'D' ? 'fair' : 'poor';
 }
 
 /** The free Security check's report (architecture 4.19); refreshes itself while it runs. */
@@ -97,34 +88,6 @@ export default async function SecurityCheckReportPage({ params }: PageProps) {
   );
 }
 
-function CheckItem({
-  check,
-  t,
-}: {
-  check: SecurityCheckReport['groups'][number]['checks'][number];
-  t: Translate;
-}) {
-  return (
-    <li className={styles.check} data-status={check.status}>
-      <span className={styles.mark} aria-hidden="true">
-        {MARKS[check.status]}
-      </span>
-      <div>
-        <p className={styles.checkTitle}>
-          {check.title}
-          <span className={styles.badge}>{t(`report.status.${check.status}`)}</span>
-        </p>
-        <p className={styles.checkAdvice}>{check.explanation}</p>
-        {check.advice ? (
-          <p className={styles.checkFix}>
-            <strong>{t('report.howToFix')}</strong> {check.advice}
-          </p>
-        ) : null}
-      </div>
-    </li>
-  );
-}
-
 function Done({
   report,
   host,
@@ -138,9 +101,8 @@ function Done({
 }) {
   const score = report.score ?? 0;
   const grade = report.grade ?? '–';
-  const tone = toneOf(report.grade);
-  const all = report.groups.flatMap((group) => group.checks);
-  const toFix = all.filter((check) => check.status === 'fail' || check.status === 'warn').length;
+  const tone = gradeTone(report.grade);
+  const toFix = pointsToFix(report.groups);
   const checkedOn = new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(
     new Date(report.finishedAt ?? report.createdAt),
   );
@@ -171,53 +133,7 @@ function Done({
 
       <p className={styles.note}>{t('passiveNote')}</p>
 
-      <ul className={styles.categories} aria-label={t('report.groupsLabel')}>
-        {report.groups.map((group) => (
-          <li key={group.key}>
-            <a href={`#${group.key}`}>
-              <span>{group.name}</span>
-              <span className={styles.categoryScore}>
-                {group.checks.filter((c) => c.status === 'fail' || c.status === 'warn').length}
-                <span className="visually-hidden"> {t('report.toReviewShort')}</span>
-              </span>
-            </a>
-          </li>
-        ))}
-      </ul>
-
-      {report.groups.map((group) => {
-        const open = group.checks.filter((check) => check.status !== 'pass');
-        const passed = group.checks.filter((check) => check.status === 'pass');
-        return (
-          <section
-            key={group.key}
-            id={group.key}
-            className={styles.category}
-            aria-labelledby={`${group.key}-title`}
-          >
-            <h2 id={`${group.key}-title`} className={styles.categoryTitle}>
-              {group.name}
-            </h2>
-            {open.length > 0 ? (
-              <ul className={styles.checks}>
-                {open.map((check) => (
-                  <CheckItem key={check.id} check={check} t={t} />
-                ))}
-              </ul>
-            ) : null}
-            {passed.length > 0 ? (
-              <details className={styles.passed}>
-                <summary>{t('report.passedSummary', { count: passed.length })}</summary>
-                <ul className={styles.checks}>
-                  {passed.map((check) => (
-                    <CheckItem key={check.id} check={check} t={t} />
-                  ))}
-                </ul>
-              </details>
-            ) : null}
-          </section>
-        );
-      })}
+      <SecurityFindings groups={report.groups} />
 
       <Card tone="blush" className={styles.category}>
         <h2 className={styles.asideTitle}>{t('report.ctaTitle')}</h2>

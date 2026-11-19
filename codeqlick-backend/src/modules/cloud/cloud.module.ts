@@ -79,6 +79,9 @@ import { CloudAdminService } from './cloud-admin.service.js';
 import { CloudController, CloudPublicController } from './cloud.controller.js';
 import { CloudDns, CloudDomainsService } from './cloud-domains.service.js';
 import { CloudProjectsService } from './cloud-projects.service.js';
+import { CloudSurfaceController } from './cloud-surface.controller.js';
+import { CloudSurfaceRepository } from './cloud-surface.repository.js';
+import { CloudSurfaceService } from './cloud-surface.service.js';
 import { CloudRepository } from './cloud.repository.js';
 import { CloudStorage } from './cloud.storage.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
@@ -114,6 +117,7 @@ import { CloudTransferService } from './cloud-transfer.service.js';
     CloudStatusNoticesController,
     CloudStatusSubscribersController,
     CloudAuditsController,
+    CloudSurfaceController,
     CloudBuildsController,
     CloudDeployHooksController,
     CloudNotificationsController,
@@ -154,6 +158,8 @@ import { CloudTransferService } from './cloud-transfer.service.js';
     CloudAuditsRepository,
     CloudAuditsService,
     CloudProductionChecksService,
+    CloudSurfaceRepository,
+    CloudSurfaceService,
     CloudBuildsRepository,
     CloudBuildsService,
     CloudDeployHooksRepository,

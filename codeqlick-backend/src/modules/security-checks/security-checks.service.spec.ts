@@ -3,7 +3,13 @@ import type { AppConfigService } from '../../config/app-config.service.js';
 import type { SecurityCheck } from '../../generated/prisma/client.js';
 import type { LeadsService } from '../leads/leads.service.js';
 import type { MailService } from '../mail/mail.service.js';
-import { DomainNotFoundError, gatherInputs, type Probes } from './gather.js';
+import {
+  DomainNotFoundError,
+  gatherInputs,
+  ScanTimeoutError,
+  SURFACE_USER_AGENT,
+  type Probes,
+} from './gather.js';
 import { readDns, type DnsClient } from './dns-lookup.js';
 import { probeTls } from './tls-probe.js';
 import { runChecks } from './run-checks.js';
@@ -42,6 +48,7 @@ function inputs(): SecurityInputs {
         authorized: true,
         authError: null,
         validTo: new Date('2027-06-01T00:00:00Z'),
+        issuer: "Let's Encrypt",
         tls10: false,
         tls11: false,
       },
@@ -54,6 +61,7 @@ function inputs(): SecurityInputs {
       dmarc: ['v=DMARC1; p=reject; rua=mailto:d@lucia.com'],
       dkim: ['default'],
       caa: ['0 issue "letsencrypt.org"'],
+      ns: ['ns1.lucia.com'],
       mtaSts: { txt: [], policy: null },
       tlsRpt: [],
       dnssec: { ad: true, hasDs: true },
@@ -308,6 +316,68 @@ describe('SecurityChecksService', () => {
       expect(repository.saveRetireData).not.toHaveBeenCalled();
     });
   });
+
+  describe('scan (the Surface monitor)', () => {
+    it('runs the checks and builds the snapshot from what was gathered, with its own user agent', async () => {
+      const gather = vi.fn().mockResolvedValue(inputs());
+      service.gather = gather;
+      const result = await service.scan('lucia.com', new AbortController().signal);
+      expect(gather).toHaveBeenCalledWith(
+        'lucia.com',
+        null,
+        expect.any(AbortSignal),
+        SURFACE_USER_AGENT,
+      );
+      expect(result.checks.map((check) => check.id)).toEqual(
+        runChecks(inputs()).map((check) => check.id),
+      );
+      expect(result.grade).toEqual(expect.any(String));
+      expect(result.score).toEqual(expect.any(Number));
+      expect(result.snapshot.dns.ns).toEqual(['ns1.lucia.com']);
+      expect(result.snapshot.cert.issuer).toBe("Let's Encrypt");
+    });
+
+    it('leaves no check, lead or email behind and counts nothing in the public limits', async () => {
+      service.gather = vi.fn().mockResolvedValue(inputs());
+      await service.scan('lucia.com', new AbortController().signal);
+      expect(repository.create).not.toHaveBeenCalled();
+      expect(repository.update).not.toHaveBeenCalled();
+      expect(repository.countByEmailSince).not.toHaveBeenCalled();
+      expect(repository.countSince).not.toHaveBeenCalled();
+      expect(leads.createQuietly).not.toHaveBeenCalled();
+      expect(mail.send).not.toHaveBeenCalled();
+    });
+
+    it('uses the Retire.js copy the service keeps, and never fetches it', async () => {
+      const fetchJson = vi.fn().mockResolvedValue({});
+      service.fetchRetireJson = fetchJson;
+      const repo = { jquery: { vulnerabilities: [], extractors: {} } };
+      repository.retireData.mockResolvedValue({ fetchedAt: new Date(), data: repo });
+      const gather = vi.fn().mockResolvedValue(inputs());
+      service.gather = gather;
+      await service.scan('lucia.com', new AbortController().signal);
+      expect(gather.mock.calls[0]![1]).toBe(repo);
+      expect(fetchJson).not.toHaveBeenCalled();
+    });
+
+    it('rejects with a ScanTimeoutError when the signal aborts, even if the reading ignores it', async () => {
+      service.gather = () => new Promise(() => undefined);
+      const controller = new AbortController();
+      const pending = service.scan('lucia.com', controller.signal);
+      controller.abort();
+      await expect(pending).rejects.toBeInstanceOf(ScanTimeoutError);
+      await expect(service.scan('lucia.com', AbortSignal.abort())).rejects.toBeInstanceOf(
+        ScanTimeoutError,
+      );
+    });
+
+    it('passes a name with no records on as DomainNotFoundError', async () => {
+      service.gather = () => Promise.reject(new DomainNotFoundError('Domain not found'));
+      await expect(service.scan('nope.test', new AbortController().signal)).rejects.toBeInstanceOf(
+        DomainNotFoundError,
+      );
+    });
+  });
 });
 
 describe('gatherInputs (fake network)', () => {
@@ -326,6 +396,7 @@ describe('gatherInputs (fake network)', () => {
     txt: () => Promise.resolve([]),
     mx: () => Promise.resolve([]),
     caa: () => Promise.resolve([]),
+    ns: () => Promise.resolve([]),
     exists: () => Promise.resolve(true),
     dnssec: () => Promise.resolve({ ad: null, hasDs: null }),
     ...over,
@@ -420,6 +491,7 @@ describe('readDns (fake resolver)', () => {
     txt: (name) => Promise.resolve(records[name] ?? []),
     mx: () => Promise.resolve([]),
     caa: () => Promise.resolve([]),
+    ns: () => Promise.resolve([]),
     exists: () => Promise.resolve(true),
     dnssec: () => Promise.resolve({ ad: true, hasDs: true }),
   };
@@ -432,6 +504,28 @@ describe('readDns (fake resolver)', () => {
     expect(result.dkim).toEqual(['google']);
     expect(result.mtaSts).toEqual({ txt: ['v=STSv1; id=1'], policy: 'mode: enforce' });
     expect(result.dnssec).toEqual({ ad: true, hasDs: true });
+  });
+
+  it('reads the name servers, keeping null when the lookup failed', async () => {
+    const withNs = await readDns(
+      'a.com',
+      { ...dns, ns: () => Promise.resolve(['ns1.a.com']) },
+      () => Promise.resolve(null),
+    );
+    expect(withNs.ns).toEqual(['ns1.a.com']);
+    const failed = await readDns('a.com', { ...dns, ns: () => Promise.resolve(null) }, () =>
+      Promise.resolve(null),
+    );
+    expect(failed.ns).toBeNull();
+  });
+
+  it('says when the _mta-sts lookup itself failed', async () => {
+    const failing: DnsClient = {
+      ...dns,
+      txt: (name) => (name.startsWith('_mta-sts.') ? Promise.resolve(null) : dns.txt(name)),
+    };
+    expect((await readDns('a.com', failing, () => Promise.resolve(null))).mtaSts.failed).toBe(true);
+    expect((await readDns('a.com', dns, () => Promise.resolve(null))).mtaSts.failed).toBeFalsy();
   });
 
   it('stops following includes once past the limit', async () => {

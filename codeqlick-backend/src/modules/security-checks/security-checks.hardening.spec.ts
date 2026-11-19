@@ -132,6 +132,7 @@ function withBody(body: string): SecurityInputs {
       dmarc: null,
       dkim: [],
       caa: null,
+      ns: null,
       mtaSts: { txt: [], policy: null },
       tlsRpt: null,
       dnssec: { ad: null, hasDs: null },
@@ -148,6 +149,7 @@ describe('TLS tie-breaker', () => {
       authorized: false,
       authError: 'handshake-failed',
       validTo: null,
+      issuer: null,
       tls10: true,
       tls11: false,
     };

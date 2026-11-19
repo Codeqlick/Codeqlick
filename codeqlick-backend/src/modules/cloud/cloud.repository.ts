@@ -412,6 +412,13 @@ export class CloudRepository {
     });
   }
 
+  /** The domains with the Surface monitor on in the team's live projects. */
+  countSurfaceDomains(teamId: string): Promise<number> {
+    return this.prisma.cloudDomain.count({
+      where: { surfaceMonitor: true, project: { teamId, deletedAt: null } },
+    });
+  }
+
   countProjects(teamId: string, db: Db = this.prisma): Promise<number> {
     return db.cloudProject.count({ where: { teamId, deletedAt: null } });
   }
@@ -725,6 +732,9 @@ export class CloudRepository {
       verifiedAt?: Date | null;
       checkedAt: Date;
       lastError: string | null;
+      /** A domain going back to PENDING stops being monitored (decision 144). */
+      surfaceMonitor?: false;
+      surfaceNextAt?: null;
     },
   ): Promise<CloudDomain> {
     return this.prisma.cloudDomain.update({ where: { id }, data });

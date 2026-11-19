@@ -5,9 +5,15 @@ import type { SecurityInputs, TlsInputs, WebInputs } from './security-check-inpu
 import { probeTls } from './tls-probe.js';
 
 export const USER_AGENT = 'Codeqlick-SecurityCheck/1.0 (+https://codeqlick.com/security-check)';
+/** The Surface monitor's own, so site owners can tell its visits apart (decision 144). */
+export const SURFACE_USER_AGENT =
+  'Codeqlick-SurfaceMonitor/1.0 (+https://codeqlick.com/security-check)';
 
 /** The domain doesn't exist (no record of any kind): the check can't go on. */
 export class DomainNotFoundError extends Error {}
+
+/** A scan that ran out of time (its `AbortSignal` fired). */
+export class ScanTimeoutError extends Error {}
 
 /** Everything the reading does to the network; replaced in tests. */
 export interface Probes {
@@ -17,9 +23,9 @@ export interface Probes {
 }
 
 /** The real network; aborting `signal` stops every request, handshake and lookup under way. */
-export function networkProbes(signal?: AbortSignal): Probes {
+export function networkProbes(signal?: AbortSignal, userAgent: string = USER_AGENT): Probes {
   return {
-    fetch: (url, options) => safeFetch(url, { userAgent: USER_AGENT, signal, ...options }),
+    fetch: (url, options) => safeFetch(url, { userAgent, signal, ...options }),
     tls: (domain) => probeTls(domain, undefined, signal),
     dns: createDnsClient(signal),
   };
