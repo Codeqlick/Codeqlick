@@ -8,6 +8,7 @@ import {
   cloudMenu,
   isCurrentPath,
   meetingsMenu,
+  menuAppMenu,
   type AppMenuConfig,
 } from './app-menus';
 import { WEBAPPS, type Webapp } from './webapps';
@@ -47,6 +48,13 @@ describe('the apps', () => {
     expect(citasMenu().signInHref).toBe('/login?next=/citas');
   });
 
+  it('Menu: its home, and a new menu when signed in', () => {
+    expect(shape(menuAppMenu({ signedIn: false }))).toEqual({ menu: ['home'] });
+    expect(shape(menuAppMenu({ signedIn: true }))).toEqual({ menu: ['home', 'new'] });
+    expect(menuAppMenu({ signedIn: false }).signInHref).toBe('/login?next=/menu');
+    expect(menuAppMenu({ signedIn: true }).profile).toBeNull();
+  });
+
   it('Cloud: the console when signed in, the docs as an outside link when they live apart', () => {
     expect(shape(cloudMenu('es', { signedIn: false }, '/cloud/docs'))).toEqual({
       cloud: ['home', 'docs'],
@@ -64,6 +72,7 @@ describe('the apps', () => {
     const configs = [
       meetingsMenu(),
       citasMenu(),
+      menuAppMenu({ signedIn: true }),
       cloudMenu('en', { signedIn: true }, '/cloud/docs'),
     ];
     for (const key of configs.flatMap(labels)) expect(typeof message(key), key).toBe('string');
@@ -155,6 +164,7 @@ describe('appFooter', () => {
 
   it("links Meetings and Citas to the website's legal pages and contact", () => {
     expect(ids('meetings')).toEqual(['terms', 'privacy', 'contact']);
+    expect(ids('menu')).toEqual(['terms', 'privacy', 'contact']);
     const citas = appFooter('citas', { ...site, locale: 'en' });
     expect(citas.map((item) => item.href)).toEqual([
       'https://codeqlick.com/en/terms',

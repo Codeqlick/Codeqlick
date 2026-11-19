@@ -44,6 +44,7 @@ test.describe('public site', () => {
     await expect(apps.getByRole('heading', { level: 2 })).toHaveText([
       'Meetings',
       'Citas',
+      'Menu',
       'Codeqlick Cloud',
     ]);
   });

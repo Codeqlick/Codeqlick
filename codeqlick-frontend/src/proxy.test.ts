@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import proxy from './proxy';
+import proxy, { config } from './proxy';
 
 /** A browser's navigation to `path` on `host`, with its own Accept-Language. */
 function visit(host: string, path: string, language = 'en') {
@@ -149,5 +149,46 @@ describe('proxy: Content Security Policy (architecture 6.4)', () => {
       [1, 2].map(async () => forwarded(await page('codeqlick.com', '/en'))['x-nonce']),
     );
     expect(nonces[0]).not.toBe(nonces[1]);
+  });
+});
+
+describe('proxy: which paths reach it', () => {
+  // Next.js reads the matcher as a path pattern; its negative lookahead is plain regex.
+  const matches = (path: string) => {
+    const [source] = config.matcher;
+    return new RegExp(`^${source}$`).test(path);
+  };
+
+  it('skips the API, Next internals, the draft previews and files', () => {
+    for (const path of [
+      '/api',
+      '/api/csp-report',
+      '/site-draft/key/x',
+      '/_next/static/chunk.js',
+      '/_vercel/insights',
+      '/favicon.ico',
+      '/robots.txt',
+    ]) {
+      expect(matches(path), path).toBe(false);
+    }
+  });
+
+  it('lets pages through, slugs that only start like an excluded name too', () => {
+    for (const path of [
+      '/',
+      '/es',
+      '/es/blog',
+      '/apio-bar',
+      '/apiario',
+      '/_nextdoor',
+      '/site-drafts',
+    ]) {
+      expect(matches(path), path).toBe(true);
+    }
+  });
+
+  it('serves the short link of a menu called apio-bar on the menu host', async () => {
+    const response = await visit('menu.codeqlick.com', '/apio-bar');
+    expect(response.headers.get('x-middleware-rewrite')).toContain('/en/menu/qr/short/apio-bar');
   });
 });

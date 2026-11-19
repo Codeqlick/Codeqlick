@@ -7,9 +7,10 @@
  * Adding an app: its name here and in the API's WEBAPPS, and its pages under `app/[locale]/<name>/`.
  * The release publishes <name>.codeqlick.com (DNS, Nginx, certificate) by itself.
  */
+import { routing } from '@/i18n/routing';
 import { localeOf } from './locales';
 
-export const WEBAPPS = ['meetings', 'citas', 'cloud'] as const;
+export const WEBAPPS = ['meetings', 'citas', 'cloud', 'menu'] as const;
 export type Webapp = (typeof WEBAPPS)[number];
 
 /** The apps the "Apps" menu lists inside `current`: every other app. */
@@ -51,6 +52,39 @@ export const SITE_SECTIONS = [
   'website-check',
   'work',
 ];
+
+/** Menu's own routes (architecture 4.20): never read as a menu's short link. */
+const MENU_ROUTES = [
+  'editar',
+  'edit',
+  'nueva',
+  'new',
+  'cartel',
+  'poster',
+  'reportar',
+  'report',
+  'qr',
+  'disponibilidad',
+];
+
+/**
+ * The slug of a menu's short link on the menu host (`/mi-bar`, what the printed QR carries), or
+ * null when the path is anything else: a locale, a shared page, a site section, another app or
+ * one of Menu's own routes. The web answers it with a redirect to the menu's language.
+ */
+export function menuShortLink(pathname: string): string | null {
+  const match = /^\/([a-z0-9]+(?:-[a-z0-9]+)*)\/?$/.exec(pathname);
+  const slug = match?.[1];
+  if (!slug || slug.length < 3) return null;
+  const taken = [
+    ...routing.locales,
+    ...SHARED_PAGES,
+    ...SITE_SECTIONS,
+    ...WEBAPPS,
+    ...MENU_ROUTES,
+  ] as string[];
+  return taken.includes(slug) ? null : slug;
+}
 
 /** The web app whose subdomain `host` is (`meetings.codeqlick.com:443` → meetings), or null. */
 export function webappForHost(host: string | null | undefined): Webapp | null {
@@ -94,7 +128,15 @@ export function routeWebapp(
   redirectOld = true,
 ): WebappRoute {
   const prefix = localeOf(pathname);
-  if (!prefix) return { action: 'pass' };
+  if (!prefix) {
+    // menu.codeqlick.com/<slug>: the short link of a menu is a route of its own, which sends the
+    // visitor to the menu's language (not the browser's, so a printed code shows one thing).
+    const short = webappForHost(host) === 'menu' ? menuShortLink(pathname) : null;
+    if (short) {
+      return { action: 'rewrite', to: `/${routing.defaultLocale}/menu/qr/short/${short}` };
+    }
+    return { action: 'pass' };
+  }
   const { locale, section } = prefix;
   const rest = pathname.slice(locale.length + 1); // '', '/', '/room', '/meetings/room'…
   const app = webappForHost(host);

@@ -135,6 +135,7 @@ model User {
   leadReplies              LeadReply[]
   meetingRooms             MeetingRoom[]
   bookingPages             BookingPage[]
+  menus                    Menu[]
   appointments             Appointment[]
   cloudMemberships         CloudMember[]
   cloudInvitesSent         CloudInvite[]
@@ -2711,4 +2712,102 @@ model CloudComment {
 
   @@index([threadId, createdAt])
   @@map("cloud_comments")
+}
+
+enum MenuKind {
+  MENU
+  CATALOGUE
+}
+
+enum MenuLanguage {
+  EN
+  ES
+}
+
+enum MenuReportReason {
+  ILLEGAL
+  PHISHING
+  IMPERSONATION
+  COPYRIGHT
+  SEXUAL
+  SPAM
+  OTHER
+}
+
+enum MenuReportStatus {
+  OPEN
+  CLOSED
+}
+
+/// Menu (architecture 4.20): a person's QR menu or catalogue at menu.codeqlick.com/<slug>.
+model Menu {
+  id              String       @id @default(uuid()) @db.Uuid
+  ownerId         String       @map("owner_id") @db.Uuid
+  /// The public link; 3-40 lowercase letters, digits and single dashes.
+  slug            String       @unique @db.VarChar(40)
+  kind            MenuKind     @default(MENU)
+  businessName    String       @map("business_name") @db.VarChar(80)
+  language        MenuLanguage
+  /// ISO 4217 code from a short list (see menu-limits.ts).
+  currency        String       @default("EUR") @db.VarChar(3)
+  title           String       @db.VarChar(80)
+  intro           String       @default("") @db.VarChar(300)
+  address         String       @default("") @db.VarChar(160)
+  openingNote     String       @default("") @map("opening_note") @db.VarChar(300)
+  note            String       @default("") @db.VarChar(300)
+  /// Categories and items (MenuContent), validated as a whole.
+  content         Json
+  /// +1 on every change; guards against two tabs overwriting each other.
+  revision        Int          @default(1)
+  enabled         Boolean      @default(true)
+  indexable       Boolean      @default(true)
+  suspendedAt     DateTime?    @map("suspended_at") @db.Timestamptz(3)
+  suspendedReason String?      @map("suspended_reason") @db.VarChar(500)
+  /// When the link changed, the last 30 days only: the limit of 3 changes counts these.
+  slugChangedAt   DateTime[]   @default([]) @map("slug_changed_at") @db.Timestamptz(3)
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  owner     User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  redirects MenuSlugRedirect[]
+  reports   MenuReport[]
+
+  @@index([ownerId, createdAt])
+  @@map("menus")
+}
+
+/// An old slug of a menu, redirecting to the current one until `expiresAt` (180 days).
+model MenuSlugRedirect {
+  id        String   @id @default(uuid()) @db.Uuid
+  menuId    String   @map("menu_id") @db.Uuid
+  slug      String   @unique @db.VarChar(40)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  menu Menu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@index([menuId, createdAt])
+  @@index([expiresAt])
+  @@map("menu_slug_redirects")
+}
+
+/// An abuse report on a menu; kept 12 months with a copy of the slug and name.
+model MenuReport {
+  id           String           @id @default(uuid()) @db.Uuid
+  menuId       String?          @map("menu_id") @db.Uuid
+  slug         String           @db.VarChar(40)
+  businessName String           @map("business_name") @db.VarChar(80)
+  reason       MenuReportReason
+  details      String           @db.VarChar(1000)
+  email        String?          @db.VarChar(254)
+  status       MenuReportStatus @default(OPEN)
+  note         String?          @db.VarChar(1000)
+  closedAt     DateTime?        @map("closed_at") @db.Timestamptz(3)
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  menu Menu? @relation(fields: [menuId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([createdAt])
+  @@map("menu_reports")
 }

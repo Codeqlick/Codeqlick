@@ -70,6 +70,20 @@ export default async function AppsPage({ params }: PageProps) {
           </li>
           <li className={`${home.service} ${styles.card}`}>
             <div className={styles.head}>
+              <h2 className={home.serviceTitle}>{t('menu.title')}</h2>
+              <Badge>{t('menu.badge')}</Badge>
+            </div>
+            <p className={home.serviceBody}>{t('menu.body')}</p>
+            <a
+              href={`/${locale}/menu`}
+              className={buttonClassName({})}
+              data-umami-event="apps-menu"
+            >
+              {t('menu.open')}
+            </a>
+          </li>
+          <li className={`${home.service} ${styles.card}`}>
+            <div className={styles.head}>
               <h2 className={home.serviceTitle}>{t('cloud.title')}</h2>
               <Badge>{t('cloud.badge')}</Badge>
             </div>

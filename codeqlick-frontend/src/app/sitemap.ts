@@ -5,10 +5,12 @@ import { SERVICE_SLUGS } from '@/components/content/services';
 import { localSeoPaths } from '@/content/local-seo';
 import { SITE_LOCALES } from '@/i18n/routing';
 import { listPortfolio } from '@/lib/api/portfolio';
+import { listMenuSitemap } from '@/lib/api/menus';
 import { listPosts } from '@/lib/api/posts';
 import { getCalculator } from '@/lib/api/calculator';
 import { getBookingSlots } from '@/lib/api/bookings';
 import { legalOwner } from '@/lib/env';
+import { menuLocale } from '@/lib/menu';
 import { absoluteUrl } from '@/lib/seo';
 import { webappForHost } from '@/lib/webapps';
 import { WEBAPP_PUBLIC_PATHS, webappUrl } from '@/lib/webapp-seo';
@@ -58,6 +60,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Generated per request: a build-time sitemap has no API to read the content slugs from.
   await connection();
   const app = webappForHost((await headers()).get('host'));
+  // Menu's host lists its home and every indexable menu, once, in the menu's own language
+  // (architecture 4.20); a menu's page has no other language.
+  if (app === 'menu') {
+    const menus = await listMenuSitemap();
+    return [
+      ...SITE_LOCALES.map((locale) => ({
+        url: webappUrl('menu', locale),
+        changeFrequency: 'weekly' as const,
+        priority: 1,
+        alternates: {
+          languages: Object.fromEntries(SITE_LOCALES.map((l) => [l, webappUrl('menu', l)])),
+        },
+      })),
+      ...menus.slice(0, 50_000 - SITE_LOCALES.length).map((menu) => ({
+        url: webappUrl('menu', menuLocale(menu.language), `/${menu.slug}`),
+        lastModified: menu.updatedAt,
+        changeFrequency: 'weekly' as const,
+        priority: 0.6,
+      })),
+    ];
+  }
   const appPaths = app ? WEBAPP_PUBLIC_PATHS[app] : undefined;
   // A web app's host that is meant for search lists only its own public pages.
   if (app && appPaths) {

@@ -85,6 +85,23 @@ export function citasMenu(): AppMenuConfig {
   };
 }
 
+export function menuAppMenu({ signedIn }: MenuState): AppMenuConfig {
+  return {
+    sections: sections({
+      id: 'menu',
+      heading: 'Menu.brand',
+      items: items(
+        { id: 'home', href: '/menu', label: 'AppMenu.home' },
+        { id: 'new', href: '/menu/editar/nueva', label: 'Menu.nav.new', when: signedIn },
+      ),
+    }),
+    footer: [],
+    signInHref: '/login?next=/menu',
+    registerHref: REGISTER,
+    profile: null,
+  };
+}
+
 /** Cloud's docs live on their own site when `CLOUD_DOCS_URL` is set (`docsHref` is then absolute). */
 export function cloudMenu(
   locale: string,
@@ -207,6 +224,7 @@ export function appFooter(
     }
     case 'meetings':
     case 'citas':
+    case 'menu':
       return items(siteTerms, sitePrivacy, contact);
   }
 }

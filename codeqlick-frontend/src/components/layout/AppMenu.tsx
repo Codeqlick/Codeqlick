@@ -23,6 +23,7 @@ export const APP_MESSAGES: Record<Webapp, string> = {
   citas: 'Citas',
   meetings: 'Meetings',
   cloud: 'Cloud',
+  menu: 'Menu',
 };
 
 type AppMenuProps = {

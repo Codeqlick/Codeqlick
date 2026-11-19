@@ -158,6 +158,8 @@ function fromHttpException(exception: HttpException): ProblemDetails {
   } else {
     problem.detail = exception.message;
   }
+  // A service may add a stable machine-readable `code` (a plan limit, a stale revision).
+  if (typeof body.code === 'string') problem.code = body.code;
   return problem;
 }
 

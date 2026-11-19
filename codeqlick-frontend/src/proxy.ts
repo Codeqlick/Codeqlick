@@ -277,5 +277,6 @@ async function handle(request: NextRequest): Promise<NextResponse> {
 
 export const config = {
   // Everything except API routes, Next internals and files with an extension (favicon.ico, ...).
-  matcher: ['/((?!api|site-draft|_next|_vercel|.*\\..*).*)'],
+  // Anchored: a menu's slug such as `apio-verde` must still reach the proxy.
+  matcher: ['/((?!api(?:/|$)|site-draft(?:/|$)|_next(?:/|$)|_vercel(?:/|$)|.*\\..*).*)'],
 };

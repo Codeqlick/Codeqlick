@@ -1,0 +1,197 @@
+/* A menu page's content (public page and editor preview): light brand look, fuchsia as accent. */
+
+.menu {
+  display: grid;
+  gap: var(--space-6);
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-5);
+  background: var(--color-white);
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.header {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.business {
+  font-family: var(--font-family-display);
+  font-size: var(--text-h1);
+  line-height: 1.15;
+  margin: 0;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-family-mono);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-fuchsia-dark);
+}
+
+.intro {
+  margin: 0;
+  color: var(--color-slate);
+}
+
+.facts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-slate);
+}
+
+.facts a {
+  color: var(--color-fuchsia-dark);
+}
+
+.jump ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.jump a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  text-decoration: none;
+  font-size: var(--text-sm);
+}
+
+.jump a:hover {
+  background: var(--color-blush);
+  color: var(--color-fuchsia-dark);
+}
+
+.jump a:focus-visible,
+.facts a:focus-visible,
+.badge a:focus-visible {
+  outline: 2px solid var(--color-fuchsia);
+  outline-offset: 2px;
+}
+
+.category {
+  display: grid;
+  gap: var(--space-3);
+  scroll-margin-top: var(--space-4);
+}
+
+.categoryName {
+  font-family: var(--font-family-display);
+  font-size: var(--text-h2);
+  margin: 0;
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--color-fuchsia);
+}
+
+.items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.item {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.itemHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.itemName {
+  font-weight: 600;
+}
+
+.price {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.description {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: var(--text-sm);
+}
+
+.contains {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-ink);
+}
+
+/* Sold out: dimmed to slate and said in words (never colour alone). */
+.item[data-sold-out] .itemName,
+.item[data-sold-out] .price {
+  color: var(--color-slate);
+  font-weight: 400;
+}
+
+.soldOut {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-slate);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-slate);
+}
+
+.note {
+  margin: 0;
+  padding: var(--space-4);
+  background: var(--color-blush);
+  border-radius: var(--radius-md);
+}
+
+.allergenNote {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-slate);
+}
+
+.badge {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.badge a {
+  color: var(--color-slate);
+}
+
+@media print {
+  .menu {
+    max-width: none;
+    padding: 0;
+  }
+
+  .jump {
+    display: none;
+  }
+
+  .category {
+    break-inside: avoid;
+  }
+}

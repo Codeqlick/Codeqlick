@@ -613,6 +613,8 @@ export type ProblemDetails = {
   instance?: string;
   errors?: ProblemFieldError[];
   requestId?: string;
+  /** A stable machine-readable reason (`STALE_REVISION`, `MENU_LIMIT`…), when the API gives one. */
+  code?: string;
 };
 
 /** Result of `POST /admin/media`. The image is served by the website at `/media/<filename>`. */
@@ -659,7 +661,7 @@ export type AccountActivity = {
 
 /** A part of the platform the caller uses (`GET /auth/apps`). */
 export type AccountApp = {
-  app: 'admin' | 'portal' | 'cloud' | 'meetings' | 'citas';
+  app: 'admin' | 'portal' | 'cloud' | 'meetings' | 'citas' | 'menu';
   count: number;
 };
 

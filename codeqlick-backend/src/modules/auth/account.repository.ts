@@ -111,6 +111,7 @@ export class AccountRepository {
       leads,
       meetingRooms,
       bookingPages,
+      menus,
       cloudTeams,
       cloudTokens,
       cloudEvents,
@@ -253,6 +254,33 @@ export class AccountRepository {
           },
         },
       }),
+      p.menu.findMany({
+        where: { ownerId: userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          slug: true,
+          kind: true,
+          businessName: true,
+          language: true,
+          currency: true,
+          title: true,
+          intro: true,
+          address: true,
+          openingNote: true,
+          note: true,
+          content: true,
+          enabled: true,
+          indexable: true,
+          suspendedAt: true,
+          suspendedReason: true,
+          redirects: {
+            where: { expiresAt: { gt: new Date() } },
+            orderBy: { createdAt: 'desc' },
+            select: { slug: true, expiresAt: true },
+          },
+          createdAt: true,
+        },
+      }),
       p.cloudMember.findMany({
         where: { userId },
         orderBy: { createdAt: 'asc' },
@@ -295,6 +323,7 @@ export class AccountRepository {
       contactRequests: leads,
       meetingRooms,
       bookingPages,
+      menus,
       cloud:
         cloudTeams.length + cloudTokens.length + cloudEvents.length > 0
           ? { teams: cloudTeams, tokens: cloudTokens, events: cloudEvents }
@@ -317,12 +346,13 @@ export class AccountRepository {
    * "Your apps"): rows they own in each app, read only.
    */
   async appsUsage(userId: string, accountId: string) {
-    const [projects, teams, rooms, pages] = await Promise.all([
+    const [projects, teams, rooms, pages, menus] = await Promise.all([
       this.prisma.clientProject.count({ where: { clientId: accountId } }),
       this.prisma.cloudMember.count({ where: { userId } }),
       this.prisma.meetingRoom.count({ where: { ownerId: userId } }),
       this.prisma.bookingPage.count({ where: { ownerId: userId } }),
+      this.prisma.menu.count({ where: { ownerId: userId } }),
     ]);
-    return { projects, teams, rooms, pages };
+    return { projects, teams, rooms, pages, menus };
   }
 }

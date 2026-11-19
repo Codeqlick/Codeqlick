@@ -8,6 +8,7 @@ export interface AppCounts {
   cloud: number;
   citas: number;
   meetings: number;
+  menu: number;
   portal: number;
 }
 
@@ -47,7 +48,7 @@ export interface AdminOverview {
   };
 }
 
-const APPS = ['cloud', 'citas', 'meetings', 'portal'] as const;
+const APPS = ['cloud', 'citas', 'meetings', 'menu', 'portal'] as const;
 
 type Counter = 'leads' | 'deployments' | 'siteChecks' | 'newsletter';
 const COUNTERS: Record<string, Counter> = {
@@ -58,7 +59,7 @@ const COUNTERS: Record<string, Counter> = {
 };
 
 function emptyApps(): AppCounts {
-  return { cloud: 0, citas: 0, meetings: 0, portal: 0 };
+  return { cloud: 0, citas: 0, meetings: 0, menu: 0, portal: 0 };
 }
 
 export function emptyWeek(start: string): OverviewWeek {
@@ -122,6 +123,7 @@ export function buildOverview(input: {
         cloud: t.cloud,
         citas: t.citas,
         meetings: t.meetings,
+        menu: t.menu,
         portal: t.portal,
       },
     },

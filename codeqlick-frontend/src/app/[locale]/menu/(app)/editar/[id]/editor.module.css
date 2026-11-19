@@ -1,0 +1,269 @@
+/* Menu's editor: the fields and the live preview side by side (tabs on phones); brand tokens only. */
+
+.editor {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.layout {
+  display: grid;
+  gap: var(--space-6);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+.fields {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.card,
+.content {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  min-width: 0;
+}
+
+.cardTitle {
+  font-family: var(--font-family-display);
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.muted {
+  color: var(--color-slate);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.row {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+}
+
+.grow {
+  flex: 1 1 12rem;
+}
+
+.price {
+  flex: 0 1 8rem;
+}
+
+.ok {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.bad {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.categories,
+.items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.category {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-app);
+}
+
+.categoryHead,
+.itemFields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.item {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+/* A hidden item stays in the editor, greyed: the page leaves it out. */
+.item[data-hidden] {
+  background: var(--color-surface-app);
+  border-style: dashed;
+}
+
+.itemFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
+}
+
+.itemFoot .rowActions {
+  margin-left: auto;
+}
+
+.allergens > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.allergenList {
+  display: grid;
+  gap: var(--space-1) var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  padding: var(--space-2) 0;
+}
+
+.fieldError {
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin: 0;
+}
+
+/* The live preview: the page's own component, framed like a phone-width page. */
+.preview {
+  display: grid;
+  gap: var(--space-3);
+  position: sticky;
+  top: var(--space-4);
+  min-width: 0;
+}
+
+.previewFrame {
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  max-height: 80dvh;
+  overflow: auto;
+}
+
+/* One Save button, always in reach. */
+.saveBar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  box-shadow: var(--shadow-md);
+}
+
+.saveText {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.linkButton {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.linkButton:focus-visible {
+  outline: 2px solid var(--color-fuchsia);
+  outline-offset: 2px;
+}
+
+/* The Edit / Preview tabs exist for phones only. */
+.viewSwitch {
+  display: none;
+  margin: 0;
+  min-width: 0;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+}
+
+.viewButton {
+  flex: 1;
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.viewButton[aria-pressed='true'] {
+  background: var(--color-ink);
+  color: var(--color-white);
+}
+
+.viewButton:focus-visible {
+  outline: 2px solid var(--color-fuchsia);
+  outline-offset: 2px;
+}
+
+@media (max-width: 64rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .viewSwitch {
+    display: flex;
+  }
+
+  .layout[data-view='edit'] > [data-panel='preview'],
+  .layout[data-view='preview'] > [data-panel='edit'] {
+    display: none;
+  }
+
+  .preview {
+    position: static;
+  }
+
+  .previewFrame {
+    max-height: none;
+  }
+}
+
+@media (max-width: 30rem) {
+  .card,
+  .content {
+    padding: var(--space-4);
+  }
+
+  .itemFoot .rowActions {
+    margin-left: 0;
+  }
+}

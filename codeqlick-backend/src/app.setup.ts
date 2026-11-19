@@ -64,6 +64,14 @@ export function configureApp(app: NestExpressApplication): void {
   // A `.env` import may hold 256 KB (more once escaped in JSON); every other JSON body keeps the
   // global parser's 100 KB. Registered before that parser, which Nest adds on init.
   app.use(largeJsonBody(/^\/v1\/cloud\/projects\/[^/]+\/env\/import$/, 1024 * 1024));
+  // A menu's content may be up to 200 KB (architecture 4.20); its body limit is 256 KB.
+  app.use(
+    largeJsonBody(/^\/v1\/menus(?:\/[0-9a-f-]{36}(?:\/content)?)?$/, 256 * 1024, [
+      'POST',
+      'PUT',
+      'PATCH',
+    ]),
+  );
   app.setGlobalPrefix('v1');
   app.useGlobalPipes(new StandardSchemaValidationPipe());
   app.useGlobalFilters(new ProblemDetailsFilter(app.get(ErrorsService, { strict: false })));

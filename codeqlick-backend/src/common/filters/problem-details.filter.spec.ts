@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   NotFoundException,
   ServiceUnavailableException,
   type ArgumentsHost,
@@ -87,6 +88,18 @@ describe('ProblemDetailsFilter', () => {
           { path: 'content', line: 7, message: 'Expected KEY=value' },
         ],
       }),
+    );
+  });
+
+  it('passes on the machine-readable code a service names', () => {
+    const filter = new ProblemDetailsFilter();
+    const { host, status, json } = hostFor();
+
+    filter.catch(new ConflictException({ message: 'At most 1 menu', code: 'MENU_LIMIT' }), host);
+
+    expect(status).toHaveBeenCalledWith(409);
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 409, detail: 'At most 1 menu', code: 'MENU_LIMIT' }),
     );
   });
 });

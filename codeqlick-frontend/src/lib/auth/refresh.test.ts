@@ -39,6 +39,26 @@ describe('session refresh helpers', () => {
     expect(protectedPathLocale('/es')).toBeNull();
   });
 
+  it("guards Menu's editor, availability list, poster and QR, not its public pages", () => {
+    for (const path of [
+      '/es/menu/editar/nueva',
+      '/en/menu/editar/abc',
+      '/es/menu/disponibilidad/abc',
+      '/es/menu/cartel/abc',
+      '/es/menu/qr/abc',
+    ]) {
+      expect(protectedPathLocale(path), path).not.toBeNull();
+    }
+    for (const path of [
+      '/es/menu',
+      '/es/menu/mi-bar',
+      '/es/menu/reportar',
+      '/en/menu/qr/short/mi-bar',
+    ]) {
+      expect(protectedPathLocale(path), path).toBeNull();
+    }
+  });
+
   it('sends the visitor to the login page with where they were going', () => {
     const url = loginRedirectUrl(
       'https://codeqlick.com/es/admin',
