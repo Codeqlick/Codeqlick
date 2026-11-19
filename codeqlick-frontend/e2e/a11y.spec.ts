@@ -180,6 +180,13 @@ test.describe('web apps', () => {
     }
   }
 
+  // Menu's public report form (its public page needs a menu: the browser test of Menu scans it).
+  for (const locale of LOCALES) {
+    test(`menu.localhost /${locale}/reportar`, async ({ page, baseURL }) => {
+      await scanPath(page, `/${locale}/reportar?menu=mi-bar`, appUrl('menu', baseURL));
+    });
+  }
+
   test('the menu dialog, open', async ({ page, baseURL }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${appUrl('meetings', baseURL)}/es`);

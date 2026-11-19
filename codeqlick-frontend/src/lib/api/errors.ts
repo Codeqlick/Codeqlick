@@ -13,6 +13,8 @@ export class ApiError extends Error {
   readonly detail: string | undefined;
   readonly errors: ProblemFieldError[];
   readonly requestId: string | undefined;
+  /** The API's machine-readable reason (`STALE_REVISION`…), when it gives one. */
+  readonly code: string | undefined;
 
   constructor(status: number, problem: ProblemDetails = {}) {
     const title = problem.title ?? `HTTP ${status}`;
@@ -23,6 +25,7 @@ export class ApiError extends Error {
     this.detail = problem.detail;
     this.errors = Array.isArray(problem.errors) ? problem.errors : [];
     this.requestId = problem.requestId;
+    this.code = problem.code;
   }
 
   /** Field errors keyed by their top-level path (`translations.0.title` → `translations.0.title`). */

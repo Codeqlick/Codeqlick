@@ -22,5 +22,6 @@ export const APP_NAMESPACES = {
   citas: ['Citas'],
   cloud: ['Cloud'],
   meetings: ['Meetings'],
+  menu: ['Menu'],
   portal: ['SiteEditor', 'SiteNews'],
 } as const;

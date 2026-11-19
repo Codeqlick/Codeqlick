@@ -27,6 +27,8 @@ const envSchema = z.object({
   MEETINGS_WS_URL: z.url().optional(),
   /** Cloudflare Turnstile's public site key: sign-in and sign-up show its widget; unset: none. */
   TURNSTILE_SITE_KEY: z.string().trim().min(1).optional(),
+  /** Menu's public address (architecture 4.20), the same the API puts in its QR; unset: derived from SITE_URL. */
+  MENU_URL: z.url().optional(),
   /**
    * Single sign-on through the account host (decision 108). `false` only where there is no account
    * host (staging): sign-in and the account pages then stay on the same host.
@@ -49,6 +51,7 @@ const parsed = envSchema.safeParse({
   CLOUD_DOCS_URL: process.env.CLOUD_DOCS_URL || undefined,
   MEETINGS_WS_URL: process.env.MEETINGS_WS_URL || undefined,
   TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY || undefined,
+  MENU_URL: process.env.MENU_URL || undefined,
   ACCOUNT_SSO: process.env.ACCOUNT_SSO || undefined,
 });
 
@@ -76,6 +79,8 @@ export const env = {
   ).replace(/\/+$/, ''),
   /** Umami base URL without a trailing slash, when analytics is set up. */
   UMAMI_URL: parsed.data.UMAMI_URL?.replace(/\/+$/, ''),
+  /** Menu's origin without a trailing slash, when `MENU_URL` is set. */
+  MENU_URL: parsed.data.MENU_URL ? new URL(parsed.data.MENU_URL).origin : undefined,
   /** Documentation site URL without a trailing slash, when it is set up. */
   CLOUD_DOCS_URL: parsed.data.CLOUD_DOCS_URL?.replace(/\/+$/, ''),
 };

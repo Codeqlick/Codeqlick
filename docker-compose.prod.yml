@@ -103,6 +103,8 @@ services:
       MEETINGS_ORIGINS: ${MEETINGS_URL:-https://meetings.codeqlick.com}
       TURN_SECRET: ${TURN_SECRET:-}
       TURN_URLS: ${TURN_URLS:-}
+      # Menu app (architecture 4.20): its public address, for emails and the QR.
+      MENU_URL: ${MENU_URL:-https://menu.codeqlick.com}
       # Cloudflare Turnstile on sign-up and sign-in (architecture 4.3); off while empty.
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
       PAGESPEED_API_KEY: ${PAGESPEED_API_KEY:-}
@@ -167,6 +169,8 @@ services:
       CLOUD_HOSTING_DOMAIN: ${CLOUD_HOSTING_DOMAIN:-codeqlick.app}
       # The public documentation site (architecture 6.3); empty: the console's own /docs.
       CLOUD_DOCS_URL: ${CLOUD_DOCS_URL:-}
+      # Menu app (architecture 4.20): its public address, for the QR and links.
+      MENU_URL: ${MENU_URL:-https://menu.codeqlick.com}
       # Legal notice and privacy policy: hidden until LEGAL_OWNER_NAME is set.
       LEGAL_OWNER_NAME: ${LEGAL_OWNER_NAME:-}
       LEGAL_OWNER_TAX_ID: ${LEGAL_OWNER_TAX_ID:-}

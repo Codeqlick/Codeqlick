@@ -322,7 +322,8 @@ export class AppConfigService {
    */
   webappUrl(app: Webapp): string {
     const origins = app === 'meetings' ? this.meetingsOrigins : [];
-    return origins[0] ?? `${this.siteUrl}`.replace('://', `://${app}.`);
+    const configured = app === 'menu' ? this.get('MENU_URL') : undefined;
+    return configured ?? origins[0] ?? `${this.siteUrl}`.replace('://', `://${app}.`);
   }
 
   /** STUN/TURN for the meetings' calls: the URLs and coturn's shared secret (TURN needs both). */

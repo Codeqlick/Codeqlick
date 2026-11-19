@@ -37,6 +37,17 @@ export const envSchema = z.object({
     .url()
     .optional()
     .transform((value) => value?.replace(/\/+$/, '')),
+  /**
+   * The Menu app's public address (architecture 4.20), for links in emails and the QR. Unset or
+   * empty: SITE_URL with `menu.` before its host.
+   */
+  MENU_URL: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z
+      .url()
+      .optional()
+      .transform((value) => value?.replace(/\/+$/, '')),
+  ),
   JWT_ACCESS_SECRET: z.string().min(32),
   /** Encrypts the access clients share (project credentials). Unset: derived from JWT_ACCESS_SECRET. */
   CREDENTIALS_SECRET: z.string().min(32).optional(),

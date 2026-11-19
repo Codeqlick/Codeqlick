@@ -125,6 +125,13 @@ the certificate once the DNS answers. A failure there never fails the release; t
 again. Run `setup-webapps.sh` again after changing `webapp-site.sh`, since the installed copy is
 root's. An app that needs its own settings (keys, secrets) still gets them in `.env`.
 
+**Menu (menu.codeqlick.com, architecture 4.20):** nothing to install. `menu` in `WEBAPPS` makes the
+release publish the subdomain (DNS record, Nginx site, certificate). Its only setting is the
+optional `MENU_URL` (default `https://menu.codeqlick.com`; no secret). If the DNS step fails for
+lack of OVH keys, add the `A` record `menu.codeqlick.com` -> `SITES_SERVER_IP` by hand and, as a
+user with sudo, run `sudo codeqlick-webapp-site menu`. Check it with the header loop under
+"Security headers"; the menu's pages are `https://menu.codeqlick.com/<slug>`.
+
 ### Account site (account.codeqlick.com, decision 108)
 
 Signing in, signing up and every account setting live on `account.codeqlick.com`; every other
@@ -332,7 +339,7 @@ The website and the API send every protective header themselves (architecture 6.
 Check them on every host:
 
 ```bash
-for h in codeqlick.com meetings.codeqlick.com citas.codeqlick.com account.codeqlick.com \
+for h in codeqlick.com meetings.codeqlick.com citas.codeqlick.com menu.codeqlick.com account.codeqlick.com \
   cloud.codeqlick.com api.codeqlick.com; do
   echo "== $h"; curl -sI "https://$h/en" | grep -iE '^(content-security|strict-transport|permissions|x-frame|cross-origin-opener|referrer)'
 done

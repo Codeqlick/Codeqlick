@@ -10,6 +10,7 @@ function totals(over: Partial<OverviewTotalsRow> = {}): OverviewTotalsRow {
     accounts: 0,
     cloud: 0,
     citas: 0,
+    menu: 0,
     meetings: 0,
     portal: 0,
     cloudProActive: 0,

@@ -55,6 +55,8 @@ services:
       CORS_ORIGINS: http://localhost:${WEB_PORT:-3000}
       MEETINGS_ORIGINS: http://meetings.localhost:${WEB_PORT:-3000},http://localhost:${WEB_PORT:-3000}
       SITE_URL: http://localhost:${WEB_PORT:-3000}
+      # Menu app (architecture 4.20): http://menu.localhost serves it locally.
+      MENU_URL: http://menu.localhost:${WEB_PORT:-3000}
       # Passkeys work on the account host, http://account.localhost (decision 108).
       WEBAUTHN_RP_ID: account.localhost
       # Development-only placeholder, same as .env.example. Production sets its own secret.
@@ -142,6 +144,7 @@ services:
       API_URL: http://api:4000/v1
       SITE_URL: http://localhost:${WEB_PORT:-3000}
       NEXT_PUBLIC_SITE_URL: http://localhost:${WEB_PORT:-3000}
+      MENU_URL: http://menu.localhost:${WEB_PORT:-3000}
       MEETINGS_WS_URL: ws://localhost:${API_PORT:-4000}/v1/meetings/ws
     command:
       - sh

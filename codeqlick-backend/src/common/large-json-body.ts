@@ -12,11 +12,11 @@ function clientError(status: number, message: string): Error {
  * requests pass through untouched. Compressed bodies are refused (415), as body-parser would
  * otherwise inflate them past the limit.
  */
-export function largeJsonBody(path: RegExp, limit: number) {
+export function largeJsonBody(path: RegExp, limit: number, methods: readonly string[] = ['POST']) {
   return (req: Request, _res: Response, next: NextFunction): void => {
     const url = (req.originalUrl ?? req.url).split('?')[0] ?? '';
     const type = (req.headers['content-type'] ?? '').toLowerCase();
-    if (req.method !== 'POST' || !path.test(url) || !type.startsWith('application/json')) {
+    if (!methods.includes(req.method) || !path.test(url) || !type.startsWith('application/json')) {
       next();
       return;
     }

@@ -7,6 +7,7 @@ export type AppCounts = {
   cloud: number;
   citas: number;
   meetings: number;
+  menu: number;
   portal: number;
 };
 
@@ -14,6 +15,7 @@ export const OVERVIEW_APPS = [
   'cloud',
   'citas',
   'meetings',
+  'menu',
   'portal',
 ] as const satisfies readonly (keyof AppCounts)[];
 

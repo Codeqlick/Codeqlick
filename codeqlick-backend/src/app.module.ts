@@ -39,6 +39,7 @@ import { TimeModule } from './modules/time/time.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { MeetingsModule } from './modules/meetings/meetings.module.js';
 import { CitasModule } from './modules/citas/citas.module.js';
+import { MenusModule } from './modules/menus/menus.module.js';
 import { SecurityChecksModule } from './modules/security-checks/security-checks.module.js';
 import { SiteAuditsModule } from './modules/site-audits/site-audits.module.js';
 import { CloudModule } from './modules/cloud/cloud.module.js';
@@ -86,6 +87,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     ReviewsModule,
     MeetingsModule,
     CitasModule,
+    MenusModule,
     SiteAuditsModule,
     SecurityChecksModule,
     CloudModule,

@@ -1,0 +1,224 @@
+/* menu.codeqlick.com: what only this app's pages use (the frame is AppFrame); brand tokens only. */
+
+.stack {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.landing {
+  display: grid;
+  gap: var(--space-10);
+}
+
+.muted {
+  color: var(--color-slate);
+  margin: 0;
+}
+
+.features {
+  display: grid;
+  gap: var(--space-6);
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.features li {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-slate);
+}
+
+.features strong {
+  color: var(--color-ink);
+}
+
+.menus {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menuCard {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+  padding: var(--space-5);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  min-width: 0;
+}
+
+.menuHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.menuTitle {
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.tag {
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+  color: var(--color-fuchsia-dark);
+  white-space: nowrap;
+}
+
+.paused {
+  color: var(--color-slate);
+}
+
+.inline {
+  display: inline;
+}
+
+.qrRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.qr {
+  flex: none;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  padding: var(--space-2);
+}
+
+.qrActions {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  flex: 1 1 14rem;
+}
+
+.danger {
+  border-color: var(--color-danger);
+}
+
+/* "Delete" opens its confirmation in place: a native disclosure, works without JavaScript. */
+.confirm > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-danger);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirmForm {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+
+.confirmForm p {
+  margin: 0;
+}
+
+/* The availability page: one row per item, two switches, big targets for a phone. */
+.availability {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.group {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.groupName {
+  font-family: var(--font-family-display);
+  font-size: var(--text-h3);
+  margin: 0;
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.rowName {
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.switches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* A switch is a button with role=switch: it says its state in words and in shape. */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1.5px solid var(--color-line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--color-ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.switch::before {
+  content: '';
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  border: 2px solid var(--color-slate);
+}
+
+.switch[aria-checked='true'] {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-white);
+}
+
+.switch[aria-checked='true']::before {
+  background: var(--color-fuchsia-light);
+  border-color: var(--color-fuchsia-light);
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--color-fuchsia);
+  outline-offset: 2px;
+}
+
+.switch:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}

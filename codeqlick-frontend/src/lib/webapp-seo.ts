@@ -6,6 +6,8 @@ import { webappHost, type Webapp } from '@/lib/webapps';
 
 /** The web app's own origin next to SITE_URL: https://codeqlick.com → https://meetings.codeqlick.com */
 export function webappOrigin(app: Webapp): string {
+  // Menu's address is set explicitly (MENU_URL) so the QR the API draws and the web's links agree.
+  if (app === 'menu' && env.MENU_URL) return env.MENU_URL;
   const site = new URL(env.SITE_URL);
   return `${site.protocol}//${webappHost(app, site.host)}`;
 }

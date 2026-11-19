@@ -1,0 +1,30 @@
+.unavailable {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: var(--space-16) var(--gutter);
+}
+
+.title {
+  font-family: var(--font-family-display);
+  font-size: var(--text-h1);
+  margin: 0;
+}
+
+.unavailable p {
+  margin: 0;
+  color: var(--color-slate);
+}
+
+.unavailable a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-fuchsia-dark);
+}
+
+.unavailable a:focus-visible {
+  outline: 2px solid var(--color-fuchsia);
+  outline-offset: 2px;
+}

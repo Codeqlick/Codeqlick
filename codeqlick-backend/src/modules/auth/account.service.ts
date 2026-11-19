@@ -45,7 +45,7 @@ export interface AccountActivity {
 }
 
 export interface AccountApp {
-  app: 'admin' | 'portal' | 'cloud' | 'meetings' | 'citas';
+  app: 'admin' | 'portal' | 'cloud' | 'meetings' | 'citas' | 'menu';
   count: number;
 }
 
@@ -242,6 +242,7 @@ export class AccountService {
     if (usage.teams > 0) items.push({ app: 'cloud', count: usage.teams });
     if (usage.rooms > 0) items.push({ app: 'meetings', count: usage.rooms });
     if (usage.pages > 0) items.push({ app: 'citas', count: usage.pages });
+    if (usage.menus > 0) items.push({ app: 'menu', count: usage.menus });
     return { items };
   }
 

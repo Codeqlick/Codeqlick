@@ -10,6 +10,7 @@ const PAGES: Record<string, string[]> = {
   '': ['/en', '/es/blog', '/en/contact', '/en/login', '/en/register', '/en/security', '/en/apps'],
   meetings: ['/en'],
   citas: ['/en'],
+  menu: ['/en', '/en/reportar'],
   cloud: ['/en', '/en/docs'],
 };
 
@@ -22,7 +23,9 @@ function hostUrl(baseURL: string | undefined, app: string): string {
 for (const [app, paths] of Object.entries(PAGES)) {
   test(`no CSP violation on ${app || 'the main site'}`, async ({ page, baseURL }) => {
     const origin = hostUrl(baseURL, app);
-    const probe = await page.request.get(`${origin}${paths[0]}`);
+    // Through the browser, which resolves *.localhost (Node's resolver, on Windows, doesn't).
+    const probe = await page.goto(`${origin}${paths[0]}`);
+    if (!probe) throw new Error(`no response for ${origin}${paths[0]}`);
     const enforced = probe.headers()['content-security-policy'] ?? '';
     const reported = probe.headers()['content-security-policy-report-only'] ?? '';
     test.skip(!/'nonce-/.test(enforced + reported), 'no nonce policy (not a production build)');

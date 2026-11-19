@@ -17,6 +17,7 @@ export interface OverviewTotalsRow {
   cloud: number;
   citas: number;
   meetings: number;
+  menu: number;
   portal: number;
   cloudProActive: number;
   cloudProMrr: number;
@@ -74,6 +75,8 @@ export class AdminOverviewRepository {
             FROM booking_pages b JOIN people ON people.id = b.owner_id GROUP BY b.owner_id
           UNION ALL SELECT 'meetings', min(r.created_at), 0
             FROM meeting_rooms r JOIN people ON people.id = r.owner_id GROUP BY r.owner_id
+          UNION ALL SELECT 'menu', min(mn.created_at), 0
+            FROM menus mn JOIN people ON people.id = mn.owner_id GROUP BY mn.owner_id
           UNION ALL SELECT 'portal', created_at, 0 FROM portal
           UNION ALL SELECT 'purchases', paid_at, amount_cents
             FROM site_purchases WHERE status = 'PAID' AND paid_at IS NOT NULL
@@ -119,6 +122,8 @@ export class AdminOverviewRepository {
             JOIN people ON people.id = b.owner_id)::int AS citas,
           (SELECT count(DISTINCT r.owner_id) FROM meeting_rooms r
             JOIN people ON people.id = r.owner_id)::int AS meetings,
+          (SELECT count(DISTINCT mn.owner_id) FROM menus mn
+            JOIN people ON people.id = mn.owner_id)::int AS menu,
           (SELECT count(*) FROM users u
             WHERE u.role = 'CLIENT' AND u.is_active
               AND (

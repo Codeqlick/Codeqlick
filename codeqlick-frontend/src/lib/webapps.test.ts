@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   appHref,
+  menuShortLink,
   routeWebapp,
   SITE_SECTIONS,
   switcherApps,
@@ -111,7 +112,55 @@ describe('web apps on subdomains', () => {
 
 describe('the apps menu', () => {
   it("lists Codeqlick's other apps", () => {
-    expect(switcherApps('meetings')).toEqual([{ app: 'citas' }, { app: 'cloud' }]);
-    expect(switcherApps('cloud')).toEqual([{ app: 'meetings' }, { app: 'citas' }]);
+    expect(switcherApps('meetings')).toEqual([{ app: 'citas' }, { app: 'cloud' }, { app: 'menu' }]);
+    expect(switcherApps('cloud')).toEqual([{ app: 'meetings' }, { app: 'citas' }, { app: 'menu' }]);
+    expect(switcherApps('menu').map((item) => item.app)).toEqual(['meetings', 'citas', 'cloud']);
+  });
+});
+
+describe('Menu short link (architecture 4.20)', () => {
+  const host = 'menu.codeqlick.com';
+
+  it('reads a locale-less slug as the short link of a menu', () => {
+    expect(menuShortLink('/mi-bar')).toBe('mi-bar');
+    expect(menuShortLink('/mi-bar/')).toBe('mi-bar');
+    expect(menuShortLink('/bar2-centro')).toBe('bar2-centro');
+  });
+
+  it('leaves everything else alone: locales, shared pages, app names, the routes of Menu', () => {
+    for (const path of ['/en', '/es', '/login', '/register', '/blog', '/menu', '/citas']) {
+      expect(menuShortLink(path), path).toBeNull();
+    }
+    for (const path of ['/editar', '/cartel', '/reportar', '/disponibilidad', '/qr', '/nueva']) {
+      expect(menuShortLink(path), path).toBeNull();
+    }
+    // Longer paths, dashes at the ends, capitals and short names are no slugs.
+    for (const path of ['/mi-bar/extra', '/-bar', '/Mi-Bar', '/ab', '/']) {
+      expect(menuShortLink(path), path).toBeNull();
+    }
+  });
+
+  it('rewrites the short link to the redirect route, on the menu host only', () => {
+    expect(routeWebapp('/mi-bar', host, 'https:')).toEqual({
+      action: 'rewrite',
+      to: '/en/menu/qr/short/mi-bar',
+    });
+    expect(routeWebapp('/mi-bar', 'meetings.codeqlick.com', 'https:')).toEqual({ action: 'pass' });
+    expect(routeWebapp('/mi-bar', 'codeqlick.com', 'https:')).toEqual({ action: 'pass' });
+  });
+
+  it('serves the public page and its routes at the short addresses', () => {
+    expect(routeWebapp('/es/mi-bar', host, 'https:')).toEqual({
+      action: 'rewrite',
+      to: '/es/menu/mi-bar',
+    });
+    expect(routeWebapp('/es/editar/nueva', host, 'https:')).toEqual({
+      action: 'rewrite',
+      to: '/es/menu/editar/nueva',
+    });
+    expect(routeWebapp('/es/menu/editar/x', host, 'https:')).toEqual({
+      action: 'redirect',
+      to: '/es/editar/x',
+    });
   });
 });

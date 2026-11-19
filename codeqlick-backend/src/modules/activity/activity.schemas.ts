@@ -18,6 +18,7 @@ export const ACTIVITY_TARGETS = [
   'cloud',
   'site_news',
   'newsletter',
+  'menu',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
 
@@ -143,6 +144,9 @@ export const ACTIVITY_ACTIONS = [
   'site_news.unpublished',
   'site_news.deleted',
   'newsletter.subscriber_deleted',
+  'menu.suspend',
+  'menu.unsuspend',
+  'menu.report_close',
 ] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 

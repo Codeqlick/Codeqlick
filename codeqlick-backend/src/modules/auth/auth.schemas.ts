@@ -166,6 +166,7 @@ export const RESERVED_USERNAMES = new Set([
   'contacto',
   'meetings',
   'citas',
+  'menu',
   'portal',
   'blog',
   'null',

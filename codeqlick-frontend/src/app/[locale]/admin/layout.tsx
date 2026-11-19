@@ -69,6 +69,7 @@ export default async function AdminLayout({ children, params }: LayoutProps) {
     { href: '/admin/errors', label: t('nav.errors') },
     { href: '/admin/users', label: t('nav.users') },
     { href: '/admin/cloud', label: t('nav.cloud') },
+    { href: '/admin/menus', label: t('nav.menus') },
     { href: '/admin/replies', label: t('nav.replies') },
     { href: '/admin/calculator', label: t('nav.calculator') },
     { href: '/admin/activity', label: t('nav.activity') },

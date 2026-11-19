@@ -12,7 +12,7 @@ import {
 const week = (start: string, leads: number, amountCents = 0): OverviewWeek => ({
   start,
   accounts: { new: 0, active: 0 },
-  apps: { cloud: 0, citas: 0, meetings: 0, portal: 0 },
+  apps: { cloud: 0, citas: 0, meetings: 0, menu: 0, portal: 0 },
   purchases: { count: amountCents > 0 ? 1 : 0, amountCents },
   leads,
   support: { opened: 0, closed: 0 },

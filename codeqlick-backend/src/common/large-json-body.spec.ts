@@ -48,4 +48,22 @@ describe('largeJsonBody', () => {
     expect(error).toBeUndefined();
     expect(req.body).toBeUndefined();
   });
+
+  it('reads only the methods it is given (POST by default)', async () => {
+    const put = largeJsonBody(/^\/v1\/import$/, 1024, ['POST', 'PUT']);
+    const run = (method: string, mw: typeof middleware) => {
+      const req = Object.assign(new PassThrough(), {
+        method,
+        url: '/v1/import',
+        originalUrl: '/v1/import',
+        headers: { 'content-type': 'application/json' },
+      }) as unknown as Request & PassThrough;
+      return new Promise<Request>((resolve) => {
+        mw(req, {} as Response, () => resolve(req));
+        req.end('{"a":1}');
+      });
+    };
+    expect((await run('PUT', put)).body).toEqual({ a: 1 });
+    expect((await run('PUT', middleware)).body).toBeUndefined();
+  });
 });
