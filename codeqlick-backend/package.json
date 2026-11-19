@@ -77,5 +77,13 @@
     "@nestjs/swagger": {
       "typescript": "$typescript"
     }
+  },
+  "allowScripts": {
+    "@prisma/engines": true,
+    "@scarf/scarf": false,
+    "@swc/core": true,
+    "argon2": true,
+    "esbuild": true,
+    "prisma": true
   }
 }
