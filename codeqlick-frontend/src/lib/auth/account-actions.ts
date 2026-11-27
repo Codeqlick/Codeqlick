@@ -18,6 +18,7 @@ import {
 } from '@/lib/api/auth';
 import { isApiError, isDisposableEmailError } from '@/lib/api/errors';
 import { formString, type FormState } from '@/lib/forms';
+import { isValidUsername, normalizeUsername, usernameReason } from '@/lib/username';
 import { clearAuthCookies } from './session';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -81,13 +82,10 @@ export async function removeAvatarAction(
   return { status: 'success', message: t('removed') };
 }
 
-/** Same rules as the API: 3–20 of a-z, 0-9, `.` and `_`, letter or digit at both ends, no `..`. */
-const USERNAME_PATTERN = /^(?!.*\.\.)[a-z0-9][a-z0-9._]{1,18}[a-z0-9]$/;
-
 /** Live check while typing: free, taken, reserved or not valid. */
 export async function checkUsernameAction(raw: string): Promise<UsernameCheck | null> {
-  const username = raw.trim().toLowerCase().replace(/^@/, '');
-  if (!USERNAME_PATTERN.test(username)) return { username, available: false, reason: 'invalid' };
+  const username = normalizeUsername(raw);
+  if (!isValidUsername(username)) return { username, available: false, reason: 'invalid' };
   try {
     return await checkUsername(username);
   } catch {
@@ -103,9 +101,9 @@ export async function updateUsernameAction(
 ): Promise<FormState> {
   const t = await getTranslations({ locale, namespace: 'Account.username' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
-  const username = formString(formData, 'username').toLowerCase().replace(/^@/, '');
+  const username = normalizeUsername(formString(formData, 'username'));
   const values = { username };
-  if (username && !USERNAME_PATTERN.test(username)) {
+  if (username && !isValidUsername(username)) {
     return { status: 'error', fieldErrors: { username: t('invalid') }, values };
   }
   try {
@@ -118,7 +116,8 @@ export async function updateUsernameAction(
       }
       if (error.status === 429) return { status: 'error', message: t('rateLimited'), values };
       if (error.status === 400) {
-        return { status: 'error', fieldErrors: { username: t('reserved') }, values };
+        const reason = usernameReason(error.fieldErrors.username) ?? 'reserved';
+        return { status: 'error', fieldErrors: { username: t(reason) }, values };
       }
     }
     return { status: 'error', message: tc('genericError'), values };

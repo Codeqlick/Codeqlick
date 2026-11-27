@@ -201,6 +201,7 @@ export function revokeOtherSessions(refreshToken: string) {
 /** Self-registration: the API emails the link that confirms it; same answer for any email. */
 export function register(input: {
   name: string;
+  username: string;
   email: string;
   password: string;
   locale: AccountLocale;
@@ -212,11 +213,14 @@ export function register(input: {
   return apiFetch<void>('/auth/register', { method: 'POST', body: input, forwardClientIp: true });
 }
 
-/** The emailed link of a self-registration: the account is created and signed in. */
-export function confirmSignup(token: string) {
+/**
+ * The emailed link of a self-registration: the account is created and signed in. `username`
+ * replaces the one chosen at sign-up when someone took it meanwhile (409 `username: taken`).
+ */
+export function confirmSignup(token: string, username?: string) {
   return apiFetch<AuthTokens>('/auth/register/confirm', {
     method: 'POST',
-    body: { token },
+    body: username === undefined ? { token } : { token, username },
     forwardClientIp: true,
   });
 }
@@ -233,6 +237,7 @@ export function signupInvitation(token: string) {
 export function acceptInvitation(input: {
   token: string;
   name: string;
+  username: string;
   password: string;
   locale: AccountLocale;
   acceptPrivacy: true;
@@ -255,11 +260,19 @@ export type UsernameCheck = {
   reason?: 'invalid' | 'reserved' | 'taken';
 };
 
-/** Whether the caller could take a username (their own counts as available). */
+/** Whether the caller could take a username (their own, in any capitals, counts as available). */
 export function checkUsername(username: string) {
   return apiFetch<UsernameCheck>(
     `/auth/username/available?username=${encodeURIComponent(username)}`,
     { auth: 'required' },
+  );
+}
+
+/** Whether a username is free for an account still to be made (the sign-up forms). */
+export function checkSignupUsername(username: string) {
+  return apiFetch<UsernameCheck>(
+    `/auth/register/username?username=${encodeURIComponent(username)}`,
+    { forwardClientIp: true },
   );
 }
 

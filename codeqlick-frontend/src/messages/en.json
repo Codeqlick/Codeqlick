@@ -499,7 +499,7 @@
     "metaDescription": "Create your Codeqlick client account to follow your projects and manage your website in one place.",
     "title": "Create your account",
     "subtitle": "To follow your projects, read your proposals and edit your website.",
-    "invitedSubtitle": "We were expecting you: choose your password and enter your client area.",
+    "invitedSubtitle": "We were expecting you: choose your username and password and enter your client area.",
     "invitedEmailHint": "The invitation is for this email.",
     "invitationExpired": "The invitation expired or was already used. You can still create your account with the same email.",
     "name": "Name",
@@ -524,7 +524,8 @@
     "rateLimited": "Too many attempts. Wait a minute and try again.",
     "error": "We can't create your account right now. Please try again.",
     "captcha": "We couldn't check that you're a person. Wait for the check to finish and try again.",
-    "disposableEmail": "We don't accept temporary email addresses. Please use your usual email."
+    "disposableEmail": "We don't accept temporary email addresses. Please use your usual email.",
+    "usernameTakenSinceSignup": "Someone took that username after you signed up. Choose another one to finish creating your account."
   },
   "TwoFactorLogin": {
     "title": "Two-step verification",
@@ -633,13 +634,13 @@
     "emailDisposable": "We don't accept temporary email addresses. Please use your usual email.",
     "username": {
       "label": "Username",
-      "hint": "3 to 20 characters: letters without accents, numbers, dots and underscores. You can change it whenever you like; the old one becomes free for others.",
+      "hint": "3 to 20 characters: letters without accents (capitals are kept as you type them), numbers, dots and underscores. You can change it whenever you like; the old one becomes free for others.",
       "checking": "Checking…",
       "available": "@{username} is free.",
       "yours": "@{username} is your username.",
-      "taken": "That username is taken. Try another one.",
+      "taken": "That username is taken (capitals don't count: Ana and ana are the same). Try another one.",
       "reserved": "That name is reserved. Try another one.",
-      "invalid": "Use 3 to 20 characters: letters without accents, numbers, dots and underscores, starting and ending with a letter or number.",
+      "invalid": "Use 3 to 20 characters: letters without accents (capital or lower case), numbers, dots and underscores, starting and ending with a letter or number.",
       "save": "Save username",
       "saved": "Done: you are now @{username}.",
       "removed": "You removed your username.",

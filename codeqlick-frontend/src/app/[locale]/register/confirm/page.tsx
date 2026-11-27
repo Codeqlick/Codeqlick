@@ -11,7 +11,8 @@ import { resolveLocale } from '@/i18n/locale';
 import { firstParam } from '@/lib/format';
 import { WEBAPPS } from '@/lib/webapps';
 import { pageMetadata } from '@/lib/seo';
-import { confirmSignupAction } from '../actions';
+import { checkSignupUsernameAction, confirmSignupAction } from '../actions';
+import { UsernameRetry } from './UsernameRetry';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -54,6 +55,7 @@ export default async function ConfirmSignupPage({ params, searchParams }: PagePr
                 <input type="hidden" name="locale" value={locale} />
                 <input type="hidden" name="token" value={token} />
                 {app ? <input type="hidden" name="app" value={app} /> : null}
+                <UsernameRetry check={checkSignupUsernameAction} />
                 <SubmitButton block pendingLabel={t('confirming')}>
                   {t('confirm')}
                 </SubmitButton>

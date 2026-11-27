@@ -4,7 +4,13 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
 import type { AppLocale } from '@/i18n/routing';
-import { acceptInvitation, confirmSignup, register } from '@/lib/api/auth';
+import {
+  acceptInvitation,
+  checkSignupUsername,
+  confirmSignup,
+  register,
+  type UsernameCheck,
+} from '@/lib/api/auth';
 import {
   isApiError,
   isBreachedPasswordError,
@@ -19,14 +25,40 @@ import { WEBAPPS, type Webapp } from '@/lib/webapps';
 import { homeAfterSignIn, requestWebapp } from '@/lib/webapp-request';
 import { formString, zodFieldErrors, type FormState } from '@/lib/forms';
 import { registerSchema } from '@/lib/schemas/auth';
+import { isValidUsername, normalizeUsername, usernameReason } from '@/lib/username';
 
 /** What the form keeps after an error: never the passwords. */
 function kept(formData: FormData) {
-  return { name: formString(formData, 'name'), email: formString(formData, 'email') };
+  return {
+    name: formString(formData, 'name'),
+    username: formString(formData, 'username'),
+    email: formString(formData, 'email'),
+  };
+}
+
+/**
+ * The API's answer about the username, as the field's error: taken (409), or invalid or reserved
+ * (400). `afterSignup`: the confirmation link, where "taken" means someone took it meanwhile.
+ */
+async function usernameFailure(
+  locale: AppLocale,
+  error: unknown,
+  formData: FormData,
+  afterSignup = false,
+): Promise<FormState | null> {
+  if (!isApiError(error) || (error.status !== 400 && error.status !== 409)) return null;
+  const reason = usernameReason(error.fieldErrors.username);
+  if (!reason) return null;
+  const tu = await getTranslations({ locale, namespace: 'Account.username' });
+  const t = await getTranslations({ locale, namespace: 'Register' });
+  const message = reason === 'taken' && afterSignup ? t('usernameTakenSinceSignup') : tu(reason);
+  return { status: 'error', fieldErrors: { username: message }, values: kept(formData) };
 }
 
 async function failure(locale: AppLocale, error: unknown, formData: FormData): Promise<FormState> {
   const t = await getTranslations({ locale, namespace: 'Register' });
+  const username = await usernameFailure(locale, error, formData);
+  if (username) return username;
   if (isCaptchaError(error))
     return { status: 'error', message: t('captcha'), values: kept(formData) };
   if (isBreachedPasswordError(error)) {
@@ -59,6 +91,7 @@ export async function registerAction(_previous: FormState, formData: FormData): 
   const invitation = formString(formData, 'invitation');
   const parsed = registerSchema.safeParse({
     name: formString(formData, 'name'),
+    username: normalizeUsername(formString(formData, 'username')),
     email: formString(formData, 'email'),
     password: formData.get('password') ?? '',
     confirmPassword: formData.get('confirmPassword') ?? '',
@@ -72,7 +105,11 @@ export async function registerAction(_previous: FormState, formData: FormData): 
       values: kept(formData),
     };
   }
-  const { name, email, password } = parsed.data;
+  const { name, username, email, password } = parsed.data;
+  if (!isValidUsername(username)) {
+    const tu = await getTranslations({ locale, namespace: 'Account.username' });
+    return { status: 'error', fieldErrors: { username: tu('invalid') }, values: kept(formData) };
+  }
 
   if (invitation) {
     let tokens: AuthTokens;
@@ -80,6 +117,7 @@ export async function registerAction(_previous: FormState, formData: FormData): 
       tokens = await acceptInvitation({
         token: invitation,
         name,
+        username,
         password,
         locale,
         acceptPrivacy: true,
@@ -97,6 +135,7 @@ export async function registerAction(_previous: FormState, formData: FormData): 
   try {
     await register({
       name,
+      username,
       email,
       password,
       locale,
@@ -112,6 +151,20 @@ export async function registerAction(_previous: FormState, formData: FormData): 
   redirect(`/${locale}/register?sent=${encodeURIComponent(email)}`);
 }
 
+/**
+ * Live check while typing on the sign-up forms (nobody is signed in): free, taken, reserved or not
+ * valid. Null when the API can't be asked.
+ */
+export async function checkSignupUsernameAction(raw: string): Promise<UsernameCheck | null> {
+  const username = normalizeUsername(raw);
+  if (!isValidUsername(username)) return { username, available: false, reason: 'invalid' };
+  try {
+    return await checkSignupUsername(username);
+  } catch {
+    return null;
+  }
+}
+
 /** The app a form names (`app`), when it is one of ours. */
 function formApp(formData: FormData): Webapp | undefined {
   const value = formString(formData, 'app');
@@ -121,18 +174,27 @@ function formApp(formData: FormData): Webapp | undefined {
 /**
  * The button on the confirmation page: spends the emailed token and signs in. A sign-up that
  * started in an app goes on to it: its sign-in, which the account host's new session passes
- * through at once (single sign-on, decision 108).
+ * through at once (single sign-on, decision 108). When someone took the chosen username before the
+ * email was confirmed, the page asks for another and sends it with the same token.
  */
 export async function confirmSignupAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
   const locale = localeOrDefault(formData.get('locale'));
+  const asked = formData.has('username');
+  const username = normalizeUsername(formString(formData, 'username'));
+  if (asked && !isValidUsername(username)) {
+    const tu = await getTranslations({ locale, namespace: 'Account.username' });
+    return { status: 'error', fieldErrors: { username: tu('invalid') }, values: kept(formData) };
+  }
   let tokens: AuthTokens;
   try {
-    tokens = await confirmSignup(formString(formData, 'token'));
+    tokens = await confirmSignup(formString(formData, 'token'), asked ? username : undefined);
   } catch (error) {
-    return failure(locale, error, formData);
+    return (
+      (await usernameFailure(locale, error, formData, true)) ?? failure(locale, error, formData)
+    );
   }
   await setAuthCookies(tokens);
   const app = formApp(formData);

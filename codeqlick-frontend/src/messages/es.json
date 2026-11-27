@@ -499,7 +499,7 @@
     "metaDescription": "Crea tu cuenta de cliente en Codeqlick para seguir tus proyectos y gestionar tu web desde un solo sitio.",
     "title": "Crea tu cuenta",
     "subtitle": "Para seguir tus proyectos, ver tus propuestas y editar tu web.",
-    "invitedSubtitle": "Te estábamos esperando: elige tu contraseña y entra a tu área de cliente.",
+    "invitedSubtitle": "Te estábamos esperando: elige tu nombre de usuario y tu contraseña y entra a tu área de cliente.",
     "invitedEmailHint": "La invitación es para este correo.",
     "invitationExpired": "La invitación ha caducado o ya se usó. Puedes crear tu cuenta igualmente con el mismo correo.",
     "name": "Nombre",
@@ -524,7 +524,8 @@
     "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo.",
     "error": "Ahora mismo no podemos crear tu cuenta. Vuelve a intentarlo.",
     "captcha": "No hemos podido comprobar que eres una persona. Espera a que termine la verificación y vuelve a intentarlo.",
-    "disposableEmail": "No aceptamos correos temporales. Usa tu correo de siempre."
+    "disposableEmail": "No aceptamos correos temporales. Usa tu correo de siempre.",
+    "usernameTakenSinceSignup": "Alguien ha elegido ese nombre de usuario después de que te registraras. Elige otro para terminar de crear tu cuenta."
   },
   "TwoFactorLogin": {
     "title": "Verificación en dos pasos",
@@ -633,13 +634,13 @@
     "emailDisposable": "No aceptamos correos temporales. Usa tu correo de siempre.",
     "username": {
       "label": "Nombre de usuario",
-      "hint": "Entre 3 y 20 caracteres: letras sin acentos, números, punto y guion bajo. Puedes cambiarlo cuando quieras; el anterior queda libre para otras personas.",
+      "hint": "Entre 3 y 20 caracteres: letras sin acentos (se respetan las mayúsculas tal como las escribas), números, punto y guion bajo. Puedes cambiarlo cuando quieras; el anterior queda libre para otras personas.",
       "checking": "Comprobando…",
       "available": "@{username} está libre.",
       "yours": "@{username} es tu nombre de usuario.",
-      "taken": "Ese nombre de usuario está ocupado. Prueba con otro.",
+      "taken": "Ese nombre de usuario está ocupado (las mayúsculas no cuentan: Ana y ana son el mismo). Prueba con otro.",
       "reserved": "Ese nombre está reservado. Prueba con otro.",
-      "invalid": "Usa entre 3 y 20 caracteres: letras sin acentos, números, punto y guion bajo, empezando y terminando por letra o número.",
+      "invalid": "Usa entre 3 y 20 caracteres: letras sin acentos (mayúsculas o minúsculas), números, punto y guion bajo, empezando y terminando por letra o número.",
       "save": "Guardar nombre de usuario",
       "saved": "Listo: ahora eres @{username}.",
       "removed": "Has quitado tu nombre de usuario.",
