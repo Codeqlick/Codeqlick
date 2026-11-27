@@ -30,7 +30,13 @@ import {
   routeAccount,
 } from './lib/account-host';
 import { cspHeaders, makeNonce, type CspContext } from './lib/security-headers';
-import { SSO_COOKIE_MAX_AGE, routeSignIn, ssoClientForHost, startSso } from './lib/sso';
+import {
+  NATIVE_REDIRECT_SOURCE,
+  SSO_COOKIE_MAX_AGE,
+  routeSignIn,
+  ssoClientForHost,
+  startSso,
+} from './lib/sso';
 import { WEBAPPS, routeWebapp, webappForHost, webappHost } from './lib/webapps';
 
 const i18nRouting = createMiddleware(routing);
@@ -74,12 +80,14 @@ function cspContext(request: NextRequest): CspContext {
   return {
     app,
     origin: `${protocol}//${host}`,
-    // Single sign-on sends forms on between the account host and every client host.
+    // Single sign-on sends forms on between the account host and every client host, and from the
+    // account host to a desktop program's port on the person's own machine.
     siteOrigins: [
-      mainHost,
-      accountHostFor(host),
-      ...WEBAPPS.map((name) => webappHost(name, mainHost)),
-    ].map((name) => `${protocol}//${name}`),
+      ...[mainHost, accountHostFor(host), ...WEBAPPS.map((name) => webappHost(name, mainHost))].map(
+        (name) => `${protocol}//${name}`,
+      ),
+      ...(app === 'account' ? [NATIVE_REDIRECT_SOURCE] : []),
+    ],
     sockets,
   };
 }

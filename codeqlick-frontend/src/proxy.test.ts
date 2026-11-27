@@ -139,8 +139,19 @@ describe('proxy: Content Security Policy (architecture 6.4)', () => {
     ]) {
       expect(formAction).toContain(origin);
     }
+    // A sign-in without JavaScript for a desktop program ends on a port of the person's machine.
+    expect(formAction.split(' ')).toContain('http://127.0.0.1:*');
     // No remote images on the account host (no Markdown, no ads there).
     expect(/img-src ([^;]+)/.exec(policy)?.[1]).not.toContain('https:');
+  });
+
+  it('lets only the account host send forms on to a desktop program', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('CSP_ENFORCE', 'true');
+    for (const host of ['codeqlick.com', 'meetings.codeqlick.com']) {
+      const policy = (await page(host, '/en')).headers.get('content-security-policy')!;
+      expect(/form-action ([^;]+)/.exec(policy)?.[1]).not.toContain('127.0.0.1');
+    }
   });
 
   it('makes a new nonce for every response', async () => {

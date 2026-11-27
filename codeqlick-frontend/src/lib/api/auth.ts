@@ -1,7 +1,7 @@
 import 'server-only';
 import type { Webapp } from '../webapps';
 import { apiFetch } from './client';
-import type { SsoClient } from '../sso';
+import type { NativeSsoClient, SsoClient } from '../sso';
 import type {
   AccountActivity,
   AccountApp,
@@ -337,8 +337,15 @@ export function deleteMe(password: string) {
   });
 }
 
-/** Single sign-on (decision 108): the account host asks for a one-time code for a client host. */
-export function createSsoCode(input: { client: SsoClient; codeChallenge: string }) {
+/**
+ * Single sign-on (decision 108): the account host asks for a one-time code for a client host, or
+ * for a desktop program with the loopback address the code will be sent to.
+ */
+export function createSsoCode(input: {
+  client: SsoClient | NativeSsoClient;
+  codeChallenge: string;
+  redirectUri?: string;
+}) {
   return apiFetch<{ code: string; expiresIn: number }>('/auth/sso/codes', {
     method: 'POST',
     body: input,

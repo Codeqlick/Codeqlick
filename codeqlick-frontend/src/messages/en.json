@@ -729,7 +729,8 @@
     },
     "clients": {
       "account": "Codeqlick account",
-      "site": "codeqlick.com"
+      "site": "codeqlick.com",
+      "ageofvelkara": "Age of Velkara"
     },
     "failed": {
       "title": "Signing in didn't finish",

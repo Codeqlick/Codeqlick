@@ -11,7 +11,7 @@ import { isAccountHost } from '@/lib/account-host';
 import { createSsoCode } from '@/lib/api/auth';
 import { isApiError } from '@/lib/api/errors';
 import { getCurrentUser } from '@/lib/auth/session';
-import { callbackUrl, parseAuthorizeQuery } from '@/lib/sso';
+import { authorizeTarget, parseAuthorizeQuery } from '@/lib/sso';
 import { WEBAPPS } from '@/lib/webapps';
 
 type PageProps = {
@@ -25,6 +25,8 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
  * Single sign-on's authorize step, `/{locale}/authorize` on the account host (architecture 4.3,
  * decision 108): signs the person in here if needed, then hands the client host a one-time code
  * at its fixed callback, built from the client's name and this host, never read from the request.
+ * A desktop program (a native client) names its own redirect instead, which must be a port on the
+ * person's own machine (`http://127.0.0.1:<port>/callback`), and the code is bound to it.
  * A page rather than a route handler: a sign-in's Server Action redirects here, and Next.js
  * renders a page once, as the action's answer, where it would call a route handler on its own.
  */
@@ -70,6 +72,7 @@ export default async function AuthorizePage({ params, searchParams }: PageProps)
     ({ code } = await createSsoCode({
       client: authorize.client,
       codeChallenge: authorize.codeChallenge,
+      ...(authorize.redirectUri === null ? {} : { redirectUri: authorize.redirectUri }),
     }));
   } catch (error) {
     // The account session ended (signed out elsewhere): sign in again.
@@ -78,8 +81,5 @@ export default async function AuthorizePage({ params, searchParams }: PageProps)
   }
 
   const protocol = incoming.get('x-forwarded-proto') === 'https' ? 'https:' : 'http:';
-  const target = new URL(callbackUrl(authorize.client, host, protocol, locale));
-  target.searchParams.set('code', code);
-  target.searchParams.set('state', authorize.state);
-  redirect(target.toString());
+  redirect(authorizeTarget(authorize, code, host, protocol, locale));
 }
