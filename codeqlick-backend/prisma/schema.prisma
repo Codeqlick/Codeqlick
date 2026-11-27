@@ -69,8 +69,13 @@ model User {
   email              String    @unique
   passwordHash       String    @map("password_hash")
   name               String
-  /// Optional unique username (lower-cased, shown as @name); freed when changed or deleted.
-  username           String?   @unique
+  /// Optional username (shown as @name), kept with the capitals it was chosen with; freed when
+  /// changed or deleted.
+  username           String?
+  /// The username in lower case. Its unique index makes usernames unique ignoring capitals, so
+  /// nobody can pass for someone else by changing a letter's case; a check constraint in the
+  /// database keeps it equal to lower(username).
+  usernameLower      String?   @unique @map("username_lower")
   /// Profile photo (file name under UPLOADS_DIR/avatars).
   avatarKey          String?   @map("avatar_key")
   role               Role      @default(CLIENT)
@@ -297,6 +302,9 @@ model SignupToken {
   usedAt       DateTime? @map("used_at") @db.Timestamptz(3)
   /// The web app the sign-up came from; becomes the account's `signupApp`.
   app          String?
+  /// The username chosen at sign-up, checked again when the email is confirmed (null only for
+  /// sign-ups made before a username was required).
+  username     String?
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
   @@index([email])

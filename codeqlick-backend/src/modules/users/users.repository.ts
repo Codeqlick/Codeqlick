@@ -37,7 +37,8 @@ export class UsersRepository {
         OR: [
           { name: { contains: filter.q, mode: 'insensitive' } },
           { email: { contains: filter.q, mode: 'insensitive' } },
-          { username: { contains: filter.q.replace(/^@/, '').toLowerCase() } },
+          // The lower-cased key: any capitals find the username.
+          { usernameLower: { contains: filter.q.replace(/^@/, '').toLowerCase() } },
         ],
       });
     }

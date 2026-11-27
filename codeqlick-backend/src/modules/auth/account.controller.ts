@@ -79,6 +79,17 @@ export class AccountController {
     return this.account.usernameAvailable(user.id, query.username);
   }
 
+  /**
+   * Whether a username is free, for the sign-up and invitation forms: nobody is signed in yet, so
+   * reserved names are refused and any holder makes it taken.
+   */
+  @Public()
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @Get('register/username')
+  signupUsernameAvailable(@Query({ schema: usernameQuerySchema }) query: UsernameQuery) {
+    return this.account.usernameAvailable(null, query.username);
+  }
+
   /** The profile photo: PNG, JPEG or WebP, re-encoded to a 256×256 WebP square. */
   @ApiBearerAuth()
   @Throttle({ default: { limit: 10, ttl: 60_000 } })

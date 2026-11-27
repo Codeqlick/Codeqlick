@@ -35,7 +35,12 @@ import type { AcceptInvitationInput, RegisterInput } from './auth.schemas.js';
 import { PasswordBreachService } from './password-breach.service.js';
 import { PasswordService } from './password.service.js';
 import { SecretBox } from './secret-box.js';
+import { toAuthUser } from './to-auth-user.js';
 import { generateTotpSecret, otpauthUri, verifyTotp } from './totp.js';
+import { normalizeUsername, usernameError, usernameRuleProblem } from './username.js';
+import { UsernameService } from './username.service.js';
+
+export { toAuthUser };
 
 export interface AuthTokens {
   accessToken: string;
@@ -136,20 +141,6 @@ export function hashRefreshToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
-export function toAuthUser(
-  user: Pick<User, 'id' | 'email' | 'name' | 'role'> & {
-    memberOfId?: string | null;
-    username?: string | null;
-    avatarKey?: string | null;
-  },
-): AuthUser {
-  const base: AuthUser = { id: user.id, email: user.email, name: user.name, role: user.role };
-  if (user.username !== undefined) base.username = user.username;
-  if (user.avatarKey !== undefined) base.avatar = user.avatarKey;
-  // Clients act for a client account: their own, or their company's.
-  return user.role === 'CLIENT' ? { ...base, accountId: user.memberOfId ?? user.id } : base;
-}
-
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -166,6 +157,7 @@ export class AuthService {
     private readonly mail: MailService,
     private readonly activity: ActivityService,
     private readonly breaches: PasswordBreachService,
+    private readonly usernames: UsernameService,
   ) {
     this.secrets = new SecretBox(config.jwtAccessSecret);
     this.challengeKey = Buffer.from(
@@ -462,7 +454,10 @@ export class AuthService {
     if (isDisposableEmail(email)) {
       throw new BadRequestException({ errors: [DISPOSABLE_EMAIL_ERROR] });
     }
-    // Before looking the email up: the answer must not depend on whether it has an account.
+    // Before looking the email up: the answer must not depend on whether it has an account. The
+    // username isn't held until the email is confirmed, where it is checked again.
+    const username = normalizeUsername(input.username);
+    await this.usernames.assertUsable(null, username);
     await this.breaches.assertNotBreached(input.password, 'password');
     const existing = await this.repository.findUserByEmail(email);
     const site = this.config.siteUrl;
@@ -496,6 +491,7 @@ export class AuthService {
         tokenHash: hashRefreshToken(token),
         expiresAt: new Date(Date.now() + SIGNUP_TTL_HOURS * 3_600_000),
         app: input.app ?? null,
+        username,
       });
       message = signupConfirmEmail(
         { name: input.name, email },
@@ -511,10 +507,24 @@ export class AuthService {
     });
   }
 
-  /** The emailed link of a self-registration: the account is theirs and they are signed in. */
-  async confirmSignup(token: string, client: ClientInfo = {}): Promise<AuthTokens> {
-    const user = await this.repository.confirmSignup(hashRefreshToken(token));
-    if (!user) throw new BadRequestException('This link is invalid or has expired');
+  /**
+   * The emailed link of a self-registration: the account is theirs and they are signed in. When
+   * someone took the chosen username meanwhile it answers 409 `username: taken` and the link still
+   * works with another one (`username`).
+   */
+  async confirmSignup(
+    token: string,
+    client: ClientInfo = {},
+    username?: string,
+  ): Promise<AuthTokens> {
+    const chosen = username === undefined ? undefined : normalizeUsername(username);
+    if (chosen !== undefined) this.assertUsernameRules(chosen);
+    const result = await this.repository.confirmSignup(hashRefreshToken(token), chosen);
+    if (result.status === 'username_taken') throw usernameError('taken');
+    if (result.status === 'invalid') {
+      throw new BadRequestException('This link is invalid or has expired');
+    }
+    const { user } = result;
     await this.activity.record(toAuthUser(user), {
       action: 'account.registered',
       targetId: user.id,
@@ -530,18 +540,28 @@ export class AuthService {
     return { email: user.email, name: user.name };
   }
 
-  /** Accepts the team's invitation: the account is theirs at once and they are signed in. */
+  /**
+   * Accepts the team's invitation: the account is theirs at once and they are signed in. A taken
+   * username answers 409 `username: taken` and the invitation still works with another one.
+   */
   async acceptInvitation(
     input: AcceptInvitationInput,
     client: ClientInfo = {},
   ): Promise<AuthTokens> {
+    const username = normalizeUsername(input.username);
+    this.assertUsernameRules(username);
     await this.breaches.assertNotBreached(input.password, 'password');
-    const user = await this.repository.acceptInvitation(hashRefreshToken(input.token), {
+    const result = await this.repository.acceptInvitation(hashRefreshToken(input.token), {
       name: input.name,
+      username,
       passwordHash: await this.passwords.hash(input.password),
       locale: toDbLocale(input.locale),
     });
-    if (!user) throw new BadRequestException('This invitation is invalid or has expired');
+    if (result.status === 'username_taken') throw usernameError('taken');
+    if (result.status === 'invalid') {
+      throw new BadRequestException('This invitation is invalid or has expired');
+    }
+    const { user } = result;
     await this.activity.record(toAuthUser(user), {
       action: 'account.registered',
       targetId: user.id,
@@ -549,6 +569,15 @@ export class AuthService {
       details: { invited: true },
     });
     return this.startSession(user, client);
+  }
+
+  /**
+   * The username rules for an account being made (never the team's: reserved names are refused);
+   * whether it is taken is settled when the account is written.
+   */
+  private assertUsernameRules(username: string): void {
+    const problem = usernameRuleProblem(username);
+    if (problem) throw usernameError(problem);
   }
 
   /** Sets a new password with the token from the email and signs the user out everywhere. */

@@ -27,7 +27,8 @@ import {
 import { CloudTeamsService } from '../cloud/cloud-teams.service.js';
 import { AccountRepository } from './account.repository.js';
 import { AvatarStorage, processAvatar } from './avatar.storage.js';
-import { normalizeUsername, UsernameService } from './username.service.js';
+import { normalizeUsername } from './username.js';
+import { UsernameService } from './username.service.js';
 import { hashRefreshToken, toAuthUser } from './auth.service.js';
 import { PasswordService } from './password.service.js';
 
@@ -104,7 +105,8 @@ export class AccountService {
     return toAuthUser(user);
   }
 
-  async usernameAvailable(userId: string, raw: string) {
+  /** Whether a username is free for `userId`, or (null) for an account still to be made. */
+  async usernameAvailable(userId: string | null, raw: string) {
     const username = normalizeUsername(raw);
     const reason = await this.usernames.problem(userId, username);
     return reason ? { username, available: false, reason } : { username, available: true };

@@ -31,6 +31,7 @@ import {
   refreshSchema,
   registerSchema,
   requestPasswordResetSchema,
+  signupTokenSchema,
   verifyTwoFactorSchema,
   type AcceptInvitationInput,
   type ChangePasswordInput,
@@ -44,6 +45,7 @@ import {
   type RefreshInput,
   type RegisterInput,
   type RequestPasswordResetInput,
+  type SignupTokenInput,
   type VerifyTwoFactorInput,
 } from './auth.schemas.js';
 import {
@@ -111,7 +113,10 @@ export class AuthController {
     await this.auth.register(body);
   }
 
-  /** The link of the confirmation email: creates the account and signs in. */
+  /**
+   * The link of the confirmation email: creates the account and signs in. `username` replaces the
+   * one chosen at sign-up when someone took it meanwhile.
+   */
   @Public()
   @Throttle(STRICT_LIMIT)
   @Post('register/confirm')
@@ -120,7 +125,7 @@ export class AuthController {
     @Body({ schema: confirmSignupSchema }) body: ConfirmSignupInput,
     @Req() request: AppRequest,
   ): Promise<AuthTokens> {
-    return this.auth.confirmSignup(body.token, clientInfo(request));
+    return this.auth.confirmSignup(body.token, clientInfo(request), body.username);
   }
 
   /** Who the team's invitation is for, to fill in the sign-up form. */
@@ -128,7 +133,7 @@ export class AuthController {
   @Throttle(STRICT_LIMIT)
   @Get('register/invitation')
   invitation(
-    @Query({ schema: confirmSignupSchema }) query: ConfirmSignupInput,
+    @Query({ schema: signupTokenSchema }) query: SignupTokenInput,
   ): Promise<{ email: string; name: string }> {
     return this.auth.invitation(query.token);
   }
