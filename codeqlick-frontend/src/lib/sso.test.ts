@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  authorizeTarget,
   callbackUrl,
   clientHost,
   decodeSsoCookie,
   encodeSsoCookie,
+  isLoopbackRedirect,
+  isNativeSsoClient,
+  isSsoClient,
   landingPath,
   parseAuthorizeQuery,
   pkceChallenge,
@@ -84,6 +88,7 @@ describe('single sign-on helpers (decision 108)', () => {
       state: 'a'.repeat(43),
       codeChallenge: 'b'.repeat(43),
       register: false,
+      redirectUri: null,
     });
     const variants: Record<string, string>[] = [
       { client: 'evil.example.com' },
@@ -97,6 +102,116 @@ describe('single sign-on helpers (decision 108)', () => {
       for (const [key, value] of Object.entries(change)) query.set(key, value);
       expect(parseAuthorizeQuery(query), JSON.stringify(change)).toBeNull();
     }
+    // A web client's callback is fixed by its host: a redirect sent for it is refused.
+    const withRedirect = new URLSearchParams(good);
+    withRedirect.set('redirect_uri', 'http://127.0.0.1:49152/callback');
+    expect(parseAuthorizeQuery(withRedirect)).toBeNull();
+  });
+
+  it('keeps desktop programs apart from the hosts', () => {
+    expect(isNativeSsoClient('ageofvelkara')).toBe(true);
+    expect(isSsoClient('ageofvelkara')).toBe(false);
+    expect(isNativeSsoClient('site')).toBe(false);
+    expect(isNativeSsoClient('meetings')).toBe(false);
+  });
+
+  it('accepts only http://127.0.0.1:<port>/callback with a port from 1024 to 65535', () => {
+    const good = [
+      'http://127.0.0.1:1024/callback',
+      'http://127.0.0.1:49152/callback',
+      'http://127.0.0.1:65535/callback',
+    ];
+    expect(good.filter((value) => !isLoopbackRedirect(value))).toEqual([]);
+    const bad = [
+      'http://127.0.0.1:1023/callback',
+      'http://127.0.0.1:65536/callback',
+      'http://127.0.0.1:99999/callback',
+      'http://127.0.0.1:0/callback',
+      'http://127.0.0.1:08080/callback',
+      'http://127.0.0.1/callback',
+      'http://localhost:49152/callback',
+      'http://[::1]:49152/callback',
+      'http://127.0.0.2:49152/callback',
+      'http://127.0.0.1.evil.example:49152/callback',
+      'https://127.0.0.1:49152/callback',
+      'http://user@127.0.0.1:49152/callback',
+      'http://user:pass@127.0.0.1:49152/callback',
+      'http://127.0.0.1:49152/callback/',
+      'http://127.0.0.1:49152/other',
+      'http://127.0.0.1:49152/callback?x=1',
+      'http://127.0.0.1:49152/callback#x',
+      'http://127.0.0.1:49152/callback\n',
+      'HTTP://127.0.0.1:49152/callback',
+      ' http://127.0.0.1:49152/callback',
+      '',
+      null,
+      undefined,
+      49152,
+    ];
+    expect(bad.filter((value) => isLoopbackRedirect(value))).toEqual([]);
+  });
+
+  it('reads a desktop program’s authorize request only with a loopback redirect', () => {
+    const good = new URLSearchParams({
+      client: 'ageofvelkara',
+      redirect_uri: 'http://127.0.0.1:49152/callback',
+      state: 'a'.repeat(43),
+      code_challenge: 'b'.repeat(43),
+      code_challenge_method: 'S256',
+      screen: 'register',
+    });
+    expect(parseAuthorizeQuery(good)).toEqual({
+      client: 'ageofvelkara',
+      redirectUri: 'http://127.0.0.1:49152/callback',
+      state: 'a'.repeat(43),
+      codeChallenge: 'b'.repeat(43),
+      register: true,
+    });
+    const without = new URLSearchParams(good);
+    without.delete('redirect_uri');
+    expect(parseAuthorizeQuery(without)).toBeNull();
+    for (const redirect of [
+      'http://localhost:49152/callback',
+      'http://127.0.0.1:80/callback',
+      'https://127.0.0.1:49152/callback',
+      'http://127.0.0.1:49152/callback?x=1',
+      'https://evil.example.com/callback',
+    ]) {
+      const query = new URLSearchParams(good);
+      query.set('redirect_uri', redirect);
+      expect(parseAuthorizeQuery(query), redirect).toBeNull();
+    }
+    for (const change of [{ state: 'short' }, { code_challenge_method: 'plain' }]) {
+      const query = new URLSearchParams(good);
+      for (const [key, value] of Object.entries(change)) query.set(key, value);
+      expect(parseAuthorizeQuery(query), JSON.stringify(change)).toBeNull();
+    }
+  });
+
+  it('sends the code to the loopback address of a desktop program, else to the fixed callback', () => {
+    const web = parseAuthorizeQuery(
+      new URLSearchParams({
+        client: 'meetings',
+        state: 's'.repeat(43),
+        code_challenge: 'b'.repeat(43),
+        code_challenge_method: 'S256',
+      }),
+    )!;
+    expect(authorizeTarget(web, 'c'.repeat(43), 'account.codeqlick.com', 'https:', 'es')).toBe(
+      `https://meetings.codeqlick.com/es/auth/callback?code=${'c'.repeat(43)}&state=${'s'.repeat(43)}`,
+    );
+    const native = parseAuthorizeQuery(
+      new URLSearchParams({
+        client: 'ageofvelkara',
+        redirect_uri: 'http://127.0.0.1:49152/callback',
+        state: 's'.repeat(43),
+        code_challenge: 'b'.repeat(43),
+        code_challenge_method: 'S256',
+      }),
+    )!;
+    expect(authorizeTarget(native, 'c'.repeat(43), 'account.codeqlick.com', 'https:', 'en')).toBe(
+      `http://127.0.0.1:49152/callback?code=${'c'.repeat(43)}&state=${'s'.repeat(43)}`,
+    );
   });
 
   it('starts a flow: the authorize URL carries the challenge, the cookie the verifier', async () => {

@@ -9,6 +9,7 @@ import {
   revokeOtherSessionsAction,
   revokeSessionAction,
 } from '@/lib/auth/actions';
+import { isNativeSsoClient } from '@/lib/sso';
 import { WEBAPPS } from '@/lib/webapps';
 import { formatDateTime } from '@/lib/format';
 import { describeUserAgent } from '@/lib/user-agent';
@@ -17,7 +18,8 @@ import styles from './app.module.css';
 
 /**
  * "Where you're signed in": the account's live sessions, each with a sign-out button and the app
- * it belongs to (single sign-on gives each app of a browser its own session, decision 108), then
+ * it belongs to (single sign-on gives each app of a browser its own session, decision 108) or the
+ * desktop program signed in from that device, then
  * "Sign out of this device everywhere" and "Sign out of all devices".
  */
 export async function ActiveSessions({ locale }: { locale: AppLocale }) {
@@ -29,6 +31,7 @@ export async function ActiveSessions({ locale }: { locale: AppLocale }) {
   const clientLabel = (client: string | null) => {
     const app = WEBAPPS.find((name) => name === client);
     if (app) return tapps(`apps.${app}.name`);
+    if (isNativeSsoClient(client)) return ta(`clients.${client}`);
     return client === 'site' ? ta('clients.site') : ta('clients.account');
   };
 

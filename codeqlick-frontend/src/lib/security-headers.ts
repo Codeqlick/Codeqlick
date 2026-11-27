@@ -28,7 +28,10 @@ export interface CspContext {
   app: string | null;
   /** The request's origin as the visitor sees it: `https://meetings.codeqlick.com`. */
   origin: string;
-  /** Origins forms may post or redirect to besides this one: the main host and every app host. */
+  /**
+   * Origins forms may post or redirect to besides this one: the main host and every app host and,
+   * on the account host, a desktop program's port on the person's own machine.
+   */
   siteOrigins: readonly string[];
   /** WebSockets on another origin (MEETINGS_WS_URL). */
   sockets?: readonly string[];

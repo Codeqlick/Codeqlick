@@ -31,10 +31,17 @@ export class SsoController {
     @CurrentUser() user: AuthUser,
     @Body({ schema: createSsoCodeSchema }) body: CreateSsoCodeInput,
   ): Promise<{ code: string; expiresIn: number }> {
-    return this.sso.createCode(user, body.client, body.codeChallenge);
+    return this.sso.createCode(user, {
+      client: body.client,
+      codeChallenge: body.codeChallenge,
+      redirectUri: body.redirectUri ?? null,
+    });
   }
 
-  /** The client host's server exchanges the code and its PKCE verifier for a session. */
+  /**
+   * The client host's server, or the desktop program itself, exchanges the code and its PKCE
+   * verifier for a session.
+   */
   @Public()
   @Throttle(PER_MINUTE(20))
   @Post('exchange')
@@ -44,9 +51,14 @@ export class SsoController {
     @Req() request: AppRequest,
   ): Promise<AuthTokens> {
     const userAgent = request.headers['user-agent'];
-    return this.sso.exchange(body.client, body.code, body.codeVerifier, {
-      userAgent: typeof userAgent === 'string' ? userAgent : null,
-      ip: request.ip ?? null,
-    });
+    return this.sso.exchange(
+      {
+        client: body.client,
+        code: body.code,
+        codeVerifier: body.codeVerifier,
+        redirectUri: body.redirectUri ?? null,
+      },
+      { userAgent: typeof userAgent === 'string' ? userAgent : null, ip: request.ip ?? null },
+    );
   }
 }

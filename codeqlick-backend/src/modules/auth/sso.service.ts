@@ -1,6 +1,10 @@
 import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import type { SsoClient } from '../../common/sso-clients.js';
+import {
+  isLoopbackRedirect,
+  isNativeSsoClient,
+  type AnySsoClient,
+} from '../../common/sso-clients.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { AuthRepository } from './auth.repository.js';
 import { AuthService, hashRefreshToken, type AuthTokens, type ClientInfo } from './auth.service.js';
@@ -23,10 +27,26 @@ export function pkceMatches(verifier: string, challenge: string): boolean {
 
 const INVALID_CODE = 'Invalid or expired code';
 
+/** What a code is asked for: the client, its PKCE challenge and, for a desktop program, its redirect. */
+export interface SsoCodeRequest {
+  client: AnySsoClient;
+  codeChallenge: string;
+  redirectUri: string | null;
+}
+
+/** What a code is exchanged with. */
+export interface SsoExchangeRequest {
+  client: AnySsoClient;
+  code: string;
+  codeVerifier: string;
+  redirectUri: string | null;
+}
+
 /**
  * Single sign-on (architecture 4.3, decision 108): the account host's session asks for a one-time
  * code for a client host; that host's server exchanges it, with the PKCE verifier only it knows,
- * for a session family of its own.
+ * for a session family of its own. A desktop program does the same from the person's machine, its
+ * code bound also to the loopback address the browser brought it to.
  */
 @Injectable()
 export class SsoService {
@@ -41,10 +61,15 @@ export class SsoService {
   /** A code for `client`, issued only to a live account-host session of an active account. */
   async createCode(
     user: AuthUser,
-    client: SsoClient,
-    codeChallenge: string,
+    { client, codeChallenge, redirectUri }: SsoCodeRequest,
     now = new Date(),
   ): Promise<{ code: string; expiresIn: number }> {
+    // The request's schema already holds this; kept here so no caller can store a web client's
+    // code with a redirect, or a desktop program's without one.
+    const native = isNativeSsoClient(client);
+    if (native ? !isLoopbackRedirect(redirectUri) : redirectUri !== null) {
+      throw new BadRequestException('Invalid redirect');
+    }
     if (user.via === 'token' || !user.sessionId) {
       throw new UnauthorizedException('A signed-in session is required');
     }
@@ -65,6 +90,7 @@ export class SsoService {
       userId: user.id,
       client,
       codeChallenge,
+      redirectUri,
       parentFamilyId: family.familyId,
       expiresAt: new Date(now.getTime() + SSO_CODE_TTL_SECONDS * 1000),
     });
@@ -73,9 +99,7 @@ export class SsoService {
 
   /** Spends a code with its verifier: tokens for a new session family of `client`. */
   async exchange(
-    client: SsoClient,
-    code: string,
-    codeVerifier: string,
+    { client, code, codeVerifier, redirectUri }: SsoExchangeRequest,
     info: ClientInfo = {},
     now = new Date(),
   ): Promise<AuthTokens> {
@@ -93,6 +117,9 @@ export class SsoService {
     if (!pkceMatches(codeVerifier, spent.codeChallenge)) {
       throw new BadRequestException(INVALID_CODE);
     }
+    // A desktop program's code works only with the exact address it was sent to; a web client's
+    // has none, so any address sent with it is wrong too.
+    if ((spent.redirectUri ?? null) !== redirectUri) throw new BadRequestException(INVALID_CODE);
     const parent = await this.sessions.findLiveFamily(spent.parentFamilyId, now);
     if (!parent || parent.userId !== spent.userId) throw new BadRequestException(INVALID_CODE);
     if (!spent.user.isActive || !spent.user.registeredAt) {

@@ -729,7 +729,8 @@
     },
     "clients": {
       "account": "Cuenta de Codeqlick",
-      "site": "codeqlick.com"
+      "site": "codeqlick.com",
+      "ageofvelkara": "Age of Velkara"
     },
     "failed": {
       "title": "No se completó el inicio de sesión",

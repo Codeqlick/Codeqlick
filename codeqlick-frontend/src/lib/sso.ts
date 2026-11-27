@@ -10,6 +10,10 @@
  *    the browser to the client's fixed callback, `/{locale}/auth/callback?code=&state=`.
  * 3. The callback checks `state` against its cookie and exchanges the code with the verifier for
  *    a session of its own.
+ *
+ * A desktop program (a native client) does steps 1 and 3 itself: it opens the system browser at the
+ * authorize page with a `redirect_uri` on its own machine (`http://127.0.0.1:<port>/callback`),
+ * where step 2 sends the code instead of to a host's callback.
  */
 import { ACCOUNT, accountHostFor, isAccountHost, mainHostOf } from './account-host';
 import { localeOf } from './locales';
@@ -27,6 +31,43 @@ export const SSO_COOKIE_MAX_AGE = 10 * 60;
 export function isSsoClient(value: unknown): value is SsoClient {
   return typeof value === 'string' && (SSO_CLIENTS as readonly string[]).includes(value);
 }
+
+/**
+ * Desktop programs that sign in through the system browser and a redirect to the person's own
+ * machine (Age of Velkara's game and launcher). They have no host, so they are not web apps.
+ */
+export const NATIVE_SSO_CLIENTS = ['ageofvelkara'] as const;
+export type NativeSsoClient = (typeof NATIVE_SSO_CLIENTS)[number];
+
+export function isNativeSsoClient(value: unknown): value is NativeSsoClient {
+  return typeof value === 'string' && (NATIVE_SSO_CLIENTS as readonly string[]).includes(value);
+}
+
+/**
+ * A native client's redirect: exactly `http://127.0.0.1:<port>/callback`, the port 1024–65535
+ * without leading zeros. The numeric loopback address, never the name `localhost`, which a hosts
+ * file or resolver could send elsewhere; plain http, because it never leaves the machine; no port
+ * below 1024, which only an administrator can listen on; and nothing else (no userinfo, other
+ * path, query or fragment), so the address the code is bound to is one exact string. The API
+ * applies the same rule.
+ */
+const LOOPBACK_REDIRECT = /^http:\/\/127\.0\.0\.1:([1-9][0-9]{3,4})\/callback$/;
+const MIN_LOOPBACK_PORT = 1024;
+const MAX_LOOPBACK_PORT = 65535;
+
+export function isLoopbackRedirect(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const match = LOOPBACK_REDIRECT.exec(value);
+  if (!match) return false;
+  const port = Number(match[1]);
+  return port >= MIN_LOOPBACK_PORT && port <= MAX_LOOPBACK_PORT;
+}
+
+/**
+ * Where the account host's forms may end up besides the platform's hosts: a native client's
+ * loopback redirect, reached by the redirects that follow a sign-in sent without JavaScript.
+ */
+export const NATIVE_REDIRECT_SOURCE = 'http://127.0.0.1:*';
 
 /** The client a host is: `site` for the main host, the app for an app's host, null for the account host. */
 export function ssoClientForHost(host: string): SsoClient | null {
@@ -144,23 +185,53 @@ export function decodeSsoCookie(raw: string | undefined): SsoCookie | null {
   }
 }
 
-/** A validated authorize request (the account host's `/{locale}/authorize`). */
+/**
+ * A validated authorize request (the account host's `/{locale}/authorize`): a web client, whose
+ * callback is fixed by its host, or a native client with its loopback redirect.
+ */
 export type AuthorizeRequest = {
-  client: SsoClient;
   state: string;
   codeChallenge: string;
   register: boolean;
-};
+} & ({ client: SsoClient; redirectUri: null } | { client: NativeSsoClient; redirectUri: string });
 
-/** Reads an authorize request's query; null when anything is missing or malformed. */
+/**
+ * Reads an authorize request's query; null when anything is missing or malformed. A
+ * `redirect_uri` is required of a native client and refused for a web client.
+ */
 export function parseAuthorizeQuery(query: URLSearchParams): AuthorizeRequest | null {
   const client = query.get('client');
   const state = query.get('state');
   const codeChallenge = query.get('code_challenge');
-  if (!isSsoClient(client) || !isValidState(state)) return null;
+  const redirectUri = query.get('redirect_uri');
+  if (!isValidState(state)) return null;
   if (!codeChallenge || !CHALLENGE.test(codeChallenge)) return null;
   if (query.get('code_challenge_method') !== 'S256') return null;
-  return { client, state, codeChallenge, register: query.get('screen') === 'register' };
+  const common = { state, codeChallenge, register: query.get('screen') === 'register' };
+  if (isSsoClient(client)) return redirectUri === null ? { ...common, client, redirectUri } : null;
+  if (isNativeSsoClient(client) && isLoopbackRedirect(redirectUri)) {
+    return { ...common, client, redirectUri };
+  }
+  return null;
+}
+
+/**
+ * Where the authorize page sends the code: a native client's own loopback address, else the web
+ * client's fixed callback on its host (from the account host's own host and protocol).
+ */
+export function authorizeTarget(
+  authorize: AuthorizeRequest,
+  code: string,
+  accountHost: string,
+  protocol: string,
+  locale: string,
+): string {
+  const target = new URL(
+    authorize.redirectUri ?? callbackUrl(authorize.client, accountHost, protocol, locale),
+  );
+  target.searchParams.set('code', code);
+  target.searchParams.set('state', authorize.state);
+  return target.toString();
 }
 
 /**
