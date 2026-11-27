@@ -7,6 +7,8 @@ export interface CreateSsoCodeData {
   userId: string;
   client: string;
   codeChallenge: string;
+  /** A desktop program's loopback redirect; null for a web client. */
+  redirectUri: string | null;
   parentFamilyId: string;
   expiresAt: Date;
 }

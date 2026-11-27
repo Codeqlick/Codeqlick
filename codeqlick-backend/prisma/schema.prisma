@@ -169,8 +169,8 @@ model Session {
   replacedById   String?   @map("replaced_by_id") @db.Uuid
   userAgent      String?   @map("user_agent")
   ip             String?
-  /// Single sign-on (decision 108): the host this session belongs to (`site` or a web app); null
-  /// for a sign-in on the account host itself.
+  /// Single sign-on (decision 108): the host this session belongs to (`site` or a web app) or the
+  /// desktop program (`ageofvelkara`); null for a sign-in on the account host itself.
   client         String?
   /// The account host's session (its family) whose code made this one; revoked with it.
   parentFamilyId String?   @map("parent_family_id") @db.Uuid
@@ -186,7 +186,7 @@ model Session {
 }
 
 /// A one-time single sign-on code (architecture 4.3, decision 108): only its SHA-256 is kept, for
-/// 60 seconds, bound to the user, the client host, the PKCE challenge and the account session.
+/// 60 seconds, bound to the user, the client, the PKCE challenge and the account session.
 model SsoCode {
   id             String    @id @default(uuid()) @db.Uuid
   codeHash       String    @unique @map("code_hash")
@@ -194,6 +194,9 @@ model SsoCode {
   client         String
   /// base64url(SHA-256(code_verifier)): PKCE S256.
   codeChallenge  String    @map("code_challenge")
+  /// A desktop program's loopback redirect (`http://127.0.0.1:<port>/callback`): the exchange
+  /// must name it again, exactly. Null for the website and the web apps, whose callbacks are fixed.
+  redirectUri    String?   @map("redirect_uri")
   /// The account host's session family that asked for the code.
   parentFamilyId String    @map("parent_family_id") @db.Uuid
   expiresAt      DateTime  @map("expires_at") @db.Timestamptz(3)
