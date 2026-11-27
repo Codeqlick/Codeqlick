@@ -21,8 +21,8 @@
   "dependencies": {
     "@simplewebauthn/browser": "14.0.0",
     "mdast-util-from-markdown": "2.1.0",
-    "next": "16.4.5",
-    "next-intl": "4.14.9",
+    "next": "16.4.6",
+    "next-intl": "4.16.1",
     "qrcode": "1.5.4",
     "react": "19.3.1",
     "react-dom": "19.3.1",
@@ -31,19 +31,19 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.14.0",
+    "@axe-core/playwright": "4.14.1",
     "@formatjs/icu-messageformat-parser": "3.5.23",
     "@lhci/cli": "0.16.1",
-    "@playwright/test": "1.64.1",
+    "@playwright/test": "1.65.1",
     "@types/mdast": "4.0.4",
     "@types/node": "24.19.2",
     "@types/qrcode": "1.5.6",
-    "@types/react": "19.3.0",
+    "@types/react": "19.3.1",
     "@types/react-dom": "19.3.0",
     "happy-dom": "21.0.4",
-    "oxlint": "1.91.0",
-    "prettier": "3.9.10",
+    "oxlint": "1.95.0",
+    "prettier": "3.10.1",
     "typescript": "7.0.2",
-    "vitest": "5.1.0"
+    "vitest": "5.1.1"
   }
 }
