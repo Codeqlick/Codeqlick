@@ -15,6 +15,7 @@ import { PrismaService } from '../src/prisma/prisma.service.js';
 const tag = randomUUID().slice(0, 8);
 const admin = { email: `e2e-invite-admin-${tag}@codeqlick.test`, password: 'invite-password-1' };
 const invitedEmail = `e2e-invite-client-${tag}@codeqlick.test`;
+const takerEmail = `e2e-invite-taker-${tag}@codeqlick.test`;
 
 describe('Welcome emails (e2e)', () => {
   let app: NestExpressApplication;
@@ -43,7 +44,9 @@ describe('Welcome emails (e2e)', () => {
 
   afterAll(async () => {
     if (prisma) {
-      await prisma.user.deleteMany({ where: { email: { in: [admin.email, invitedEmail] } } });
+      await prisma.user.deleteMany({
+        where: { email: { in: [admin.email, invitedEmail, takerEmail] } },
+      });
     }
     await app?.close();
   });
@@ -82,7 +85,8 @@ describe('Welcome emails (e2e)', () => {
     expect(latest).toBeDefined();
 
     const password = 'chosen-password-1';
-    const accept = { name: 'Grace Hopper', password, locale: 'es', acceptPrivacy: true };
+    const username = `Grace.H_${tag}`;
+    const accept = { name: 'Grace Hopper', username, password, locale: 'es', acceptPrivacy: true };
     await request(server).get('/v1/auth/register/invitation').query({ token }).expect(400);
     const invited = await request(server)
       .get('/v1/auth/register/invitation')
@@ -93,11 +97,41 @@ describe('Welcome emails (e2e)', () => {
       .post('/v1/auth/register/invitation')
       .send({ ...accept, token })
       .expect(400);
+    // The username is required, follows the rules and is unique ignoring capitals; a refused one
+    // leaves the invitation usable.
+    const { username: _omitted, ...withoutUsername } = accept;
+    await request(server)
+      .post('/v1/auth/register/invitation')
+      .set('X-Forwarded-For', '203.0.113.40')
+      .send({ ...withoutUsername, token: latest })
+      .expect(400);
+    await prisma.user.create({
+      data: {
+        email: takerEmail,
+        name: 'Taker',
+        role: Role.CLIENT,
+        passwordHash: 'x',
+        username: `grace_${tag}`,
+        usernameLower: `grace_${tag}`,
+      },
+    });
+    const taken = await request(server)
+      .post('/v1/auth/register/invitation')
+      .set('X-Forwarded-For', '203.0.113.40')
+      .send({ ...accept, username: `GRACE_${tag}`, token: latest })
+      .expect(409);
+    expect(taken.body.errors).toEqual([{ path: 'username', message: 'taken' }]);
+    await request(server)
+      .post('/v1/auth/register/invitation')
+      .set('X-Forwarded-For', '203.0.113.40')
+      .send({ ...accept, username: 'Admin', token: latest })
+      .expect(400);
     const signedIn = await request(server)
       .post('/v1/auth/register/invitation')
       .send({ ...accept, token: latest })
       .expect(200);
     expect(signedIn.body.accessToken).toBeDefined();
+    expect(signedIn.body.user.username).toBe(username);
     await request(server)
       .post('/v1/auth/register/invitation')
       .send({ ...accept, token: latest })
@@ -108,6 +142,8 @@ describe('Welcome emails (e2e)', () => {
       .expect(200);
     expect(await prisma.user.findUniqueOrThrow({ where: { id: userId } })).toMatchObject({
       name: 'Grace Hopper',
+      username,
+      usernameLower: username.toLowerCase(),
     });
 
     const actions = await prisma.activityLog.findMany({

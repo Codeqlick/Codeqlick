@@ -118,19 +118,21 @@ describe('Own account: name, email, export, deletion (e2e)', () => {
   it('lets each person hold a unique username, free again once they change it', async () => {
     const server = app.getHttpServer();
     const name = `ana_${tag}`;
+    // Capitals are kept as typed.
+    const typed = `Ana_${tag.toUpperCase()}`;
     const mine = await request(server)
       .put('/v1/auth/me/username')
       .set(auth('ana'))
-      .send({ username: `  Ana_${tag.toUpperCase()} ` })
+      .send({ username: `  ${typed} ` })
       .expect(200);
-    expect(mine.body).toMatchObject({ username: name });
+    expect(mine.body).toMatchObject({ username: typed });
     const me = await request(server).get('/v1/auth/me').set(auth('ana')).expect(200);
-    expect(me.body.username).toBe(name);
+    expect(me.body.username).toBe(typed);
 
-    // Taken for anyone else, available for its owner.
+    // Taken for anyone else in any capitals, available for its owner in any capitals.
     const check = await request(server)
       .get('/v1/auth/username/available')
-      .query({ username: name.toUpperCase() })
+      .query({ username: name })
       .set(auth('owner'))
       .expect(200);
     expect(check.body).toEqual({ username: name, available: false, reason: 'taken' });
@@ -140,17 +142,50 @@ describe('Own account: name, email, export, deletion (e2e)', () => {
       .set(auth('ana'))
       .expect(200);
     expect(own.body.available).toBe(true);
-    await request(server)
+    const signupCheck = await request(server)
+      .get('/v1/auth/register/username')
+      .query({ username: name.toUpperCase() })
+      .expect(200);
+    expect(signupCheck.body).toMatchObject({ available: false, reason: 'taken' });
+    const refused = await request(server)
       .put('/v1/auth/me/username')
       .set(auth('owner'))
       .send({ username: name })
       .expect(409);
+    expect(refused.body.errors).toEqual([{ path: 'username', message: 'taken' }]);
+    // The database refuses it too, whatever writes it.
+    await expect(
+      prisma.user.update({
+        where: { email: people.owner },
+        data: { username: name, usernameLower: name },
+      }),
+    ).rejects.toMatchObject({ code: 'P2002' });
 
-    // Rules: reserved, too short, odd characters, two dots.
-    for (const bad of ['admin', 'ab', 'ana-maria', 'ana..m']) {
+    // Changing only the capitals of your own is allowed.
+    const recased = await request(server)
+      .put('/v1/auth/me/username')
+      .set(auth('ana'))
+      .send({ username: name })
+      .expect(200);
+    expect(recased.body.username).toBe(name);
+
+    // The admin search finds it in any capitals.
+    const found = await request(server)
+      .get('/v1/admin/users')
+      .query({ q: `@${typed}` })
+      .set(auth('admin'))
+      .expect(200);
+    expect((found.body.items as { email: string }[]).map((user) => user.email)).toEqual([
+      people.ana,
+    ]);
+
+    // Rules: reserved in any capitals, too short, odd characters, two dots. From another address,
+    // so these don't use up the limit of changes the rest of the test needs.
+    for (const bad of ['admin', 'ADMIN', 'ab', 'ana-maria', 'ana..m']) {
       await request(server)
         .put('/v1/auth/me/username')
         .set(auth('owner'))
+        .set('X-Forwarded-For', '203.0.113.50')
         .send({ username: bad })
         .expect(400);
     }

@@ -34,6 +34,8 @@ export const resetPasswordSchema = z
 export const registerSchema = z
   .object({
     name: z.string().trim().min(1, 'required').max(120, 'tooLong'),
+    /** Its rules are checked apart, with the username's own messages. */
+    username: z.string().trim().min(1, 'required').max(40, 'tooLong'),
     email: z.string().trim().min(1, 'required').pipe(z.email('email')),
     password: z.string().min(12, 'password').max(256, 'tooLong'),
     confirmPassword: z.string(),

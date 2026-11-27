@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma, Session, User } from '../../generated/prisma/client.js';
+import { isUniqueViolation } from '../../common/prisma-errors.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { usernameColumns, usernameKey } from './username.js';
 
 export interface CreateSessionData {
   id: string;
@@ -16,6 +18,28 @@ export interface CreateSessionData {
 }
 
 export type SessionWithUser = Session & { user: User };
+
+/**
+ * How spending a sign-up or invitation token went. `username_taken`: someone else took the chosen
+ * username meanwhile; nothing was changed and the token can still be used with another one.
+ */
+export type SignupResult =
+  { status: 'done'; user: User } | { status: 'invalid' } | { status: 'username_taken' };
+
+type Tx = Prisma.TransactionClient;
+
+/** Whether someone other than `ownId` holds the username, in any capitals. */
+async function usernameHeldByOther(
+  tx: Tx | PrismaService,
+  username: string,
+  ownId: string | undefined,
+): Promise<boolean> {
+  const owner = await tx.user.findUnique({
+    where: { usernameLower: usernameKey(username) },
+    select: { id: true },
+  });
+  return owner !== null && owner.id !== ownId;
+}
 
 /** Persistence for users (read side) and refresh-token sessions. */
 @Injectable()
@@ -114,34 +138,60 @@ export class AuthRepository {
 
   /**
    * Spends a sign-up token: the email's account is created, or the unregistered one the team
-   * prepared becomes theirs. Null when the token can't be used or the email is registered already.
+   * prepared becomes theirs, with the username chosen at sign-up (or `username`, another one chosen
+   * since). `invalid` when the token can't be used or the email is registered already.
    */
-  async confirmSignup(tokenHash: string): Promise<User | null> {
-    return this.prisma.$transaction(async (tx) => {
-      const now = new Date();
-      const token = await tx.signupToken.findUnique({ where: { tokenHash } });
-      if (!token) return null;
-      const spent = await tx.signupToken.updateMany({
-        where: { id: token.id, usedAt: null, expiresAt: { gt: now } },
-        data: { usedAt: now },
-      });
-      if (spent.count !== 1) return null;
-      const existing = await tx.user.findUnique({ where: { email: token.email } });
-      const own = { name: token.name, passwordHash: token.passwordHash, locale: token.locale };
-      if (!existing) {
-        return tx.user.create({
-          data: {
-            ...own,
-            email: token.email,
-            role: 'CLIENT',
-            registeredAt: now,
-            signupApp: token.app,
-          },
+  async confirmSignup(tokenHash: string, username?: string): Promise<SignupResult> {
+    let chosen: string | null = null;
+    let ownId: string | undefined;
+    try {
+      return await this.prisma.$transaction(async (tx): Promise<SignupResult> => {
+        const now = new Date();
+        const token = await tx.signupToken.findUnique({ where: { tokenHash } });
+        if (!token || token.usedAt || token.expiresAt <= now) return { status: 'invalid' };
+        const existing = await tx.user.findUnique({ where: { email: token.email } });
+        if (existing && (existing.registeredAt || !existing.isActive)) return { status: 'invalid' };
+        ownId = existing?.id;
+        chosen = username ?? token.username;
+        // Before spending the token, so the person can still confirm with another username.
+        if (chosen !== null && (await usernameHeldByOther(tx, chosen, ownId))) {
+          return { status: 'username_taken' };
+        }
+        const spent = await tx.signupToken.updateMany({
+          where: { id: token.id, usedAt: null, expiresAt: { gt: now } },
+          data: { usedAt: now },
         });
-      }
-      if (existing.registeredAt || !existing.isActive) return null;
-      return tx.user.update({ where: { id: existing.id }, data: { ...own, registeredAt: now } });
-    });
+        if (spent.count !== 1) return { status: 'invalid' };
+        const own = {
+          name: token.name,
+          passwordHash: token.passwordHash,
+          locale: token.locale,
+          ...usernameColumns(chosen),
+        };
+        if (!existing) {
+          const user = await tx.user.create({
+            data: {
+              ...own,
+              email: token.email,
+              role: 'CLIENT',
+              registeredAt: now,
+              signupApp: token.app,
+            },
+          });
+          return { status: 'done', user };
+        }
+        const user = await tx.user.update({
+          where: { id: existing.id },
+          data: { ...own, registeredAt: now },
+        });
+        return { status: 'done', user };
+      });
+    } catch (error) {
+      // Someone saved the same username at the same moment: the transaction was rolled back, so
+      // the token is still unspent.
+      if (await this.lostUsernameRace(error, chosen, ownId)) return { status: 'username_taken' };
+      throw error;
+    }
   }
 
   /** The unregistered account an invitation token is for, while it can be used. */
@@ -155,25 +205,61 @@ export class AuthRepository {
     return token.user;
   }
 
-  /** Spends an invitation token: the account becomes theirs with the name and password chosen. */
+  /**
+   * Spends an invitation token: the account becomes theirs with the name, username and password
+   * chosen. `username_taken` (token unspent) when someone else holds the username.
+   */
   async acceptInvitation(
     tokenHash: string,
-    data: { name: string; passwordHash: string; locale: Prisma.UserUpdateInput['locale'] },
-  ): Promise<User | null> {
-    return this.prisma.$transaction(async (tx) => {
-      const now = new Date();
-      const token = await tx.passwordResetToken.findUnique({
-        where: { tokenHash },
-        include: { user: true },
+    data: {
+      name: string;
+      username: string;
+      passwordHash: string;
+      locale: Prisma.UserUpdateInput['locale'];
+    },
+  ): Promise<SignupResult> {
+    let ownId: string | undefined;
+    try {
+      return await this.prisma.$transaction(async (tx): Promise<SignupResult> => {
+        const now = new Date();
+        const token = await tx.passwordResetToken.findUnique({
+          where: { tokenHash },
+          include: { user: true },
+        });
+        if (!token || token.user.registeredAt || !token.user.isActive) return { status: 'invalid' };
+        if (token.usedAt || token.expiresAt <= now) return { status: 'invalid' };
+        ownId = token.userId;
+        if (await usernameHeldByOther(tx, data.username, ownId)) {
+          return { status: 'username_taken' };
+        }
+        const spent = await tx.passwordResetToken.updateMany({
+          where: { id: token.id, usedAt: null, expiresAt: { gt: now } },
+          data: { usedAt: now },
+        });
+        if (spent.count !== 1) return { status: 'invalid' };
+        const { username, ...rest } = data;
+        const user = await tx.user.update({
+          where: { id: token.userId },
+          data: { ...rest, ...usernameColumns(username), registeredAt: now },
+        });
+        return { status: 'done', user };
       });
-      if (!token || token.user.registeredAt || !token.user.isActive) return null;
-      const spent = await tx.passwordResetToken.updateMany({
-        where: { id: token.id, usedAt: null, expiresAt: { gt: now } },
-        data: { usedAt: now },
-      });
-      if (spent.count !== 1) return null;
-      return tx.user.update({ where: { id: token.userId }, data: { ...data, registeredAt: now } });
-    });
+    } catch (error) {
+      if (await this.lostUsernameRace(error, data.username, ownId)) {
+        return { status: 'username_taken' };
+      }
+      throw error;
+    }
+  }
+
+  /** A unique violation caused by someone else having just saved the same username. */
+  private async lostUsernameRace(
+    error: unknown,
+    username: string | null,
+    ownId: string | undefined,
+  ): Promise<boolean> {
+    if (!isUniqueViolation(error) || username === null) return false;
+    return usernameHeldByOther(this.prisma, username, ownId);
   }
 
   /**

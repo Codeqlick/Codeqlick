@@ -76,6 +76,7 @@
   "overrides": {
     "@nestjs/swagger": {
       "typescript": "$typescript"
-    }
+    },
+    "effect": "3.22.1"
   }
 }

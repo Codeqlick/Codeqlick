@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import type { Locale, User } from '../../generated/prisma/client.js';
+import { isUniqueViolation } from '../../common/prisma-errors.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { usernameColumns } from './username.js';
 
 export type EmailChangeResult =
   { status: 'done'; user: User; oldEmail: string } | { status: 'invalid' } | { status: 'taken' };
@@ -20,7 +22,7 @@ export class AccountRepository {
 
   updateProfile(
     id: string,
-    data: { name?: string; locale?: Locale; username?: string | null; avatarKey?: string | null },
+    data: { name?: string; locale?: Locale; avatarKey?: string | null },
   ): Promise<User> {
     return this.prisma.user.update({ where: { id }, data });
   }
@@ -34,9 +36,22 @@ export class AccountRepository {
     return new Set(rows.map((row) => row.avatarKey as string));
   }
 
-  /** Who holds a username now, if anyone. */
-  usernameOwner(username: string): Promise<{ id: string } | null> {
-    return this.prisma.user.findUnique({ where: { username }, select: { id: true } });
+  /** Who holds a username now, in any capitals (`key` is the lower-cased name), if anyone. */
+  usernameOwner(key: string): Promise<{ id: string } | null> {
+    return this.prisma.user.findUnique({ where: { usernameLower: key }, select: { id: true } });
+  }
+
+  /**
+   * Stores the username (null removes it) with its lower-cased key. Null when someone else holds
+   * it in any capitals: the unique index decides between two people saving it at once.
+   */
+  async setUsername(id: string, username: string | null): Promise<User | null> {
+    try {
+      return await this.prisma.user.update({ where: { id }, data: usernameColumns(username) });
+    } catch (error) {
+      if (isUniqueViolation(error)) return null;
+      throw error;
+    }
   }
 
   /** Replaces the user's pending email change with this one. */

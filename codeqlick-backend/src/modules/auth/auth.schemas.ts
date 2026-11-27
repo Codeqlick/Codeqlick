@@ -32,8 +32,16 @@ export const changePasswordSchema = z
   .strict();
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
+/**
+ * A username as typed: trimmed, capitals kept. Its rules (`USERNAME_PATTERN`, reserved names,
+ * taken) are checked by the username service, which answers each with a field error.
+ */
+export const usernameField = z.string().trim().max(40);
+
 const signupFields = {
   name: z.string().trim().min(1).max(120),
+  /** Every new account chooses its username. */
+  username: usernameField,
   password: z.string().min(12).max(256),
   /** Language of their account. */
   locale: accountLocaleSchema,
@@ -56,7 +64,17 @@ export const registerSchema = z
   .strict();
 export type RegisterInput = z.infer<typeof registerSchema>;
 
-export const confirmSignupSchema = z.object({ token: z.string().min(1).max(512) }).strict();
+/** The emailed sign-up token. */
+export const signupTokenSchema = z.object({ token: z.string().min(1).max(512) }).strict();
+export type SignupTokenInput = z.infer<typeof signupTokenSchema>;
+
+export const confirmSignupSchema = z
+  .object({
+    token: z.string().min(1).max(512),
+    /** Another username, when the one chosen at sign-up was taken before the email was confirmed. */
+    username: usernameField.optional(),
+  })
+  .strict();
 export type ConfirmSignupInput = z.infer<typeof confirmSignupSchema>;
 
 /** Accepting the team's invitation: its token proves the email. */
@@ -132,10 +150,13 @@ export const updateMeSchema = z
   .strict();
 export type UpdateMeInput = z.infer<typeof updateMeSchema>;
 
-/** Usernames: 3–20 of a-z, 0-9, `.` and `_`, starting and ending with a letter or digit, no `..`. */
-export const USERNAME_PATTERN = /^(?!.*\.\.)[a-z0-9](?:[a-z0-9._]{1,18})[a-z0-9]$/;
+/**
+ * Usernames: 3–20 of letters in either case, digits, `.` and `_`, starting and ending with a letter
+ * or digit, no `..`. Capitals are kept; uniqueness and reserved names ignore them.
+ */
+export const USERNAME_PATTERN = /^(?!.*\.\.)[A-Za-z0-9][A-Za-z0-9._]{1,18}[A-Za-z0-9]$/;
 
-/** Names nobody can take: the team's, the platform's and the apps'. */
+/** Names nobody can take, in any capitals: the team's, the platform's and the apps'. */
 export const RESERVED_USERNAMES = new Set([
   'admin',
   'administrator',
@@ -172,8 +193,6 @@ export const RESERVED_USERNAMES = new Set([
   'undefined',
   'anonymous',
 ]);
-
-export const usernameField = z.string().trim().toLowerCase().max(40);
 
 export const setUsernameSchema = z.object({ username: usernameField.nullable() }).strict();
 export type SetUsernameInput = z.infer<typeof setUsernameSchema>;

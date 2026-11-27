@@ -62,6 +62,7 @@ describe('Clients create their own account (e2e)', () => {
       .set('X-Forwarded-For', '203.0.113.29')
       .send({
         name: 'Bot',
+        username: `Bot_${tag}`,
         email: `bot-${tag}@mailinator.com`,
         password,
         locale: 'es',
@@ -74,7 +75,14 @@ describe('Clients create their own account (e2e)', () => {
 
   it('signs up with a confirmed email, and never says whether an email has an account', async () => {
     const server = app.getHttpServer();
-    const body = { name: 'Ada', email: fresh, password, locale: 'es', acceptPrivacy: true };
+    const body = {
+      name: 'Ada',
+      username: `Ada_${tag}`,
+      email: fresh,
+      password,
+      locale: 'es',
+      acceptPrivacy: true,
+    };
     await request(server)
       .post('/v1/auth/register')
       .set('X-Forwarded-For', '203.0.113.20')
@@ -94,7 +102,12 @@ describe('Clients create their own account (e2e)', () => {
       .post('/v1/auth/register/confirm')
       .send({ token })
       .expect(200);
-    expect(signedIn.body.user).toMatchObject({ email: fresh, name: 'Ada', role: 'CLIENT' });
+    expect(signedIn.body.user).toMatchObject({
+      email: fresh,
+      name: 'Ada',
+      role: 'CLIENT',
+      username: `Ada_${tag}`,
+    });
     await request(server).post('/v1/auth/register/confirm').send({ token }).expect(400);
     await request(server).post('/v1/auth/login').send({ email: fresh, password }).expect(200);
 
@@ -102,7 +115,7 @@ describe('Clients create their own account (e2e)', () => {
     await request(server)
       .post('/v1/auth/register')
       .set('X-Forwarded-For', '203.0.113.21')
-      .send({ ...body, password: 'someone-else-pass-1' })
+      .send({ ...body, username: `Ada2_${tag}`, password: 'someone-else-pass-1' })
       .expect(202);
     expect(to(fresh).at(-1)?.subject).toBe('Ya tienes una cuenta en Codeqlick');
     await request(server).post('/v1/auth/login').send({ email: fresh, password }).expect(200);
@@ -117,12 +130,82 @@ describe('Clients create their own account (e2e)', () => {
     expect(sent.length).toBe(before);
   });
 
+  it('asks for another username when someone took it before the email was confirmed', async () => {
+    const server = app.getHttpServer();
+    const email = `e2e-su-race-${tag}@codeqlick.test`;
+    const wanted = `Rita_${tag}`;
+    const body = { name: 'Rita', username: wanted, email, password, locale: 'en' };
+    await request(server)
+      .post('/v1/auth/register')
+      .set('X-Forwarded-For', '203.0.113.24')
+      .send({ ...body, acceptPrivacy: true })
+      .expect(202);
+    // The name isn't held while the email waits: someone else takes it, in other capitals.
+    await prisma.user.create({
+      data: {
+        email: `e2e-su-taker-${tag}@codeqlick.test`,
+        name: 'Taker',
+        role: Role.CLIENT,
+        passwordHash: 'x',
+        username: wanted.toLowerCase(),
+        usernameLower: wanted.toLowerCase(),
+      },
+    });
+    // Signing up with it now is refused at once, in any capitals.
+    const refusedAtOnce = await request(server)
+      .post('/v1/auth/register')
+      .set('X-Forwarded-For', '203.0.113.24')
+      .send({
+        ...body,
+        email: `e2e-su-race2-${tag}@codeqlick.test`,
+        username: wanted.toUpperCase(),
+        acceptPrivacy: true,
+      })
+      .expect(409);
+    expect(refusedAtOnce.body.errors).toEqual([{ path: 'username', message: 'taken' }]);
+
+    const token = tokenIn(to(email).at(-1), '/en/register/confirm');
+    const confirm = (extra: Record<string, string> = {}) =>
+      request(server)
+        .post('/v1/auth/register/confirm')
+        .set('X-Forwarded-For', '203.0.113.25')
+        .send({ token, ...extra });
+    const taken = await confirm().expect(409);
+    expect(taken.body.errors).toEqual([{ path: 'username', message: 'taken' }]);
+    expect(await prisma.user.count({ where: { email } })).toBe(0);
+    await confirm({ username: 'Admin' }).expect(400);
+
+    // The link still works with another one, kept as typed.
+    const signedIn = await confirm({ username: ` Rita.R_${tag} ` }).expect(200);
+    expect(signedIn.body.user).toMatchObject({ email, username: `Rita.R_${tag}` });
+    expect(await prisma.user.findUniqueOrThrow({ where: { email } })).toMatchObject({
+      username: `Rita.R_${tag}`,
+      usernameLower: `rita.r_${tag}`,
+    });
+    await confirm().expect(400);
+
+    // Before signing up, the form can ask whether a name is free.
+    const check = await request(server)
+      .get('/v1/auth/register/username')
+      .query({ username: `RITA.r_${tag}` })
+      .expect(200);
+    expect(check.body).toEqual({ username: `RITA.r_${tag}`, available: false, reason: 'taken' });
+  });
+
   it('sends the confirmation link back to the web app the person signed up from', async () => {
     const email = `e2e-su-app-${tag}@codeqlick.test`;
+    const eva = {
+      name: 'Eva',
+      username: `Eva_${tag}`,
+      email,
+      password,
+      locale: 'en',
+      acceptPrivacy: true,
+    };
     await request(app.getHttpServer())
       .post('/v1/auth/register')
       .set('X-Forwarded-For', '203.0.113.23')
-      .send({ name: 'Eva', email, password, locale: 'en', acceptPrivacy: true, app: 'citas' })
+      .send({ ...eva, app: 'citas' })
       .expect(202);
     const text = to(email).at(-1)?.text ?? '';
     expect(text).toMatch(
@@ -131,7 +214,7 @@ describe('Clients create their own account (e2e)', () => {
     await request(app.getHttpServer())
       .post('/v1/auth/register')
       .set('X-Forwarded-For', '203.0.113.23')
-      .send({ name: 'Eva', email, password, locale: 'en', acceptPrivacy: true, app: 'other' })
+      .send({ ...eva, app: 'other' })
       .expect(400);
 
     // Confirmed, the account remembers the app: the team sees an app user, not a client.
@@ -250,7 +333,14 @@ describe('Clients create their own account (e2e)', () => {
     await request(server)
       .post('/v1/auth/register')
       .set('X-Forwarded-For', '203.0.113.23')
-      .send({ name: 'Marta Ruiz', email: lead, password, locale: 'es', acceptPrivacy: true })
+      .send({
+        name: 'Marta Ruiz',
+        username: `Marta_${tag}`,
+        email: lead,
+        password,
+        locale: 'es',
+        acceptPrivacy: true,
+      })
       .expect(202);
     const token = tokenIn(to(lead).at(-1), '/es/register/confirm');
     const signedIn = await request(server)

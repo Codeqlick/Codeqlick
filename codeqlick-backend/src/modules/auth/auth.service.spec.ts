@@ -1,4 +1,9 @@
-import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type { JwtService } from '@nestjs/jwt';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ActivityService } from '../activity/activity.service.js';
@@ -10,6 +15,8 @@ import { totpCode } from './totp.js';
 import type { MailService } from '../mail/mail.service.js';
 import type { PasswordBreachService } from './password-breach.service.js';
 import type { PasswordService } from './password.service.js';
+import type { AccountRepository } from './account.repository.js';
+import { UsernameService } from './username.service.js';
 
 function makeUser(overrides: Partial<User> = {}): User {
   return {
@@ -49,6 +56,32 @@ function makeSession(user: User, overrides: Partial<Session> = {}): SessionWithU
   } as SessionWithUser;
 }
 
+/** A self-registration's body. */
+function signup(overrides: Record<string, unknown> = {}) {
+  return {
+    name: 'Ada',
+    username: 'Ada.L',
+    email: 'ada@example.com',
+    password: 'password1234',
+    locale: 'en',
+    acceptPrivacy: true,
+    ...overrides,
+  } as Parameters<AuthService['register']>[0];
+}
+
+/** The body that accepts the team's invitation. */
+function accept(overrides: Record<string, unknown> = {}) {
+  return {
+    token: 'invitation-token',
+    name: 'Ada',
+    username: 'Ada.L',
+    password: 'password1234',
+    locale: 'en',
+    acceptPrivacy: true,
+    ...overrides,
+  } as Parameters<AuthService['acceptInvitation']>[0];
+}
+
 describe('AuthService', () => {
   let repository: {
     findUserByEmail: ReturnType<typeof vi.fn>;
@@ -70,7 +103,12 @@ describe('AuthService', () => {
     revokeUserFamily: ReturnType<typeof vi.fn>;
     revokeOtherFamilies: ReturnType<typeof vi.fn>;
     listSessionUserAgents: ReturnType<typeof vi.fn>;
+    createSignupToken: ReturnType<typeof vi.fn>;
+    confirmSignup: ReturnType<typeof vi.fn>;
+    acceptInvitation: ReturnType<typeof vi.fn>;
   };
+  /** Who holds each username, by its lower-cased key (the account repository's view). */
+  let usernameOwners: Map<string, string>;
   let passwords: {
     hash: ReturnType<typeof vi.fn>;
     verify: ReturnType<typeof vi.fn>;
@@ -102,7 +140,19 @@ describe('AuthService', () => {
       revokeUserFamily: vi.fn().mockResolvedValue(true),
       revokeOtherFamilies: vi.fn().mockResolvedValue(undefined),
       listSessionUserAgents: vi.fn().mockResolvedValue([]),
+      createSignupToken: vi.fn().mockResolvedValue(undefined),
+      confirmSignup: vi.fn(),
+      acceptInvitation: vi.fn(),
     };
+    usernameOwners = new Map();
+    const accounts = {
+      findById: vi.fn().mockResolvedValue(null),
+      usernameOwner: vi.fn((key: string) => {
+        const id = usernameOwners.get(key);
+        return Promise.resolve(id ? { id } : null);
+      }),
+    };
+    const activity = { record: vi.fn().mockResolvedValue(undefined) } as unknown as ActivityService;
     passwords = {
       hash: vi.fn(),
       verify: vi.fn(),
@@ -128,8 +178,9 @@ describe('AuthService', () => {
       jwt as unknown as JwtService,
       config,
       mail as unknown as MailService,
-      { record: vi.fn().mockResolvedValue(undefined) } as unknown as ActivityService,
+      activity,
       breaches as unknown as PasswordBreachService,
+      new UsernameService(accounts as unknown as AccountRepository, activity),
     );
   });
 
@@ -521,18 +572,105 @@ describe('AuthService', () => {
     it('refuses a password found in a data breach before looking the email up', async () => {
       breaches.assertNotBreached.mockRejectedValue(new BadRequestException());
 
-      await expect(
-        service.register({
-          name: 'Ada',
-          email: 'ada@example.com',
-          password: 'password1234',
-          locale: 'en',
-          acceptPrivacy: true,
-        } as Parameters<AuthService['register']>[0]),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(service.register(signup())).rejects.toBeInstanceOf(BadRequestException);
       expect(breaches.assertNotBreached).toHaveBeenCalledWith('password1234', 'password');
       expect(repository.findUserByEmail).not.toHaveBeenCalled();
       expect(mail.send).not.toHaveBeenCalled();
+    });
+
+    it('keeps the username with its capitals in the pending sign-up', async () => {
+      repository.findUserByEmail.mockResolvedValue(null);
+      passwords.hash.mockResolvedValue('$argon2id$hash');
+
+      await service.register(signup({ username: ' @Ada.L ' }));
+
+      expect(repository.createSignupToken).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'ada@example.com', username: 'Ada.L' }),
+      );
+      expect(mail.send).toHaveBeenCalledTimes(1);
+    });
+
+    it('refuses a username taken in other capitals before looking the email up', async () => {
+      usernameOwners.set('ada.l', 'someone-else');
+
+      const error = await service.register(signup()).catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ConflictException);
+      expect((error as ConflictException).getResponse()).toMatchObject({
+        errors: [{ path: 'username', message: 'taken' }],
+      });
+      expect(repository.findUserByEmail).not.toHaveBeenCalled();
+      expect(repository.createSignupToken).not.toHaveBeenCalled();
+    });
+
+    it('refuses invalid and reserved usernames, in any capitals', async () => {
+      for (const [username, reason] of [
+        ['ab', 'invalid'],
+        ['ada..l', 'invalid'],
+        ['ADMIN', 'reserved'],
+        ['Code.Qlick', 'reserved'],
+      ]) {
+        const error = await service
+          .register(signup({ username }))
+          .catch((caught: unknown) => caught);
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect((error as BadRequestException).getResponse()).toMatchObject({
+          errors: [{ path: 'username', message: reason }],
+        });
+      }
+      expect(repository.createSignupToken).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('confirmSignup', () => {
+    it('signs in once the account is made', async () => {
+      const user = makeUser({ role: 'CLIENT', username: 'Ada.L' });
+      repository.confirmSignup.mockResolvedValue({ status: 'done', user });
+
+      const tokens = await service.confirmSignup('signup-token');
+
+      expect(repository.confirmSignup).toHaveBeenCalledWith(
+        hashRefreshToken('signup-token'),
+        undefined,
+      );
+      expect(tokens.user.id).toBe(user.id);
+    });
+
+    it('answers 409 username: taken when the name was taken before the email was confirmed', async () => {
+      repository.confirmSignup.mockResolvedValue({ status: 'username_taken' });
+
+      const error = await service.confirmSignup('signup-token').catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ConflictException);
+      expect((error as ConflictException).getResponse()).toMatchObject({
+        errors: [{ path: 'username', message: 'taken' }],
+      });
+      expect(repository.createSession).not.toHaveBeenCalled();
+    });
+
+    it('confirms with another username, checking its rules first', async () => {
+      repository.confirmSignup.mockResolvedValue({
+        status: 'done',
+        user: makeUser({ role: 'CLIENT' }),
+      });
+
+      await service.confirmSignup('signup-token', {}, '  @Ada_2 ');
+      expect(repository.confirmSignup).toHaveBeenCalledWith(
+        hashRefreshToken('signup-token'),
+        'Ada_2',
+      );
+
+      repository.confirmSignup.mockClear();
+      await expect(service.confirmSignup('signup-token', {}, 'Support')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(repository.confirmSignup).not.toHaveBeenCalled();
+    });
+
+    it('still refuses an unknown or spent link', async () => {
+      repository.confirmSignup.mockResolvedValue({ status: 'invalid' });
+
+      await expect(service.confirmSignup('bad-token')).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 
@@ -540,16 +678,44 @@ describe('AuthService', () => {
     it('refuses a password found in a data breach without accepting the invitation', async () => {
       breaches.assertNotBreached.mockRejectedValue(new BadRequestException());
 
-      await expect(
-        service.acceptInvitation({
-          token: 'invitation-token',
-          name: 'Ada',
-          password: 'password1234',
-          locale: 'en',
-          acceptPrivacy: true,
-        } as Parameters<AuthService['acceptInvitation']>[0]),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(service.acceptInvitation(accept())).rejects.toBeInstanceOf(BadRequestException);
       expect(breaches.assertNotBreached).toHaveBeenCalledWith('password1234', 'password');
+      expect(repository.acceptInvitation).not.toHaveBeenCalled();
+    });
+
+    it('makes the account with the username as chosen, capitals kept', async () => {
+      passwords.hash.mockResolvedValue('$argon2id$hash');
+      repository.acceptInvitation.mockResolvedValue({
+        status: 'done',
+        user: makeUser({ role: 'CLIENT' }),
+      });
+
+      await service.acceptInvitation(accept({ username: ' Ada.L ' }));
+
+      expect(repository.acceptInvitation).toHaveBeenCalledWith(
+        hashRefreshToken('invitation-token'),
+        expect.objectContaining({ name: 'Ada', username: 'Ada.L' }),
+      );
+    });
+
+    it('refuses a reserved username in any capitals without spending the invitation', async () => {
+      const error = await service
+        .acceptInvitation(accept({ username: 'Admin' }))
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(BadRequestException);
+      expect((error as BadRequestException).getResponse()).toMatchObject({
+        errors: [{ path: 'username', message: 'reserved' }],
+      });
+      expect(repository.acceptInvitation).not.toHaveBeenCalled();
+    });
+
+    it('answers 409 username: taken when someone else holds the name', async () => {
+      passwords.hash.mockResolvedValue('$argon2id$hash');
+      repository.acceptInvitation.mockResolvedValue({ status: 'username_taken' });
+
+      await expect(service.acceptInvitation(accept())).rejects.toBeInstanceOf(ConflictException);
+      expect(repository.createSession).not.toHaveBeenCalled();
     });
   });
 

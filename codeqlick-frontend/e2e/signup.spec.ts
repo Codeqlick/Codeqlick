@@ -7,7 +7,13 @@ test('a visitor signs up, confirms their email and lands in the portal', async (
   const email = `e2e-signup-${tag}@codeqlick.test`;
 
   await page.goto('/es/register');
-  await page.getByLabel('Nombre').fill(`Ada ${tag}`);
+  await page.getByLabel('Nombre', { exact: true }).fill(`Ada ${tag}`);
+  // Every new account chooses its username: the page says whether it is free, capitals kept.
+  const chosen = page.getByLabel('Nombre de usuario');
+  await chosen.fill('Admin');
+  await expect(page.getByText('Ese nombre está reservado. Prueba con otro.')).toBeVisible();
+  await chosen.fill(`Ada_${tag}`);
+  await expect(page.getByText(`@Ada_${tag} está libre.`)).toBeVisible();
   await page.getByLabel('Correo electrónico').fill(email);
   await page.getByLabel('Contraseña', { exact: true }).fill(`signup-pass-${tag}-0`);
   await page.getByLabel('Repite la contraseña').fill(`signup-pass-${tag}-0`);
@@ -22,13 +28,14 @@ test('a visitor signs up, confirms their email and lands in the portal', async (
   await page.getByRole('button', { name: 'Confirmar y entrar' }).click();
   await page.waitForURL(/account\.[^/]+\/es$/);
   await expect(page.getByText(`Sesión iniciada como Ada ${tag}`)).toBeVisible();
+  await expect(page.getByText(`@Ada_${tag} · Sesión iniciada como ${email}`)).toBeVisible();
 
   // The website's portal signs them in through the account host, without asking.
   await page.goto('/es/portal');
   await expect(page).toHaveURL(/\/es\/portal$/);
   await expect(page.getByText(`Sesión iniciada como Ada ${tag}`)).toBeVisible();
 
-  // A username of their own: the page says it is free, and taken names are refused.
+  // Changing it: reserved names are refused, and only changing its capitals is allowed.
   await page.goto(accountUrl('/es/profile'));
   const username = page.getByLabel('Nombre de usuario');
   await username.fill('admin');

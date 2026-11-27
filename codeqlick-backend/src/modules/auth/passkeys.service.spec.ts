@@ -21,6 +21,7 @@ import {
   signedChallenge,
 } from './passkeys.service.js';
 import type { PasswordBreachService } from './password-breach.service.js';
+import type { UsernameService } from './username.service.js';
 import type { PasswordService } from './password.service.js';
 
 // The verifications are mocked: e2e tests run them for real with a software authenticator.
@@ -194,6 +195,7 @@ describe('PasskeyService', () => {
       mail as unknown as MailService,
       activity as unknown as ActivityService,
       {} as PasswordBreachService,
+      {} as UsernameService,
     );
     service = new PasskeyService(
       repository as unknown as PasskeyRepository,

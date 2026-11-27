@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormCheckbox, FormInput } from '@/components/app/ActionForm';
 import { Turnstile } from '@/components/app/Turnstile';
+import { UsernameField } from '@/components/app/UsernameField';
 import styles from '@/components/app/app.module.css';
 import { Logo } from '@/components/brand/Logo';
 import { Alert } from '@/components/ui/Alert';
@@ -17,7 +18,7 @@ import { homeAfterSignIn } from '@/lib/webapp-request';
 import { env } from '@/lib/env';
 import { firstParam } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
-import { registerAction } from './actions';
+import { checkSignupUsernameAction, registerAction } from './actions';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -89,6 +90,7 @@ export default async function RegisterPage({ params, searchParams }: PageProps) 
                   defaultValue={invited?.name}
                   required
                 />
+                <UsernameField current={null} check={checkSignupUsernameAction} required />
                 {invited ? (
                   <>
                     <input type="hidden" name="email" value={invited.email} />

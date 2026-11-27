@@ -4,16 +4,20 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { FormInput } from '@/components/app/ActionForm';
 import type { UsernameCheck } from '@/lib/api/auth';
+import { normalizeUsername } from '@/lib/username';
 
 type UsernameFieldProps = {
   current: string | null;
   check: (username: string) => Promise<UsernameCheck | null>;
+  /** On the sign-up forms, where every new account chooses one. */
+  required?: boolean;
 };
 
-const normalize = (value: string) => value.trim().toLowerCase().replace(/^@/, '');
-
-/** The username input, telling as you type whether the name is free (architecture 6). */
-export function UsernameField({ current, check }: UsernameFieldProps) {
+/**
+ * The username input, telling as you type whether the name is free. Capitals are kept as typed;
+ * the check ignores them, so the own name in other capitals counts as free.
+ */
+export function UsernameField({ current, check, required }: UsernameFieldProps) {
   const t = useTranslations('Account.username');
   const [typed, setTyped] = useState(current ?? '');
   const [result, setResult] = useState<UsernameCheck | null>(null);
@@ -23,7 +27,7 @@ export function UsernameField({ current, check }: UsernameFieldProps) {
   useEffect(() => () => clearTimeout(timer.current), []);
 
   function changed(value: string) {
-    const name = normalize(value);
+    const name = normalizeUsername(value);
     setTyped(name);
     setResult(null);
     latest.current = name;
@@ -53,6 +57,7 @@ export function UsernameField({ current, check }: UsernameFieldProps) {
       autoCapitalize="none"
       spellCheck={false}
       maxLength={21}
+      required={required}
       aria-live="polite"
     />
   );

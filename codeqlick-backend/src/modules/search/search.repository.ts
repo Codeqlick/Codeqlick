@@ -81,8 +81,8 @@ export class SearchRepository {
         OR: [
           { name: contains(q) },
           { email: contains(q) },
-          // Usernames are stored lower-cased and shown as @name.
-          { username: { contains: q.replace(/^@/, '').toLowerCase() } },
+          // Shown as @name; matched on the lower-cased key, so any capitals find it.
+          { usernameLower: { contains: q.replace(/^@/, '').toLowerCase() } },
         ],
       },
       orderBy: [...RECENT_FIRST],
